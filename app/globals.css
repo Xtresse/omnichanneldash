@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Self-host Google Fonts via @import (Next 14 will inline) */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  --paper: #f4ede0;
+  --paper-2: #ece3d3;
+  --ink: #2b1a10;
+  --ink-soft: #5a4232;
+  --rule: #d8cab2;
+  --accent: #7a3d23;
+  --b2b: #7a3d23;
+  --dtc: #3a7a6f;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Inputs / buttons get sans + 16px to prevent iOS auto-zoom */
+input, select, button, textarea {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 16px;
+}
+
+/* Hide scrollbars on horizontal-scroll filter bar */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Recharts tooltip overrides for paper aesthetic */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+.recharts-default-tooltip {
+  background: #fff !important;
+  border: 1px solid var(--rule) !important;
+  border-radius: 6px !important;
+  font-family: Inter, system-ui, sans-serif !important;
+  font-size: 12px !important;
+}
+.recharts-cartesian-axis-tick-value {
+  font-family: Inter, system-ui, sans-serif !important;
+  font-size: 11px !important;
+  fill: var(--ink-soft) !important;
+}
+.recharts-legend-item-text {
+  font-family: Inter, system-ui, sans-serif !important;
+  font-size: 12px !important;
+  color: var(--ink-soft) !important;
+}
