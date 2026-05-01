@@ -8,22 +8,22 @@ module.exports = {
     extend: {
       colors: {
         paper: "#f4ede0",
-        paper2: "#ece3d3",
+        paper2: "#fbf6ed",   // lighter than paper, used for cards / tiles
         ink: "#2b1a10",
         inksoft: "#5a4232",
         rule: "#d8cab2",
-        brown: "#3c1f15",
+        brown: "#3c1f15",     // dark brown — used for section banners
         accent: "#7a3d23",
         b2b: "#7a3d23",
         dtc: "#3a7a6f",
         muted: "#8a7359",
+        tan: "#a89478",       // mid tan — table sub-headers
       },
       fontFamily: {
         serif: ["'Cormorant Garamond'", "Georgia", "serif"],
         sans: ["Inter", "system-ui", "sans-serif"],
       },
       fontSize: {
-        // 16px base on inputs to prevent iOS auto-zoom
         body: ["16px", { lineHeight: "1.5" }],
       },
       minHeight: {
