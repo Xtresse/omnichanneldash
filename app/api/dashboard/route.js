@@ -5,11 +5,11 @@ export const dynamic = "force-dynamic";
 export const revalidate = 300; // 5 min
 
 const ALLOWED_PRESETS = new Set([
-  "last_7_days",
-  "last_30_days",
-  "last_3_months",
-  "last_6_months",
-  "last_12_months",
+  "last_7d",
+  "last_30d",
+  "last_3m",
+  "last_6m",
+  "last_12m",
   "last_year",
   "this_year",
   "last_2years",
