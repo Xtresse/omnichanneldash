@@ -13,12 +13,11 @@ const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 export default function KpiTiles({ kpis }) {
   if (!kpis) return null;
 
-  // Three primary tiles: B2B (incl ADCS), ADCS sub-bucket, DTC.
-  // B2B is the headline — its value matches Sam's bookkeeping reconciliation
-  // when 'Last year' (2025) is selected: ~$4.25M.
+  // Three MUTUALLY EXCLUSIVE buckets that sum to total net sales.
+  // B2B excludes ADCS now (per Sam's request). ADCS is its own line.
   const tiles = [
     {
-      label: "B2B net sales (incl. ADCS)",
+      label: "B2B net sales",
       value: fmtCurrency(kpis.b2bNetSales),
       sub: `${fmtPct(kpis.b2bShare)} of total · ${fmtNum(kpis.b2bOrders)} orders · AOV ${fmtCurrency(
         kpis.b2bAOV
@@ -26,10 +25,10 @@ export default function KpiTiles({ kpis }) {
       tone: "primary",
     },
     {
-      label: "ADCS (sub-bucket of B2B)",
+      label: "ADCS net sales",
       value: fmtCurrency(kpis.adcsNetSales),
-      sub: `${fmtNum(kpis.adcsOrders)} orders · B2B excl. ADCS = ${fmtCurrency(
-        kpis.b2bExclAdcsNetSales
+      sub: `${fmtPct(kpis.adcsShare)} of total · ${fmtNum(kpis.adcsOrders)} orders · AOV ${fmtCurrency(
+        kpis.adcsAOV
       )}`,
       tone: "accent",
     },
@@ -53,9 +52,12 @@ export default function KpiTiles({ kpis }) {
 }
 
 function Tile({ label, value, sub, tone }) {
-  // Same paper2 background; left-border accent strip differentiates the three tones
   const stripe =
-    tone === "primary" ? "before:bg-brown" : tone === "accent" ? "before:bg-accent" : "before:bg-tan";
+    tone === "primary"
+      ? "before:bg-brown"
+      : tone === "accent"
+      ? "before:bg-accent"
+      : "before:bg-tan";
   return (
     <div
       className={`relative bg-card border border-rule rounded-xl px-4 py-3.5 md:px-5 md:py-4 overflow-hidden

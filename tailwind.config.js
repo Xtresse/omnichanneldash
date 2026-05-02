@@ -7,19 +7,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        paper: "#f4ede0",
-        paper2: "#fbf6ed",   // lighter than paper, used as filter-bar surface
-        card: "#fdfaf2",     // off-white card surface that floats above paper
+        paper: "#f5f1ea",     // page background — matches leadership PAGE_BG
+        paper2: "#faf7f2",    // soft cream — matches leadership SOFT_BG (filter bar, subtotal rows)
+        card: "#ffffff",      // pure white card surface — matches leadership
         ink: "#2b1a10",
         inksoft: "#5a4232",
-        rule: "#d8cab2",
-        brown: "#3c1f15",     // dark brown — primary brand
-        browndeep: "#2a1410", // deeper brown — section banners
-        accent: "#7a3d23",
-        b2b: "#7a3d23",
+        rule: "#d4d0c8",      // matches leadership BORDER
+        brown: "#5c2a1a",     // RUST primary brand — matches leadership RUST
+        browndeep: "#3f1c0f", // section banners — matches leadership banner color
+        accent: "#7a3a2d",    // matches leadership RUST_LT
+        b2b: "#5c2a1a",
         dtc: "#3a7a6f",
         muted: "#8a7359",
-        tan: "#a89478",       // mid tan — table sub-headers
+        tan: "#a89478",
       },
       fontFamily: {
         serif: ["'Cormorant Garamond'", "Georgia", "serif"],

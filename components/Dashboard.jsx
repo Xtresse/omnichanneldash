@@ -4,6 +4,9 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import KpiTiles from "./KpiTiles.jsx";
 import FilterBar from "./FilterBar.jsx";
 import OrdersTable from "./OrdersTable.jsx";
+import RepPerformance from "./RepPerformance.jsx";
+import RepTrendChart from "./charts/RepTrendChart.jsx";
+import ExportButton from "./ExportButton.jsx";
 import RevenueByChannel from "./charts/RevenueByChannel.jsx";
 import OrdersByChannel from "./charts/OrdersByChannel.jsx";
 import AOVByChannel from "./charts/AOVByChannel.jsx";
@@ -110,10 +113,10 @@ export default function Dashboard({ initial }) {
         <header className="flex items-start justify-between gap-3 flex-wrap mb-4 md:mb-6">
           <div className="min-w-0">
             <h1 className="font-display text-3xl md:text-5xl font-semibold text-brown leading-none tracking-tight">
-              Xtressé Omnichannel
+              Xtresse Omni Channel Dashboard
             </h1>
             <p className="font-sans text-xs md:text-sm text-muted mt-2 md:mt-3 leading-snug">
-              Net sales from Shopify via Windsor.ai · ADCS rolled into B2B
+              Net sales from Shopify via Windsor.ai · B2B / ADCS / DTC are mutually exclusive
               {data && (
                 <>
                   {" / "}
@@ -124,15 +127,18 @@ export default function Dashboard({ initial }) {
               )}
             </p>
           </div>
-          {data && (
-            <div className="font-sans text-[10px] md:text-xs text-muted shrink-0 mt-1">
-              Refreshed{" "}
-              {new Date(data.generatedAt).toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </div>
-          )}
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            {data && (
+              <div className="font-sans text-[10px] md:text-xs text-muted">
+                Refreshed{" "}
+                {new Date(data.generatedAt).toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </div>
+            )}
+            {data && <ExportButton data={data} periodLabel={periodLabel} />}
+          </div>
         </header>
 
         <div className="mb-4 md:mb-6">
@@ -225,6 +231,31 @@ export default function Dashboard({ initial }) {
                   <FulfillmentSplit data={data.fulfillmentSplit} />
                 </ChartCell>
               </ChartGrid>
+            </Section>
+
+            <Section
+              title="Sales by rep"
+              detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
+            >
+              <ChartGrid>
+                <ChartCell title="Net sales by rep" subtitle="Monthly trend, click chips to toggle">
+                  <RepTrendChart
+                    data={data.repSalesMonthly || []}
+                    reps={data.repsList || []}
+                    valueType="currency"
+                  />
+                </ChartCell>
+                <ChartCell title="New accounts by rep" subtitle="First-time customers per month, by rep">
+                  <RepTrendChart
+                    data={data.repNewAccountsMonthly || []}
+                    reps={data.repsList || []}
+                    valueType="count"
+                  />
+                </ChartCell>
+              </ChartGrid>
+              <div className="mt-3 md:mt-4">
+                <RepPerformance repPerformance={data.repPerformance || []} />
+              </div>
             </Section>
 
             <Section

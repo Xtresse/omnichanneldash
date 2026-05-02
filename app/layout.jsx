@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Xtresse Omnichannel",
-  description: "B2B + DTC unified analytics — Xtresse",
+  title: "Xtresse Omni Channel Dashboard",
+  description: "B2B + ADCS + DTC unified analytics — Xtresse",
 };
 
 // CRITICAL for mobile: tells iOS/Android browsers to render at device width
