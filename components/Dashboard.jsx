@@ -7,6 +7,7 @@ import OrdersTable from "./OrdersTable.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
+import ChatPanel from "./ChatPanel.jsx";
 import RevenueByChannel from "./charts/RevenueByChannel.jsx";
 import OrdersByChannel from "./charts/OrdersByChannel.jsx";
 import AOVByChannel from "./charts/AOVByChannel.jsx";
@@ -97,6 +98,10 @@ export default function Dashboard({ initial }) {
     ? `${customFrom} → ${customTo}`
     : "Selected period";
 
+  // Charts bucket by day for windows ≤ 100 days, by month otherwise.
+  const isDaily = data?.granularity === "day";
+  const G = isDaily ? "Daily" : "Monthly";
+
   return (
     <main className="min-h-screen pb-12">
       <div className="max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-7">
@@ -164,18 +169,19 @@ export default function Dashboard({ initial }) {
 
             <div className="mb-5 md:mb-7 rounded-xl border border-rule bg-card px-3 py-2.5 md:px-4 md:py-3">
               <p className="font-sans text-[11px] md:text-xs leading-snug text-inksoft">
-                <span className="font-semibold text-ink">DTC backfill pending</span>
-                {" — "}Windsor only has DTC Shopify data from 3/31/26 forward. Long-range DTC trends
-                will fill in once the historical range is extended.
+                <span className="font-semibold text-ink">DTC data starts 4/1/2026</span>
+                {" — "}Windsor's DTC feed didn't exist before that date, so periods covering earlier
+                history will show $0 DTC. Untagged orders before 4/1/2026 are treated as B2B (not DTC)
+                so the channel split stays accurate.
               </p>
             </div>
 
             <Section title="Top-line performance" detail="Tier 1 / 5 charts">
               <ChartGrid>
-                <ChartCell title="Net sales by channel" subtitle="Monthly, B2B vs DTC">
+                <ChartCell title="Net sales by channel" subtitle={`${G}, B2B vs DTC`}>
                   <RevenueByChannel data={data.monthlySeries} />
                 </ChartCell>
-                <ChartCell title="Order count by channel" subtitle="Monthly">
+                <ChartCell title="Order count by channel" subtitle={G}>
                   <OrdersByChannel data={data.monthlySeries} />
                 </ChartCell>
                 <ChartCell title="Average order value" subtitle="Net basis, dual axis">
@@ -192,16 +198,16 @@ export default function Dashboard({ initial }) {
 
             <Section title="Customer dynamics" detail="Tier 2 / 4 charts">
               <ChartGrid>
-                <ChartCell title="New vs returning — B2B" subtitle="Monthly stacked">
+                <ChartCell title="New vs returning — B2B" subtitle={`${G} stacked`}>
                   <NewVsReturning data={data.customerDynamics} channel="B2B" />
                 </ChartCell>
-                <ChartCell title="New vs returning — DTC" subtitle="Monthly stacked">
+                <ChartCell title="New vs returning — DTC" subtitle={`${G} stacked`}>
                   <NewVsReturning data={data.customerDynamics} channel="DTC" />
                 </ChartCell>
-                <ChartCell title="Repeat purchase rate" subtitle="% returning, monthly">
+                <ChartCell title="Repeat purchase rate" subtitle={`% returning, ${G.toLowerCase()}`}>
                   <RepeatRate data={data.repeatRate} />
                 </ChartCell>
-                <ChartCell title="DTC subscription vs one-time" subtitle="Net sales mix, monthly">
+                <ChartCell title="DTC subscription vs one-time" subtitle={`Net sales mix, ${G.toLowerCase()}`}>
                   <SubVsOneTime data={data.subVsOneTime} />
                 </ChartCell>
               </ChartGrid>
@@ -226,14 +232,14 @@ export default function Dashboard({ initial }) {
               detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
             >
               <ChartGrid>
-                <ChartCell title="Net sales by rep" subtitle="Monthly trend, click chips to toggle">
+                <ChartCell title="Net sales by rep" subtitle={`${G} trend · click chips to toggle`}>
                   <RepTrendChart
                     data={data.repSalesMonthly || []}
                     reps={data.repsList || []}
                     valueType="currency"
                   />
                 </ChartCell>
-                <ChartCell title="New accounts by rep" subtitle="First-time customers per month, by rep">
+                <ChartCell title="New accounts by rep" subtitle={`First-time customers per ${isDaily ? "day" : "month"}, by rep`}>
                   <RepTrendChart
                     data={data.repNewAccountsMonthly || []}
                     reps={data.repsList || []}
@@ -272,12 +278,17 @@ export default function Dashboard({ initial }) {
 
             <footer className="font-sans text-[10px] md:text-xs text-muted mt-10 border-t border-rule pt-4 leading-relaxed">
               <p>
-                Revenue metric: <code className="bg-card border border-rule px-1 rounded">order_net_sales</code>
-                {" "}from Windsor (gross − discounts − returns; test & cancelled orders excluded).
-                Channel: B2B if tagged{" "}
-                <code className="bg-card border border-rule px-1 rounded">b2b</code>,{" "}
-                <code className="bg-card border border-rule px-1 rounded">ADCS</code>, contains a rep
-                name, or uses a B2B-pattern code (REP-, XVIE-numeric, B2B-, ADCS-). Otherwise DTC.
+                Revenue metric: net sales (gross − discounts − refunds; test & cancelled orders
+                excluded). Channel: <strong>ADCS</strong> if tagged{" "}
+                <code className="bg-card border border-rule px-1 rounded">adcs</code> or{" "}
+                <code className="bg-card border border-rule px-1 rounded">advanced derm</code>;
+                {" "}<strong>B2B</strong> if a canonical rep tag is present, or if any tag is{" "}
+                <code className="bg-card border border-rule px-1 rounded">b2b</code> /
+                <code className="bg-card border border-rule px-1 rounded">wholesale</code>, or if a
+                B2B-pattern discount code (REP-/XVIE\d+/B2B-/ADCS-) is used; <strong>DTC</strong> otherwise.
+                Orders containing the DTC carve-out SKUs (X-GN-060CT-001, X-FRC-30ML-001) are
+                forced to DTC. Windsor only began returning DTC data on 2026-04-01, so any pre-2026-04-01
+                order without an explicit B2B/ADCS signal is treated as untagged B2B (not DTC).
                 Line-item metrics use proportional net allocation: line_net = order_net ×
                 (line_revenue / order_subtotal).
               </p>
@@ -285,6 +296,10 @@ export default function Dashboard({ initial }) {
           </>
         )}
       </div>
+
+      {/* Floating AI chat — visible on every screen size, scoped to the
+          currently-loaded dashboard data. */}
+      {data && <ChatPanel data={data} />}
     </main>
   );
 }

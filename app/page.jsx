@@ -21,7 +21,7 @@ async function loadInitial() {
     const rows = await fetchWindsorRows({ from, to });
     return {
       ok: true,
-      data: buildDashboardData(rows),
+      data: buildDashboardData(rows, { from, to }),
       defaults: { preset: "mtd", from, to },
     };
   } catch (err) {

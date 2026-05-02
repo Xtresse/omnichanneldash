@@ -34,7 +34,7 @@ export async function GET(request) {
 
   try {
     const raw = await fetchWindsorRows(queryParams);
-    const data = buildDashboardData(raw);
+    const data = buildDashboardData(raw, queryParams);
     return NextResponse.json({ ok: true, ...queryParams, ...data });
   } catch (err) {
     return NextResponse.json(

@@ -58,6 +58,7 @@ export default function OrdersTable({ orders }) {
     if (q) {
       list = list.filter((o) => {
         if (o.id && o.id.toLowerCase().includes(q)) return true;
+        if (o.name && o.name.toLowerCase().includes(q)) return true;
         if (o.email && o.email.toLowerCase().includes(q)) return true;
         if (o.rep && o.rep.toLowerCase().includes(q)) return true;
         if (o.state && o.state.toLowerCase().includes(q)) return true;
@@ -193,9 +194,9 @@ export default function OrdersTable({ orders }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-brown underline-offset-2 hover:underline"
-                    title={`Open ${o.id} in Shopify Admin`}
+                    title={`Open ${o.name || o.id} in Shopify Admin`}
                   >
-                    #{o.id.slice(-8)}
+                    {o.name || `#${o.id.slice(-8)}`}
                   </a>
                 </td>
                 <td className="py-2 pr-3 whitespace-nowrap">
@@ -252,7 +253,7 @@ export default function OrdersTable({ orders }) {
                   rel="noopener noreferrer"
                   className="font-sans text-sm text-brown underline-offset-2 hover:underline"
                 >
-                  #{o.id.slice(-8)}
+                  {o.name || `#${o.id.slice(-8)}`}
                 </a>
               </div>
               <div className="text-right">
