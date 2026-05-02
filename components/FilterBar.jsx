@@ -40,86 +40,128 @@ const PRESETS = [
   { value: "all_time", label: "All time", range: () => [ALL_TIME_START, today()] },
 ];
 
+const GRANULARITY_OPTIONS = [
+  { value: "auto", label: "Auto" },
+  { value: "day", label: "Day" },
+  { value: "week", label: "Week" },
+  { value: "biweek", label: "2 wks" },
+  { value: "month", label: "Month" },
+];
+
 export default function FilterBar({
   activePreset,        // string preset value, or null when custom dates are active
   customFrom,
   customTo,
+  granularity,         // "auto" | "day" | "week" | "biweek" | "month"
+  resolvedGranularity, // what the server actually used (for the Auto badge)
   onPresetChange,      // (presetValue, from, to) => void
   onCustomChange,      // ({from, to}) => void
+  onGranularityChange, // (granularity) => void
   loading,
 }) {
   return (
-    <div className="bg-paper2 border border-rule rounded-md px-3 py-2.5 md:px-4 md:py-3 space-y-2.5 md:space-y-0 md:flex md:items-center md:gap-4 md:flex-wrap">
-      {/* Quick presets */}
-      <div className="flex items-center gap-2 md:gap-3 flex-nowrap overflow-x-auto no-scrollbar -mx-1 px-1">
+    <div className="bg-paper2 border border-rule rounded-md px-3 py-2.5 md:px-4 md:py-3 space-y-2.5">
+      {/* Row 1 — quick presets + custom date inputs */}
+      <div className="space-y-2.5 md:space-y-0 md:flex md:items-center md:gap-4 md:flex-wrap">
+        <div className="flex items-center gap-2 md:gap-3 flex-nowrap overflow-x-auto no-scrollbar -mx-1 px-1">
+          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-muted shrink-0">
+            Quick
+          </span>
+          {PRESETS.map((p) => {
+            const active = activePreset === p.value;
+            return (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => {
+                  const [from, to] = p.range();
+                  onPresetChange(p.value, from, to);
+                }}
+                className={`shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm transition border ${
+                  active
+                    ? "bg-brown text-paper border-brown"
+                    : "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan"
+                }`}
+                aria-pressed={active}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap md:flex-nowrap md:ml-auto">
+          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-muted shrink-0">
+            Custom
+          </span>
+          <input
+            type="date"
+            aria-label="Start date"
+            value={customFrom || ""}
+            max={customTo || undefined}
+            onChange={(e) =>
+              onCustomChange({ from: e.target.value, to: customTo || "" })
+            }
+            className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
+          />
+          <span className="font-sans text-xs text-muted">→</span>
+          <input
+            type="date"
+            aria-label="End date"
+            value={customTo || ""}
+            min={customFrom || undefined}
+            onChange={(e) =>
+              onCustomChange({ from: customFrom || "", to: e.target.value })
+            }
+            className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
+          />
+          {(customFrom || customTo) && !activePreset && (
+            <button
+              type="button"
+              onClick={() => onCustomChange({ from: "", to: "" })}
+              className="shrink-0 min-h-touch px-2 md:px-3 rounded-md font-sans text-[11px] text-inksoft border border-rule hover:bg-paper hover:border-tan"
+              aria-label="Clear custom date range"
+            >
+              Clear
+            </button>
+          )}
+          {loading && (
+            <span
+              className="shrink-0 ml-1 font-sans text-[11px] text-muted animate-pulse"
+              aria-live="polite"
+            >
+              loading…
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Row 2 — bucket / chart granularity */}
+      <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-rule/60">
         <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-muted shrink-0">
-          Quick
+          Bucket
         </span>
-        {PRESETS.map((p) => {
-          const active = activePreset === p.value;
+        {GRANULARITY_OPTIONS.map((g) => {
+          const active = (granularity || "auto") === g.value;
           return (
             <button
-              key={p.value}
+              key={g.value}
               type="button"
-              onClick={() => {
-                const [from, to] = p.range();
-                onPresetChange(p.value, from, to);
-              }}
-              className={`shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm transition border ${
+              onClick={() => onGranularityChange(g.value)}
+              className={`shrink-0 px-3 rounded-md font-sans text-xs transition border min-h-[34px] ${
                 active
                   ? "bg-brown text-paper border-brown"
                   : "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan"
               }`}
               aria-pressed={active}
             >
-              {p.label}
+              {g.label}
             </button>
           );
         })}
-      </div>
-
-      {/* Custom date range */}
-      <div className="flex items-center gap-2 md:gap-3 flex-wrap md:flex-nowrap md:ml-auto">
-        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-muted shrink-0">
-          Custom
-        </span>
-        <input
-          type="date"
-          aria-label="Start date"
-          value={customFrom || ""}
-          max={customTo || undefined}
-          onChange={(e) =>
-            onCustomChange({ from: e.target.value, to: customTo || "" })
-          }
-          className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
-        />
-        <span className="font-sans text-xs text-muted">→</span>
-        <input
-          type="date"
-          aria-label="End date"
-          value={customTo || ""}
-          min={customFrom || undefined}
-          onChange={(e) =>
-            onCustomChange({ from: customFrom || "", to: e.target.value })
-          }
-          className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
-        />
-        {(customFrom || customTo) && !activePreset && (
-          <button
-            type="button"
-            onClick={() => onCustomChange({ from: "", to: "" })}
-            className="shrink-0 min-h-touch px-2 md:px-3 rounded-md font-sans text-[11px] text-inksoft border border-rule hover:bg-paper hover:border-tan"
-            aria-label="Clear custom date range"
-          >
-            Clear
-          </button>
-        )}
-        {loading && (
-          <span
-            className="shrink-0 ml-1 font-sans text-[11px] text-muted animate-pulse"
-            aria-live="polite"
-          >
-            loading…
+        {(!granularity || granularity === "auto") && resolvedGranularity && (
+          <span className="font-sans text-[11px] text-muted ml-1">
+            using <strong className="text-inksoft">{GRANULARITY_OPTIONS.find((x) => x.value === resolvedGranularity)?.label || resolvedGranularity}</strong>
           </span>
         )}
       </div>

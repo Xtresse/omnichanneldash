@@ -36,8 +36,17 @@ export default function Dashboard({ initial }) {
   const [activePreset, setActivePreset] = useState(initial?.defaults?.preset || "mtd");
   const [customFrom, setCustomFrom] = useState(initial?.defaults?.from || "");
   const [customTo, setCustomTo] = useState(initial?.defaults?.to || "");
+  // User-selected chart granularity. "auto" lets the server pick.
+  const [granularity, setGranularity] = useState("auto");
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
+
+  function buildQs(from, to, gran) {
+    const qs = new URLSearchParams({ from, to });
+    if (gran && gran !== "auto") qs.set("granularity", gran);
+    else qs.set("granularity", "auto");
+    return qs.toString();
+  }
 
   async function loadFromUrl(qs) {
     try {
@@ -56,7 +65,7 @@ export default function Dashboard({ initial }) {
     setCustomFrom(from);
     setCustomTo(to);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    startTransition(() => loadFromUrl(`from=${from}&to=${to}`));
+    startTransition(() => loadFromUrl(buildQs(from, to, granularity)));
   }
 
   function changeCustom({ from, to }) {
@@ -69,8 +78,16 @@ export default function Dashboard({ initial }) {
     if (!from || !to) return;
 
     debounceRef.current = setTimeout(() => {
-      startTransition(() => loadFromUrl(`from=${from}&to=${to}`));
+      startTransition(() => loadFromUrl(buildQs(from, to, granularity)));
     }, 500);
+  }
+
+  function changeGranularity(value) {
+    setGranularity(value);
+    // Re-fetch with the new bucket choice using the currently-loaded window.
+    if (customFrom && customTo) {
+      startTransition(() => loadFromUrl(buildQs(customFrom, customTo, value)));
+    }
   }
 
   useEffect(() => () => debounceRef.current && clearTimeout(debounceRef.current), []);
@@ -98,9 +115,23 @@ export default function Dashboard({ initial }) {
     ? `${customFrom} → ${customTo}`
     : "Selected period";
 
-  // Charts bucket by day for windows ≤ 100 days, by month otherwise.
-  const isDaily = data?.granularity === "day";
-  const G = isDaily ? "Daily" : "Monthly";
+  // Chart subtitle copy matches the bucket the server actually used.
+  const G = (
+    {
+      day: "Daily",
+      week: "Weekly",
+      biweek: "Biweekly",
+      month: "Monthly",
+    }
+  )[data?.granularity] || "Monthly";
+  const Gunit = (
+    {
+      day: "day",
+      week: "week",
+      biweek: "two weeks",
+      month: "month",
+    }
+  )[data?.granularity] || "month";
 
   return (
     <main className="min-h-screen pb-12">
@@ -142,8 +173,11 @@ export default function Dashboard({ initial }) {
             activePreset={activePreset}
             customFrom={customFrom}
             customTo={customTo}
+            granularity={granularity}
+            resolvedGranularity={data?.granularity}
             onPresetChange={changePreset}
             onCustomChange={changeCustom}
+            onGranularityChange={changeGranularity}
             loading={isPending}
           />
         </div>
@@ -239,7 +273,7 @@ export default function Dashboard({ initial }) {
                     valueType="currency"
                   />
                 </ChartCell>
-                <ChartCell title="New accounts by rep" subtitle={`First-time customers per ${isDaily ? "day" : "month"}, by rep`}>
+                <ChartCell title="New accounts by rep" subtitle={`First-time customers per ${Gunit}, by rep`}>
                   <RepTrendChart
                     data={data.repNewAccountsMonthly || []}
                     reps={data.repsList || []}

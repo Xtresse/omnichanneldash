@@ -17,12 +17,15 @@ const ALLOWED_PRESETS = new Set([
 ]);
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ALLOWED_GRANULARITY = new Set(["auto", "day", "week", "biweek", "month"]);
 
 export async function GET(request) {
   const url = new URL(request.url);
   const presetParam = url.searchParams.get("preset");
   const fromParam = url.searchParams.get("from");
   const toParam = url.searchParams.get("to");
+  const granularityParam = url.searchParams.get("granularity");
+  const granularity = ALLOWED_GRANULARITY.has(granularityParam) ? granularityParam : "auto";
 
   let queryParams;
   if (fromParam && toParam && ISO_DATE.test(fromParam) && ISO_DATE.test(toParam)) {
@@ -34,8 +37,8 @@ export async function GET(request) {
 
   try {
     const raw = await fetchWindsorRows(queryParams);
-    const data = buildDashboardData(raw, queryParams);
-    return NextResponse.json({ ok: true, ...queryParams, ...data });
+    const data = buildDashboardData(raw, { ...queryParams, granularity });
+    return NextResponse.json({ ok: true, ...queryParams, granularity, ...data });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: String(err?.message || err) },
