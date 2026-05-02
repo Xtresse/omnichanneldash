@@ -8,31 +8,38 @@ const fmtCurrency = (n) =>
   }).format(n || 0);
 
 const fmtNum = (n) => new Intl.NumberFormat("en-US").format(n || 0);
-
 const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 
 export default function KpiTiles({ kpis }) {
   if (!kpis) return null;
 
+  // Three primary tiles: B2B (incl ADCS), ADCS sub-bucket, DTC.
+  // B2B is the headline — its value matches Sam's bookkeeping reconciliation
+  // when 'Last year' (2025) is selected: ~$4.25M.
   const tiles = [
     {
-      label: "Total revenue",
-      value: fmtCurrency(kpis.totalRevenue),
-      sub: `${fmtNum(kpis.totalOrders)} orders, B2B + DTC`,
-    },
-    {
-      label: "B2B revenue",
-      value: fmtCurrency(kpis.b2bRevenue),
+      label: "B2B net sales (incl. ADCS)",
+      value: fmtCurrency(kpis.b2bNetSales),
       sub: `${fmtPct(kpis.b2bShare)} of total · ${fmtNum(kpis.b2bOrders)} orders · AOV ${fmtCurrency(
         kpis.b2bAOV
       )}`,
+      tone: "primary",
     },
     {
-      label: "DTC revenue",
-      value: fmtCurrency(kpis.dtcRevenue),
+      label: "ADCS (sub-bucket of B2B)",
+      value: fmtCurrency(kpis.adcsNetSales),
+      sub: `${fmtNum(kpis.adcsOrders)} orders · B2B excl. ADCS = ${fmtCurrency(
+        kpis.b2bExclAdcsNetSales
+      )}`,
+      tone: "accent",
+    },
+    {
+      label: "DTC net sales",
+      value: fmtCurrency(kpis.dtcNetSales),
       sub: `${fmtPct(kpis.dtcShare)} of total · ${fmtNum(kpis.dtcOrders)} orders · AOV ${fmtCurrency(
         kpis.dtcAOV
       )}`,
+      tone: "muted",
     },
   ];
 
@@ -45,18 +52,22 @@ export default function KpiTiles({ kpis }) {
   );
 }
 
-function Tile({ label, value, sub }) {
+function Tile({ label, value, sub, tone }) {
+  // Same paper2 background; left-border accent strip differentiates the three tones
+  const stripe =
+    tone === "primary" ? "before:bg-brown" : tone === "accent" ? "before:bg-accent" : "before:bg-tan";
   return (
-    <div className="bg-paper2 border border-rule rounded-md px-4 py-3.5 md:px-5 md:py-4">
+    <div
+      className={`relative bg-card border border-rule rounded-xl px-4 py-3.5 md:px-5 md:py-4 overflow-hidden
+        before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 ${stripe}`}
+    >
       <div className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.18em] text-muted leading-tight">
         {label}
       </div>
-      <div className="font-serif text-3xl md:text-4xl font-bold text-ink leading-tight mt-2 md:mt-3 break-words">
+      <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-tight mt-2 md:mt-3 break-words">
         {value}
       </div>
-      <div className="font-sans text-[11px] md:text-xs text-inksoft mt-1.5 leading-snug">
-        {sub}
-      </div>
+      <div className="font-sans text-[11px] md:text-xs text-inksoft mt-1.5 leading-snug">{sub}</div>
     </div>
   );
 }
