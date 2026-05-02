@@ -53,8 +53,13 @@ function RepTable({ title, rows }) {
       orders: a.orders + r.orders,
       newAccounts: a.newAccounts + r.newAccounts,
       firstOrderGummy: a.firstOrderGummy + (r.firstOrderGummy || 0),
+      newXvieAccts: a.newXvieAccts + (r.newXvieAccts || 0),
+      newSerumAccts: a.newSerumAccts + (r.newSerumAccts || 0),
     }),
-    { net: 0, orders: 0, newAccounts: 0, firstOrderGummy: 0 }
+    {
+      net: 0, orders: 0, newAccounts: 0, firstOrderGummy: 0,
+      newXvieAccts: 0, newSerumAccts: 0,
+    }
   );
 
   return (
@@ -76,10 +81,16 @@ function RepTable({ title, rows }) {
               <Th width="56" align="left">Region</Th>
               <Th width="56" align="left">Rank</Th>
               <Th align="left">Rep</Th>
-              <Th width="160" align="left">Last order</Th>
+              <Th width="140" align="left">Last order</Th>
               <Th align="right">Orders</Th>
               <Th align="right" title="Orders Shopify Flow tagged 'b2b' + 'first order' with positive gummy revenue — matches leadership-dash convention">
-                New gummy accts
+                New gummy
+              </Th>
+              <Th align="right" title="Customers whose FIRST-EVER XVIE purchase (across all time) lands inside the loaded window">
+                New XVIE
+              </Th>
+              <Th align="right" title="Customers whose FIRST-EVER Serum purchase (across all time) lands inside the loaded window">
+                New Serum
               </Th>
               <Th align="right" className="border-l border-rule">Net sales</Th>
             </tr>
@@ -93,6 +104,8 @@ function RepTable({ title, rows }) {
                 <Td className="text-muted text-[11px]">{fmtLastOrder(r.lastOrderAt)}</Td>
                 <Td align="right">{r.orders ? fmtN(r.orders) : "—"}</Td>
                 <Td align="right">{r.firstOrderGummy ? fmtN(r.firstOrderGummy) : "—"}</Td>
+                <Td align="right">{r.newXvieAccts ? fmtN(r.newXvieAccts) : "—"}</Td>
+                <Td align="right">{r.newSerumAccts ? fmtN(r.newSerumAccts) : "—"}</Td>
                 <Td align="right" className="font-semibold border-l border-rule">
                   {fmt$(r.net)}
                 </Td>
@@ -100,7 +113,7 @@ function RepTable({ title, rows }) {
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={7} className="py-4 text-center text-muted text-xs">
+                <td colSpan={9} className="py-4 text-center text-muted text-xs">
                   No reps in this territory.
                 </td>
               </tr>
@@ -111,6 +124,8 @@ function RepTable({ title, rows }) {
               <Td colSpan={4} className="italic text-inksoft">{title} subtotal</Td>
               <Td align="right">{fmtN(totals.orders)}</Td>
               <Td align="right">{fmtN(totals.firstOrderGummy)}</Td>
+              <Td align="right">{fmtN(totals.newXvieAccts)}</Td>
+              <Td align="right">{fmtN(totals.newSerumAccts)}</Td>
               <Td align="right" className="text-brown border-l border-rule">
                 {fmt$(totals.net)}
               </Td>
@@ -127,7 +142,8 @@ function RepTable({ title, rows }) {
             <div className="min-w-0 flex-1">
               <div className="font-sans text-sm text-ink truncate">{r.rep}</div>
               <div className="font-sans text-[11px] text-muted">
-                {r.region} · {fmtN(r.orders)} ord · {fmtN(r.firstOrderGummy)} new gummy accts
+                {r.region} · {fmtN(r.orders)} ord · {fmtN(r.firstOrderGummy)} G ·{" "}
+                {fmtN(r.newXvieAccts || 0)} X · {fmtN(r.newSerumAccts || 0)} S
               </div>
             </div>
             <div className="font-display text-base font-semibold text-ink tabular-nums">
@@ -146,10 +162,11 @@ function RepTable({ title, rows }) {
   );
 }
 
-function Th({ children, align = "left", width, className = "" }) {
+function Th({ children, align = "left", width, className = "", title }) {
   const alignClass = align === "right" ? "text-right" : "text-left";
   return (
     <th
+      title={title}
       style={width ? { width: `${width}px` } : undefined}
       className={`py-2 px-3 font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold ${alignClass} ${className}`}
     >

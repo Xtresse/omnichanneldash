@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { fetchWindsorRows, buildDashboardData } from "@/lib/windsor.js";
+import {
+  fetchWindsorRows,
+  fetchWindsorAllTimeLight,
+  buildDashboardData,
+} from "@/lib/windsor.js";
 
 // 5-minute cache on the API. Browser still gets a fresh response per query
 // (preset/from/to combinations cache independently).
@@ -36,8 +40,15 @@ export async function GET(request) {
   }
 
   try {
-    const raw = await fetchWindsorRows(queryParams);
-    const data = buildDashboardData(raw, { ...queryParams, granularity });
+    const [raw, allTimeRows] = await Promise.all([
+      fetchWindsorRows(queryParams),
+      fetchWindsorAllTimeLight(),
+    ]);
+    const data = buildDashboardData(
+      raw,
+      { ...queryParams, granularity },
+      allTimeRows
+    );
     return NextResponse.json({ ok: true, ...queryParams, granularity, ...data });
   } catch (err) {
     return NextResponse.json(

@@ -1,4 +1,8 @@
-import { fetchWindsorRows, buildDashboardData } from "@/lib/windsor.js";
+import {
+  fetchWindsorRows,
+  fetchWindsorAllTimeLight,
+  buildDashboardData,
+} from "@/lib/windsor.js";
 import Dashboard from "@/components/Dashboard.jsx";
 
 // 5-minute ISR cache on the initial SSR data. Client-side fetches go through
@@ -18,10 +22,16 @@ function mtdRange() {
 async function loadInitial() {
   const { from, to } = mtdRange();
   try {
-    const rows = await fetchWindsorRows({ from, to });
+    // Fetch period data + all-time history in parallel. The all-time pull
+    // is cached separately (1h) so it doesn't slow per-window loads after
+    // the first warm-up.
+    const [rows, allTimeRows] = await Promise.all([
+      fetchWindsorRows({ from, to }),
+      fetchWindsorAllTimeLight(),
+    ]);
     return {
       ok: true,
-      data: buildDashboardData(rows, { from, to }),
+      data: buildDashboardData(rows, { from, to }, allTimeRows),
       defaults: { preset: "mtd", from, to },
     };
   } catch (err) {

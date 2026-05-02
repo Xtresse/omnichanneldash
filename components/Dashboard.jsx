@@ -233,10 +233,10 @@ export default function Dashboard({ initial }) {
 
             <Section title="Customer dynamics" detail="Tier 2 / 4 charts">
               <ChartGrid>
-                <ChartCell title="New vs returning — B2B" subtitle={`${G} stacked`}>
+                <ChartCell title="New vs returning — B2B (gummies only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
                   <NewVsReturning data={data.customerDynamics} channel="B2B" />
                 </ChartCell>
-                <ChartCell title="New vs returning — DTC" subtitle={`${G} stacked`}>
+                <ChartCell title="New vs returning — DTC" subtitle={`${G} stacked · all DTC orders`}>
                   <NewVsReturning data={data.customerDynamics} channel="DTC" />
                 </ChartCell>
                 <ChartCell title="Repeat purchase rate" subtitle={`% returning, ${G.toLowerCase()}`}>
