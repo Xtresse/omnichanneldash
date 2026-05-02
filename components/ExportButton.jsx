@@ -69,7 +69,8 @@ export default function ExportButton({ data, periodLabel }) {
   function exportReps() {
     const headers = [
       "Territory", "Region", "Rank", "Rep", "Net sales", "Orders",
-      "New accounts", "Last order"
+      "New gummy accts (first-order tag)", "Chronological new accts (sanity)",
+      "Last order",
     ];
     const lines = [headers.map(csvEscape).join(",")];
     for (const section of data.repPerformance || []) {
@@ -81,7 +82,8 @@ export default function ExportButton({ data, periodLabel }) {
           csvEscape(r.rep),
           Number(r.net || 0).toFixed(2),
           r.orders,
-          r.newAccounts,
+          r.firstOrderGummy || 0,
+          r.chronologicalNewAccounts || 0,
           isoDay(r.lastOrderAt),
         ].join(","));
       }

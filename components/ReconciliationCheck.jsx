@@ -76,23 +76,23 @@ export default function ReconciliationCheck({ reconciliation }) {
         </CheckSection>
 
         {/* New accounts checks */}
-        <CheckSection title="New accounts — chronological vs Shopify First-Order tag">
+        <CheckSection title="New accounts — Shopify First-Order tag (headline) vs chronological (sanity)">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Stat
-              label="Chronological new accounts"
-              value={fmtN(na.chronologicalTotal)}
-              hint="First order from each customer × rep, computed from order dates"
-            />
             <Stat
               label="First-order gummy accounts"
               value={fmtN(na.firstOrderGummyTotal)}
-              hint="Orders Shopify Flow tagged 'b2b' + 'first order' that contain a gummy line item — leadership-dash convention"
+              hint="Headline metric. Orders Shopify Flow tagged 'b2b' + 'first order' with positive gummy revenue — exactly how leadership-dash counts new accounts."
+              tone="ok"
+            />
+            <Stat
+              label="Chronological (sanity check)"
+              value={fmtN(na.chronologicalTotal)}
+              hint="Naive: first order from each customer × rep within the loaded window. Only useful as a backstop — a returning customer's earliest order in this window would inflate this count."
             />
             <Stat
               label="Difference"
               value={fmtN(na.delta)}
-              hint="Chronological count typically ≥ tag count: Flow only tags orders meeting specific conditions"
-              tone={Math.abs(na.delta || 0) === 0 ? "ok" : "neutral"}
+              hint="Expected non-zero when many existing customers re-ordered in this window. A wide gap usually means lots of returning activity, not a bug."
             />
           </div>
         </CheckSection>
@@ -107,8 +107,8 @@ export default function ReconciliationCheck({ reconciliation }) {
                   <ThSm align="right">Reps</ThSm>
                   <ThSm align="right">Orders</ThSm>
                   <ThSm align="right">Net sales</ThSm>
-                  <ThSm align="right">Chrono new</ThSm>
-                  <ThSm align="right">First-order gummy</ThSm>
+                  <ThSm align="right">New gummy accts</ThSm>
+                  <ThSm align="right">Chrono (sanity)</ThSm>
                 </tr>
               </thead>
               <tbody>
@@ -118,8 +118,8 @@ export default function ReconciliationCheck({ reconciliation }) {
                     <TdSm align="right">{fmtN(t.reps)}</TdSm>
                     <TdSm align="right">{fmtN(t.orders)}</TdSm>
                     <TdSm align="right" className="font-semibold">{fmt$(t.net)}</TdSm>
-                    <TdSm align="right">{fmtN(t.newAccounts)}</TdSm>
-                    <TdSm align="right">{fmtN(t.firstOrderGummy)}</TdSm>
+                    <TdSm align="right" className="font-semibold">{fmtN(t.firstOrderGummy)}</TdSm>
+                    <TdSm align="right" className="text-muted">{fmtN(t.chronological)}</TdSm>
                   </tr>
                 ))}
               </tbody>
@@ -131,8 +131,8 @@ export default function ReconciliationCheck({ reconciliation }) {
                   <TdSm align="right" className="text-brown">
                     {fmt$(territory.reduce((a, t) => a + t.net, 0))}
                   </TdSm>
-                  <TdSm align="right">{fmtN(territory.reduce((a, t) => a + t.newAccounts, 0))}</TdSm>
                   <TdSm align="right">{fmtN(territory.reduce((a, t) => a + t.firstOrderGummy, 0))}</TdSm>
+                  <TdSm align="right" className="text-muted">{fmtN(territory.reduce((a, t) => a + t.chronological, 0))}</TdSm>
                 </tr>
               </tfoot>
             </table>

@@ -78,9 +78,8 @@ function RepTable({ title, rows }) {
               <Th align="left">Rep</Th>
               <Th width="160" align="left">Last order</Th>
               <Th align="right">Orders</Th>
-              <Th align="right">New accts</Th>
-              <Th align="right" title="Orders Shopify Flow tagged 'b2b' + 'first order' that contained a gummy line item — matches leadership-dash convention">
-                First-order gummy
+              <Th align="right" title="Orders Shopify Flow tagged 'b2b' + 'first order' with positive gummy revenue — matches leadership-dash convention">
+                New gummy accts
               </Th>
               <Th align="right" className="border-l border-rule">Net sales</Th>
             </tr>
@@ -93,7 +92,6 @@ function RepTable({ title, rows }) {
                 <Td className="font-medium text-ink">{r.rep}</Td>
                 <Td className="text-muted text-[11px]">{fmtLastOrder(r.lastOrderAt)}</Td>
                 <Td align="right">{r.orders ? fmtN(r.orders) : "—"}</Td>
-                <Td align="right">{r.newAccounts ? fmtN(r.newAccounts) : "—"}</Td>
                 <Td align="right">{r.firstOrderGummy ? fmtN(r.firstOrderGummy) : "—"}</Td>
                 <Td align="right" className="font-semibold border-l border-rule">
                   {fmt$(r.net)}
@@ -102,7 +100,7 @@ function RepTable({ title, rows }) {
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={8} className="py-4 text-center text-muted text-xs">
+                <td colSpan={7} className="py-4 text-center text-muted text-xs">
                   No reps in this territory.
                 </td>
               </tr>
@@ -112,7 +110,6 @@ function RepTable({ title, rows }) {
             <tr className="bg-paper2 font-semibold">
               <Td colSpan={4} className="italic text-inksoft">{title} subtotal</Td>
               <Td align="right">{fmtN(totals.orders)}</Td>
-              <Td align="right">{fmtN(totals.newAccounts)}</Td>
               <Td align="right">{fmtN(totals.firstOrderGummy)}</Td>
               <Td align="right" className="text-brown border-l border-rule">
                 {fmt$(totals.net)}
@@ -130,8 +127,7 @@ function RepTable({ title, rows }) {
             <div className="min-w-0 flex-1">
               <div className="font-sans text-sm text-ink truncate">{r.rep}</div>
               <div className="font-sans text-[11px] text-muted">
-                {r.region} · {fmtN(r.orders)} ord · {fmtN(r.newAccounts)} new
-                {r.firstOrderGummy ? ` · ${fmtN(r.firstOrderGummy)} 1st-gummy` : ""}
+                {r.region} · {fmtN(r.orders)} ord · {fmtN(r.firstOrderGummy)} new gummy accts
               </div>
             </div>
             <div className="font-display text-base font-semibold text-ink tabular-nums">

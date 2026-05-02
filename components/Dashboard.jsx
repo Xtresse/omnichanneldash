@@ -274,7 +274,7 @@ export default function Dashboard({ initial }) {
                     valueType="currency"
                   />
                 </ChartCell>
-                <ChartCell title="New accounts by rep" subtitle={`First-time customers per ${Gunit}, by rep`}>
+                <ChartCell title="New gummy accounts by rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
                   <RepTrendChart
                     data={data.repNewAccountsMonthly || []}
                     reps={data.repsList || []}
