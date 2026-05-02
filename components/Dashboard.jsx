@@ -8,6 +8,7 @@ import RepPerformance from "./RepPerformance.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ChatPanel from "./ChatPanel.jsx";
+import ReconciliationCheck from "./ReconciliationCheck.jsx";
 import RevenueByChannel from "./charts/RevenueByChannel.jsx";
 import OrdersByChannel from "./charts/OrdersByChannel.jsx";
 import AOVByChannel from "./charts/AOVByChannel.jsx";
@@ -284,6 +285,13 @@ export default function Dashboard({ initial }) {
               <div className="mt-3 md:mt-4">
                 <RepPerformance repPerformance={data.repPerformance || []} />
               </div>
+            </Section>
+
+            <Section
+              title="Reconciliation"
+              detail="Cross-checks chart totals against the headline KPIs"
+            >
+              <ReconciliationCheck reconciliation={data.reconciliation} />
             </Section>
 
             <Section
