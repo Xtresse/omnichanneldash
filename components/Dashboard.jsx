@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import KpiTiles from "./KpiTiles.jsx";
 import FilterBar from "./FilterBar.jsx";
+import OrdersTable from "./OrdersTable.jsx";
 import RevenueByChannel from "./charts/RevenueByChannel.jsx";
 import OrdersByChannel from "./charts/OrdersByChannel.jsx";
 import AOVByChannel from "./charts/AOVByChannel.jsx";
@@ -66,7 +67,15 @@ export default function Dashboard({ initial }) {
     setCustomFrom(from);
     setCustomTo(to);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    // Both cleared → revert to the active preset.
+    if (!from && !to) {
+      startTransition(() => loadFromUrl(`preset=${preset}`));
+      return;
+    }
+    // Partial entry → wait for the second field.
     if (!from || !to) return;
+
     debounceRef.current = setTimeout(() => {
       startTransition(() => loadFromUrl(`from=${from}&to=${to}`));
     }, 500);
@@ -216,6 +225,13 @@ export default function Dashboard({ initial }) {
                   <FulfillmentSplit data={data.fulfillmentSplit} />
                 </ChartCell>
               </ChartGrid>
+            </Section>
+
+            <Section
+              title="Orders audit trail"
+              detail={`${(data.orders?.length || 0).toLocaleString()} orders in period`}
+            >
+              <OrdersTable orders={data.orders || []} />
             </Section>
 
             <Section title="Marketing performance" detail="Tier 4 / pending connectors">

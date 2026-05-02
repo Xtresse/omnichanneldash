@@ -8,11 +8,13 @@ module.exports = {
     extend: {
       colors: {
         paper: "#f4ede0",
-        paper2: "#fbf6ed",   // lighter than paper, used for cards / tiles
+        paper2: "#fbf6ed",   // lighter than paper, used as filter-bar surface
+        card: "#fdfaf2",     // off-white card surface that floats above paper
         ink: "#2b1a10",
         inksoft: "#5a4232",
         rule: "#d8cab2",
-        brown: "#3c1f15",     // dark brown — used for section banners
+        brown: "#3c1f15",     // dark brown — primary brand
+        browndeep: "#2a1410", // deeper brown — section banners
         accent: "#7a3d23",
         b2b: "#7a3d23",
         dtc: "#3a7a6f",
@@ -21,6 +23,7 @@ module.exports = {
       },
       fontFamily: {
         serif: ["'Cormorant Garamond'", "Georgia", "serif"],
+        display: ["'Cormorant Garamond'", "Georgia", "serif"],
         sans: ["Inter", "system-ui", "sans-serif"],
       },
       fontSize: {

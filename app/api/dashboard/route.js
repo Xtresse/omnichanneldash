@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { fetchWindsorRows, buildDashboardData } from "@/lib/windsor.js";
 
-export const dynamic = "force-dynamic";
+// 5-minute cache on the API. Browser still gets a fresh response per query
+// (preset/from/to combinations cache independently).
 export const revalidate = 300;
 
 const ALLOWED_PRESETS = new Set([

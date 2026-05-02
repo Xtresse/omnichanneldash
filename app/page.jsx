@@ -1,7 +1,8 @@
 import { fetchWindsorRows, buildDashboardData } from "@/lib/windsor.js";
 import Dashboard from "@/components/Dashboard.jsx";
 
-export const dynamic = "force-dynamic";
+// 5-minute ISR cache on the initial SSR data. Client-side fetches go through
+// /api/dashboard which has its own cache.
 export const revalidate = 300;
 
 async function loadInitial() {

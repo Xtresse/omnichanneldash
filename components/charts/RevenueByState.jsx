@@ -26,7 +26,8 @@ export default function RevenueByState({ data }) {
           dataKey="state"
           tickLine={false}
           axisLine={false}
-          width={42}
+          width={110}
+          interval={0}
           tick={{ fontSize: 11 }}
         />
         <Tooltip formatter={(v) => fmtCurrencyFull(v)} />
