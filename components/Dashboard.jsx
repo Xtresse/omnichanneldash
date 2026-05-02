@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import KpiTiles from "./KpiTiles.jsx";
-import FilterBar from "./FilterBar.jsx";
+import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
 import OrdersTable from "./OrdersTable.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
@@ -11,7 +11,6 @@ import RevenueByChannel from "./charts/RevenueByChannel.jsx";
 import OrdersByChannel from "./charts/OrdersByChannel.jsx";
 import AOVByChannel from "./charts/AOVByChannel.jsx";
 import CumulativeYTD from "./charts/CumulativeYTD.jsx";
-import TopSKUs from "./charts/TopSKUs.jsx";
 import ProductFamily from "./charts/ProductFamily.jsx";
 import NewVsReturning from "./charts/NewVsReturning.jsx";
 import RepeatRate from "./charts/RepeatRate.jsx";
@@ -20,16 +19,6 @@ import RevenueByState from "./charts/RevenueByState.jsx";
 import DiscountUsage from "./charts/DiscountUsage.jsx";
 import FulfillmentSplit from "./charts/FulfillmentSplit.jsx";
 import MarketingPlaceholder from "./charts/MarketingPlaceholder.jsx";
-
-const PRESET_LABEL = {
-  last_7d: "Last 7 days",
-  last_30d: "Last 30 days",
-  last_3m: "Last 3 months",
-  last_6m: "Last 6 months",
-  this_year: "YTD",
-  last_year: "Calendar 2025",
-  last_2years: "Last 2 years",
-};
 
 const fmtMoney = (n) =>
   new Intl.NumberFormat("en-US", {
@@ -41,9 +30,11 @@ const fmtMoney = (n) =>
 export default function Dashboard({ initial }) {
   const [data, setData] = useState(initial?.ok ? initial.data : null);
   const [error, setError] = useState(initial?.ok ? null : initial?.error || "Unable to load data");
-  const [preset, setPreset] = useState("last_3m");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  // activePreset is the value of the preset that's currently highlighted,
+  // or null when the user has typed custom dates manually.
+  const [activePreset, setActivePreset] = useState(initial?.defaults?.preset || "mtd");
+  const [customFrom, setCustomFrom] = useState(initial?.defaults?.from || "");
+  const [customTo, setCustomTo] = useState(initial?.defaults?.to || "");
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
 
@@ -59,23 +50,20 @@ export default function Dashboard({ initial }) {
     }
   }
 
-  function changePreset(next) {
-    setPreset(next);
-    setCustomFrom("");
-    setCustomTo("");
-    startTransition(() => loadFromUrl(`preset=${next}`));
+  function changePreset(value, from, to) {
+    setActivePreset(value);
+    setCustomFrom(from);
+    setCustomTo(to);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    startTransition(() => loadFromUrl(`from=${from}&to=${to}`));
   }
 
   function changeCustom({ from, to }) {
+    setActivePreset(null);
     setCustomFrom(from);
     setCustomTo(to);
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    // Both cleared → revert to the active preset.
-    if (!from && !to) {
-      startTransition(() => loadFromUrl(`preset=${preset}`));
-      return;
-    }
     // Partial entry → wait for the second field.
     if (!from || !to) return;
 
@@ -103,8 +91,11 @@ export default function Dashboard({ initial }) {
     );
   }
 
-  const periodLabel =
-    customFrom && customTo ? `${customFrom} → ${customTo}` : PRESET_LABEL[preset] || "Selected period";
+  const periodLabel = activePreset
+    ? PRESET_LABELS[activePreset] || "Selected period"
+    : customFrom && customTo
+    ? `${customFrom} → ${customTo}`
+    : "Selected period";
 
   return (
     <main className="min-h-screen pb-12">
@@ -143,10 +134,10 @@ export default function Dashboard({ initial }) {
 
         <div className="mb-4 md:mb-6">
           <FilterBar
-            preset={preset}
-            onPresetChange={changePreset}
+            activePreset={activePreset}
             customFrom={customFrom}
             customTo={customTo}
+            onPresetChange={changePreset}
             onCustomChange={changeCustom}
             loading={isPending}
           />
@@ -179,7 +170,7 @@ export default function Dashboard({ initial }) {
               </p>
             </div>
 
-            <Section title="Top-line performance" detail="Tier 1 / 6 charts">
+            <Section title="Top-line performance" detail="Tier 1 / 5 charts">
               <ChartGrid>
                 <ChartCell title="Net sales by channel" subtitle="Monthly, B2B vs DTC">
                   <RevenueByChannel data={data.monthlySeries} />
@@ -192,9 +183,6 @@ export default function Dashboard({ initial }) {
                 </ChartCell>
                 <ChartCell title="Cumulative net YTD" subtitle="By calendar year">
                   <CumulativeYTD data={data.cumulativeYTD} />
-                </ChartCell>
-                <ChartCell title="Top SKUs by net sales" subtitle="Channel split">
-                  <TopSKUs data={data.topSKUs} />
                 </ChartCell>
                 <ChartCell title="Net sales by product family" subtitle="Gummies · Serum · XVIE · Sachets">
                   <ProductFamily data={data.productFamily} />
