@@ -5,12 +5,15 @@ export const metadata = {
   description: "B2B + ADCS + DTC unified analytics — Xtresse",
 };
 
-// CRITICAL for mobile: tells iOS/Android browsers to render at device width
-// rather than scaling a 980px desktop layout down.
+// CRITICAL for mobile: render at device width, allow up to 5x zoom for
+// accessibility, paint the iOS notch / Android status bar in brand brown,
+// and let safe-area insets reach the layout via env() variables.
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#5c2a1a",
 };
 
 export default function RootLayout({ children }) {

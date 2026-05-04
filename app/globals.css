@@ -28,12 +28,28 @@ html, body {
   font-family: "Cormorant Garamond", Georgia, serif;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
+  /* iOS safe-area handling — pushes content below the notch and above
+     the home-indicator bar when the dashboard is launched as a PWA. */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  /* Stop horizontal rubber-banding when a chart is wider than the screen. */
+  overflow-x: hidden;
 }
 
-/* Inputs / buttons get sans + 16px to prevent iOS auto-zoom */
+/* Inputs / buttons get sans + 16px to prevent iOS auto-zoom on focus.
+   Buttons inside a wrapper can be smaller (text-xs) but the 16px input
+   rule is the one that matters for not triggering Safari's zoom-on-focus. */
 input, select, button, textarea {
   font-family: Inter, system-ui, sans-serif;
   font-size: 16px;
+}
+
+/* Touch-action improvements — prevent double-tap zoom on buttons,
+   keep panning on charts horizontally if they overflow. */
+button, [role="button"] {
+  touch-action: manipulation;
 }
 
 /* Date inputs styled to match the paper aesthetic */

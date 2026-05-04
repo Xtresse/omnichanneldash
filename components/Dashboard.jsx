@@ -29,6 +29,45 @@ const fmtMoney = (n) =>
     maximumFractionDigits: 0,
   }).format(n || 0);
 
+// Relative time string for the "Refreshed N ago" label.
+// Falls back to a date string for anything older than ~24h.
+const fmtTimeAgo = (iso) => {
+  if (!iso) return "—";
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return "—";
+  const diff = Math.max(0, Date.now() - t);
+  const sec = Math.round(diff / 1000);
+  if (sec < 30) return "just now";
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return new Date(iso).toLocaleDateString();
+};
+
+function RefreshIcon({ spinning }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={spinning ? "animate-spin" : ""}
+    >
+      <path d="M21 2v6h-6" />
+      <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+      <path d="M3 22v-6h6" />
+      <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+    </svg>
+  );
+}
+
 export default function Dashboard({ initial }) {
   const [data, setData] = useState(initial?.ok ? initial.data : null);
   const [error, setError] = useState(initial?.ok ? null : initial?.error || "Unable to load data");
@@ -90,6 +129,28 @@ export default function Dashboard({ initial }) {
       startTransition(() => loadFromUrl(buildQs(customFrom, customTo, value)));
     }
   }
+
+  // Manual refresh — re-fetches the same window/granularity that's
+  // currently loaded. Spinner state is driven by the existing
+  // useTransition isPending flag so it lights up the FilterBar's
+  // loading indicator too.
+  function refresh() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (customFrom && customTo) {
+      startTransition(() => loadFromUrl(buildQs(customFrom, customTo, granularity)));
+    } else if (activePreset) {
+      // Defensive — if dates somehow got cleared, fall back to preset.
+      startTransition(() => loadFromUrl(`preset=${activePreset}&granularity=${granularity}`));
+    }
+  }
+
+  // Re-render every 30s so the "refreshed N ago" label stays accurate
+  // even when the user is just looking at the dashboard.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => () => debounceRef.current && clearTimeout(debounceRef.current), []);
 
@@ -155,16 +216,27 @@ export default function Dashboard({ initial }) {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap justify-end">
             {data && (
-              <div className="font-sans text-[10px] md:text-xs text-muted">
-                Refreshed{" "}
-                {new Date(data.generatedAt).toLocaleTimeString([], {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+              <div
+                className="font-sans text-[10px] md:text-xs text-muted w-full md:w-auto md:order-1"
+                title={new Date(data.generatedAt).toLocaleString()}
+              >
+                Refreshed {fmtTimeAgo(data.generatedAt)}
               </div>
             )}
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={isPending || !data}
+              className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-paper text-brown border border-brown hover:bg-paper2 disabled:opacity-50 disabled:cursor-not-allowed transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
+              aria-label="Refresh dashboard data"
+              title="Re-fetch the current window from Windsor"
+            >
+              <RefreshIcon spinning={isPending} />
+              {/* Icon-only on phones to keep the header tight; full label from sm+ */}
+              <span className="hidden sm:inline">{isPending ? "Refreshing…" : "Refresh"}</span>
+            </button>
             {data && <ExportButton data={data} periodLabel={periodLabel} />}
           </div>
         </header>
@@ -189,7 +261,7 @@ export default function Dashboard({ initial }) {
               <KpiTiles kpis={data.kpis} />
             </div>
 
-            {/* Net-sales reconciliation note — shows the gross→net waterfall so Sam can sanity check */}
+            {/* Net-sales reconciliation note */}
             <div className="mb-5 md:mb-7 rounded-xl border border-rule bg-card px-3 py-2.5 md:px-4 md:py-3">
               <p className="font-sans text-[11px] md:text-xs leading-snug text-inksoft">
                 <span className="font-semibold text-ink">Net sales reconciliation</span>
