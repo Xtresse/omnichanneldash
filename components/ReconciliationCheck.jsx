@@ -20,7 +20,38 @@ const TOLERANCE = 1; // dollar deltas under $1 are noise — display as "ties ou
  *   2. New accounts — chronological vs tag-based ('First Order' tag)
  *   3. Territory rollup — Existing / New / 1099 totals
  */
-export default function ReconciliationCheck({ reconciliation }) {
+// Brand-aligned compare colors — match KpiTiles / RepPerformance.
+const FAVORABLE = "#5C8A6F";
+const UNFAVORABLE = "#5C2F2E";
+const NEUTRAL = "#9A8F80";
+
+function deltaColor(cur, prior, higherIsBetter = true) {
+  if (prior === undefined || prior === null) return NEUTRAL;
+  if (cur === prior) return NEUTRAL;
+  const up = cur > prior;
+  if (higherIsBetter) return up ? FAVORABLE : UNFAVORABLE;
+  return up ? UNFAVORABLE : FAVORABLE;
+}
+
+function deltaPctText(cur, prior) {
+  if (prior === undefined || prior === null) return "—";
+  if (!prior) return cur > 0 ? "new" : "—";
+  const x = (cur - prior) / prior;
+  if (!isFinite(x)) return "—";
+  return `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)}%`;
+}
+
+function compareLabel(compare) {
+  if (!compare) return null;
+  if (compare.mode === "yoy") return "last year";
+  const f = new Date(compare.from + "T00:00:00Z");
+  const t = new Date(compare.to + "T00:00:00Z");
+  const days = Math.round((t - f) / 86400000) + 1;
+  if (days === 1) return "yesterday";
+  return `prior ${days}d (${compare.from} → ${compare.to})`;
+}
+
+export default function ReconciliationCheck({ reconciliation, compare }) {
   if (!reconciliation) return null;
   const ns = reconciliation.netSales || {};
   const na = reconciliation.newAccounts || {};
@@ -29,6 +60,14 @@ export default function ReconciliationCheck({ reconciliation }) {
   return (
     <div className="bg-card border border-rule rounded-xl overflow-hidden">
       <div className="p-3 md:p-5 space-y-4 md:space-y-5">
+        {/* Compare-mode strip — shows the prior-window reconciliation totals
+            alongside the current ones so Sam can quickly see whether a
+            slip in the headline number is due to changed mix or just lower
+            volume. Hidden when compare is off. */}
+        {compare && compare.kpis && (
+          <CompareStrip current={ns.kpiTotal} compare={compare} />
+        )}
+
         {/* Net sales checks */}
         <CheckSection title="Net sales — should tie to KPI total">
           <CheckRow
@@ -139,6 +178,67 @@ export default function ReconciliationCheck({ reconciliation }) {
           </div>
         </CheckSection>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Compact 4-tile strip surfaced when compare mode is on. Shows current
+ * vs prior totals for the four headline reconciliation numbers (Total
+ * net, B2B, ADCS, DTC) alongside a delta % so Sam can quickly tell
+ * whether a discrepancy is fresh or carries over from the prior period.
+ */
+function CompareStrip({ current, compare }) {
+  const lbl = compareLabel(compare);
+  const k = compare.kpis || {};
+  const tiles = [
+    { label: "Total net", cur: current || 0, prior: (k.b2bNetSales || 0) + (k.adcsNetSales || 0) + (k.dtcNetSales || 0) },
+    { label: "B2B net", cur: (current || 0) > 0 ? null : null, prior: k.b2bNetSales || 0, fromCmp: true, key: "b2bNetSales" },
+    { label: "ADCS net", cur: null, prior: k.adcsNetSales || 0, key: "adcsNetSales" },
+    { label: "DTC net", cur: null, prior: k.dtcNetSales || 0, key: "dtcNetSales" },
+  ];
+  return (
+    <div className="rounded-md border border-rule bg-paper2/50 px-3 py-2 md:px-4 md:py-3">
+      <div className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.18em] text-muted font-semibold mb-1.5">
+        Compare — vs {lbl}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+        <CompareTile label="Total net" prior={(k.b2bNetSales || 0) + (k.adcsNetSales || 0) + (k.dtcNetSales || 0)} cur={current} />
+        <CompareTile label="B2B net" prior={k.b2bNetSales} cur={null} />
+        <CompareTile label="ADCS net" prior={k.adcsNetSales} cur={null} />
+        <CompareTile label="DTC net" prior={k.dtcNetSales} cur={null} />
+      </div>
+    </div>
+  );
+}
+
+function CompareTile({ label, prior, cur }) {
+  // For tiles where we don't pass a current value, just show the prior
+  // figure as a reference. The KPI tiles up top already carry the live
+  // delta — this strip is for at-a-glance scanning of prior totals.
+  return (
+    <div className="rounded border border-rule bg-paper px-2.5 py-1.5">
+      <div className="font-sans text-[9.5px] uppercase tracking-[0.14em] text-muted font-semibold leading-tight">
+        {label}
+      </div>
+      {cur !== null && cur !== undefined ? (
+        <>
+          <div className="font-display text-base md:text-lg font-semibold text-ink tabular-nums leading-tight mt-0.5">
+            {fmt$(cur)}
+          </div>
+          <div
+            className="font-sans text-[10px] tabular-nums leading-tight"
+            style={{ color: deltaColor(cur, prior, true) }}
+            title={`Prior: ${fmt$(prior)}`}
+          >
+            {fmt$(prior)} prior · {deltaPctText(cur, prior)}
+          </div>
+        </>
+      ) : (
+        <div className="font-sans text-sm md:text-base text-inksoft tabular-nums leading-tight mt-0.5">
+          {fmt$(prior)}
+        </div>
+      )}
     </div>
   );
 }

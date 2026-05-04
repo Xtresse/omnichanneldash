@@ -148,7 +148,7 @@ export default function FilterBar({
               key={g.value}
               type="button"
               onClick={() => onGranularityChange(g.value)}
-              className={`shrink-0 px-3 rounded-md font-sans text-xs transition border min-h-[34px] ${
+              className={`shrink-0 min-h-touch px-3 rounded-md font-sans text-xs transition border ${
                 active
                   ? "bg-brown text-paper border-brown"
                   : "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan"

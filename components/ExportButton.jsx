@@ -67,17 +67,32 @@ export default function ExportButton({ data, periodLabel }) {
   }
 
   function exportReps() {
+    const families = ["Gummies", "Serum", "XVIE", "Sachets"];
+    const blank = { newUnits: 0, newDollars: 0, existingUnits: 0, existingDollars: 0 };
     const headers = [
       "Territory", "Region", "Rank", "Rep", "Net sales", "Orders",
-      "New gummy accts (first-order tag)",
-      "New XVIE accts (first-ever in window)",
-      "New Serum accts (first-ever in window)",
+      ...families.flatMap((f) => [
+        `${f} new units`,
+        `${f} existing units`,
+        `${f} new $`,
+        `${f} existing $`,
+      ]),
       "Chronological new accts (sanity)",
       "Last order",
     ];
     const lines = [headers.map(csvEscape).join(",")];
     for (const section of data.repPerformance || []) {
       for (const r of section.rows) {
+        const mix = r.productMix || {};
+        const familyCols = families.flatMap((f) => {
+          const slot = mix[f] || blank;
+          return [
+            slot.newUnits || 0,
+            slot.existingUnits || 0,
+            Number(slot.newDollars || 0).toFixed(2),
+            Number(slot.existingDollars || 0).toFixed(2),
+          ];
+        });
         lines.push([
           csvEscape(section.territory),
           csvEscape(r.region),
@@ -85,9 +100,7 @@ export default function ExportButton({ data, periodLabel }) {
           csvEscape(r.rep),
           Number(r.net || 0).toFixed(2),
           r.orders,
-          r.firstOrderGummy || 0,
-          r.newXvieAccts || 0,
-          r.newSerumAccts || 0,
+          ...familyCols,
           r.chronologicalNewAccounts || 0,
           isoDay(r.lastOrderAt),
         ].join(","));

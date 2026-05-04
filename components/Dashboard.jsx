@@ -29,6 +29,45 @@ const fmtMoney = (n) =>
     maximumFractionDigits: 0,
   }).format(n || 0);
 
+// Relative time string for the "Refreshed N ago" label.
+// Falls back to a date string for anything older than ~24h.
+const fmtTimeAgo = (iso) => {
+  if (!iso) return "—";
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return "—";
+  const diff = Math.max(0, Date.now() - t);
+  const sec = Math.round(diff / 1000);
+  if (sec < 30) return "just now";
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return new Date(iso).toLocaleDateString();
+};
+
+function RefreshIcon({ spinning }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={spinning ? "animate-spin" : ""}
+    >
+      <path d="M21 2v6h-6" />
+      <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+      <path d="M3 22v-6h6" />
+      <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+    </svg>
+  );
+}
+
 export default function Dashboard({ initial }) {
   const [data, setData] = useState(initial?.ok ? initial.data : null);
   const [error, setError] = useState(initial?.ok ? null : initial?.error || "Unable to load data");
@@ -39,14 +78,31 @@ export default function Dashboard({ initial }) {
   const [customTo, setCustomTo] = useState(initial?.defaults?.to || "");
   // User-selected chart granularity. "auto" lets the server pick.
   const [granularity, setGranularity] = useState("auto");
+  // Compare mode: "off" | "prior" | "yoy". URL-state-driven so deep links
+  // preserve the user's last selection. Initial value is read from the
+  // ?compare= query param on mount; subsequent changes write back.
+  const [compareMode, setCompareMode] = useState(() => {
+    if (typeof window === "undefined") return "off";
+    const v = new URLSearchParams(window.location.search).get("compare");
+    return v === "prior" || v === "yoy" ? v : "off";
+  });
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
 
-  function buildQs(from, to, gran) {
+  function buildQs(from, to, gran, cmp) {
     const qs = new URLSearchParams({ from, to });
-    if (gran && gran !== "auto") qs.set("granularity", gran);
-    else qs.set("granularity", "auto");
+    qs.set("granularity", gran && gran !== "auto" ? gran : "auto");
+    if (cmp && cmp !== "off") qs.set("compare", cmp);
     return qs.toString();
+  }
+
+  // Sync compareMode → URL so deep links preserve the toggle.
+  function syncCompareToUrl(mode) {
+    if (typeof window === "undefined") return;
+    const u = new URL(window.location.href);
+    if (mode === "off") u.searchParams.delete("compare");
+    else u.searchParams.set("compare", mode);
+    window.history.replaceState({}, "", u.toString());
   }
 
   async function loadFromUrl(qs) {
@@ -66,7 +122,7 @@ export default function Dashboard({ initial }) {
     setCustomFrom(from);
     setCustomTo(to);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    startTransition(() => loadFromUrl(buildQs(from, to, granularity)));
+    startTransition(() => loadFromUrl(buildQs(from, to, granularity, compareMode)));
   }
 
   function changeCustom({ from, to }) {
@@ -79,7 +135,7 @@ export default function Dashboard({ initial }) {
     if (!from || !to) return;
 
     debounceRef.current = setTimeout(() => {
-      startTransition(() => loadFromUrl(buildQs(from, to, granularity)));
+      startTransition(() => loadFromUrl(buildQs(from, to, granularity, compareMode)));
     }, 500);
   }
 
@@ -87,9 +143,45 @@ export default function Dashboard({ initial }) {
     setGranularity(value);
     // Re-fetch with the new bucket choice using the currently-loaded window.
     if (customFrom && customTo) {
-      startTransition(() => loadFromUrl(buildQs(customFrom, customTo, value)));
+      startTransition(() => loadFromUrl(buildQs(customFrom, customTo, value, compareMode)));
     }
   }
+
+  // Toggle the compare mode (Off / Prior / YoY) and refetch so the server
+  // pulls the correct prior-window snapshot. URL is mirrored so links shared
+  // out of Sam's session preserve the toggle state.
+  function changeCompareMode(value) {
+    setCompareMode(value);
+    syncCompareToUrl(value);
+    if (customFrom && customTo) {
+      startTransition(() =>
+        loadFromUrl(buildQs(customFrom, customTo, granularity, value))
+      );
+    }
+  }
+
+  // Manual refresh — re-fetches the same window/granularity that's
+  // currently loaded. Spinner state is driven by the existing
+  // useTransition isPending flag so it lights up the FilterBar's
+  // loading indicator too.
+  function refresh() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (customFrom && customTo) {
+      startTransition(() => loadFromUrl(buildQs(customFrom, customTo, granularity, compareMode)));
+    } else if (activePreset) {
+      // Defensive — if dates somehow got cleared, fall back to preset.
+      const cmpQs = compareMode !== "off" ? `&compare=${compareMode}` : "";
+      startTransition(() => loadFromUrl(`preset=${activePreset}&granularity=${granularity}${cmpQs}`));
+    }
+  }
+
+  // Re-render every 30s so the "refreshed N ago" label stays accurate
+  // even when the user is just looking at the dashboard.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => () => debounceRef.current && clearTimeout(debounceRef.current), []);
 
@@ -155,16 +247,32 @@ export default function Dashboard({ initial }) {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap justify-end">
             {data && (
-              <div className="font-sans text-[10px] md:text-xs text-muted">
-                Refreshed{" "}
-                {new Date(data.generatedAt).toLocaleTimeString([], {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+              <div
+                className="font-sans text-[10px] md:text-xs text-muted w-full md:w-auto md:order-1"
+                title={new Date(data.generatedAt).toLocaleString()}
+              >
+                Refreshed {fmtTimeAgo(data.generatedAt)}
               </div>
             )}
+            <CompareToggle
+              value={compareMode}
+              onChange={changeCompareMode}
+              disabled={isPending || !data}
+            />
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={isPending || !data}
+              className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-paper text-brown border border-brown hover:bg-paper2 disabled:opacity-50 disabled:cursor-not-allowed transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
+              aria-label="Refresh dashboard data"
+              title="Re-fetch the current window from Windsor"
+            >
+              <RefreshIcon spinning={isPending} />
+              {/* Icon-only on phones to keep the header tight; full label from sm+ */}
+              <span className="hidden sm:inline">{isPending ? "Refreshing…" : "Refresh"}</span>
+            </button>
             {data && <ExportButton data={data} periodLabel={periodLabel} />}
           </div>
         </header>
@@ -186,7 +294,7 @@ export default function Dashboard({ initial }) {
         {data && (
           <>
             <div className="mb-4 md:mb-6">
-              <KpiTiles kpis={data.kpis} />
+              <KpiTiles kpis={data.kpis} compare={data.compare} />
             </div>
 
             {/* Net-sales reconciliation note — shows the gross→net waterfall so Sam can sanity check */}
@@ -283,7 +391,10 @@ export default function Dashboard({ initial }) {
                 </ChartCell>
               </ChartGrid>
               <div className="mt-3 md:mt-4">
-                <RepPerformance repPerformance={data.repPerformance || []} />
+                <RepPerformance
+                  repPerformance={data.repPerformance || []}
+                  compare={data.compare}
+                />
               </div>
             </Section>
 
@@ -291,7 +402,10 @@ export default function Dashboard({ initial }) {
               title="Reconciliation"
               detail="Cross-checks chart totals against the headline KPIs"
             >
-              <ReconciliationCheck reconciliation={data.reconciliation} />
+              <ReconciliationCheck
+                reconciliation={data.reconciliation}
+                compare={data.compare}
+              />
             </Section>
 
             <Section
@@ -366,6 +480,49 @@ function Section({ title, detail, children }) {
 
 function ChartGrid({ children }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">{children}</div>;
+}
+
+/**
+ * Three-state segmented toggle for the compare mode (Off / vs Prior / vs YoY).
+ * Sized to sit comfortably alongside the Refresh button in the header.
+ * Off is the cleanest view; vs Prior is the default when turned on
+ * (preceding window of the same length); vs YoY shifts the window back
+ * by one calendar year for seasonal businesses.
+ */
+function CompareToggle({ value, onChange, disabled }) {
+  const opts = [
+    { v: "off", label: "Off", title: "Hide prior-period comparison" },
+    { v: "prior", label: "vs Prior", title: "Compare to the preceding window of the same length" },
+    { v: "yoy", label: "vs YoY", title: "Compare to the same period one year ago" },
+  ];
+  return (
+    <div
+      className="shrink-0 inline-flex rounded-md border border-rule bg-paper overflow-hidden md:order-2"
+      role="group"
+      aria-label="Compare mode"
+    >
+      {opts.map((o) => {
+        const active = value === o.v;
+        return (
+          <button
+            key={o.v}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(o.v)}
+            title={o.title}
+            aria-pressed={active}
+            className={`min-h-touch px-2.5 md:px-3 font-sans text-[11px] md:text-xs font-semibold tracking-[0.02em] transition disabled:opacity-50 disabled:cursor-not-allowed ${
+              active
+                ? "bg-brown text-paper"
+                : "text-inksoft hover:bg-paper2"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function ChartCell({ title, subtitle, wide, children }) {

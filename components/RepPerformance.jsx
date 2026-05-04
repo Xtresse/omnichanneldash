@@ -24,14 +24,68 @@ const TERRITORY_LABEL = {
   "1099": "1099 Territories",
 };
 
+const FAMILIES = [
+  { key: "Gummies", label: "Gummies" },
+  { key: "Serum", label: "Serum" },
+  { key: "XVIE", label: "XVIE" },
+  { key: "Sachets", label: "Sachet" },
+];
+
+const blankSlot = { newUnits: 0, newDollars: 0, existingUnits: 0, existingDollars: 0 };
+
+// Brand-aligned compare colors. Green sage = favorable; brand maroon =
+// unfavorable; muted brown = neutral / no comparison data. Tabular nums
+// keep delta percentages aligned across rows.
+const FAVORABLE = "#5C8A6F";
+const UNFAVORABLE = "#5C2F2E";
+const NEUTRAL = "#9A8F80";
+
+function deltaColor(cur, prior, higherIsBetter = true) {
+  if (prior === undefined || prior === null) return NEUTRAL;
+  if (cur === prior) return NEUTRAL;
+  const up = cur > prior;
+  if (higherIsBetter) return up ? FAVORABLE : UNFAVORABLE;
+  return up ? UNFAVORABLE : FAVORABLE;
+}
+
+function deltaPctText(cur, prior) {
+  if (prior === undefined || prior === null) return "—";
+  if (!prior) return cur > 0 ? "new" : "—";
+  const x = (cur - prior) / prior;
+  if (!isFinite(x)) return "—";
+  return `${x >= 0 ? "+" : ""}${(x * 100).toFixed(0)}%`;
+}
+
+function arrow(cur, prior) {
+  if (prior === undefined || prior === null) return "";
+  if (cur > prior) return "▲";
+  if (cur < prior) return "▼";
+  return "·";
+}
+
 /**
  * Rep performance broken into Existing / New / 1099 sections.
  * Each section is a sortable-by-rank table with totals at the bottom.
- * Mirrors the structure of xtresse-leadershipdash's by-rep view, but
- * scoped to the period currently selected on the omnichannel dashboard.
+ *
+ * The per-product columns show "Nu · Eu" — units sold to NEW customers
+ * (left, in brand maroon) and units to EXISTING customers (right, muted).
+ * Hovering the cell reveals the dollar split.
+ *   - Gummies "new" = order has Shopify Flow's `b2b` + `first order` tags
+ *   - Serum / XVIE / Sachets "new" = customer's first-EVER purchase of
+ *     that product (across all time) lands inside the loaded window
+ *
+ * `compare` (optional) carries prior-period values keyed by rep name:
+ *   { mode, from, to, reps: [{rep, net, orders, productMix}] }
+ * When provided, every numeric cell gets a small subtext showing the
+ * prior value, an arrow, and the percent delta — green sage if favorable,
+ * brand maroon if unfavorable, muted brown for "no prior data".
  */
-export default function RepPerformance({ repPerformance, onExport }) {
+export default function RepPerformance({ repPerformance, compare }) {
   if (!repPerformance || repPerformance.length === 0) return null;
+  const priorByRep =
+    compare && compare.reps
+      ? Object.fromEntries(compare.reps.map((r) => [r.rep, r]))
+      : null;
 
   return (
     <div className="space-y-3 md:space-y-4">
@@ -40,27 +94,63 @@ export default function RepPerformance({ repPerformance, onExport }) {
           key={territory}
           title={TERRITORY_LABEL[territory] || territory}
           rows={rows}
+          priorByRep={priorByRep}
         />
       ))}
     </div>
   );
 }
 
-function RepTable({ title, rows }) {
-  const totals = rows.reduce(
-    (a, r) => ({
-      net: a.net + r.net,
-      orders: a.orders + r.orders,
-      newAccounts: a.newAccounts + r.newAccounts,
-      firstOrderGummy: a.firstOrderGummy + (r.firstOrderGummy || 0),
-      newXvieAccts: a.newXvieAccts + (r.newXvieAccts || 0),
-      newSerumAccts: a.newSerumAccts + (r.newSerumAccts || 0),
-    }),
-    {
-      net: 0, orders: 0, newAccounts: 0, firstOrderGummy: 0,
-      newXvieAccts: 0, newSerumAccts: 0,
+function RepTable({ title, rows, priorByRep }) {
+  // Sum each family's slot for the subtotal row.
+  const totals = {
+    net: 0,
+    orders: 0,
+    productMix: {
+      Gummies: { ...blankSlot },
+      Serum: { ...blankSlot },
+      XVIE: { ...blankSlot },
+      Sachets: { ...blankSlot },
+    },
+  };
+  // Prior subtotals so the footer also shows a delta when compare is on.
+  const priorTotals = priorByRep
+    ? {
+        net: 0,
+        orders: 0,
+        productMix: {
+          Gummies: { ...blankSlot },
+          Serum: { ...blankSlot },
+          XVIE: { ...blankSlot },
+          Sachets: { ...blankSlot },
+        },
+      }
+    : null;
+  for (const r of rows) {
+    totals.net += r.net || 0;
+    totals.orders += r.orders || 0;
+    for (const f of FAMILIES) {
+      const slot = (r.productMix && r.productMix[f.key]) || blankSlot;
+      totals.productMix[f.key].newUnits += slot.newUnits || 0;
+      totals.productMix[f.key].newDollars += slot.newDollars || 0;
+      totals.productMix[f.key].existingUnits += slot.existingUnits || 0;
+      totals.productMix[f.key].existingDollars += slot.existingDollars || 0;
     }
-  );
+    if (priorByRep) {
+      const p = priorByRep[r.rep];
+      if (p) {
+        priorTotals.net += p.net || 0;
+        priorTotals.orders += p.orders || 0;
+        for (const f of FAMILIES) {
+          const ps = (p.productMix && p.productMix[f.key]) || blankSlot;
+          priorTotals.productMix[f.key].newUnits += ps.newUnits || 0;
+          priorTotals.productMix[f.key].newDollars += ps.newDollars || 0;
+          priorTotals.productMix[f.key].existingUnits += ps.existingUnits || 0;
+          priorTotals.productMix[f.key].existingDollars += ps.existingDollars || 0;
+        }
+      }
+    }
+  }
 
   return (
     <div className="bg-card border border-rule rounded-xl overflow-hidden">
@@ -69,7 +159,8 @@ function RepTable({ title, rows }) {
           {title}
         </h3>
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] opacity-80">
-          {rows.length} reps · {fmt$(totals.net)} net
+          {rows.length} reps · {fmt$(totals.net)} net · units shown as <span className="text-paper">N</span> new ·{" "}
+          E existing
         </span>
       </div>
 
@@ -83,37 +174,68 @@ function RepTable({ title, rows }) {
               <Th align="left">Rep</Th>
               <Th width="140" align="left">Last order</Th>
               <Th align="right">Orders</Th>
-              <Th align="right" title="Orders Shopify Flow tagged 'b2b' + 'first order' with positive gummy revenue — matches leadership-dash convention">
-                New gummy
-              </Th>
-              <Th align="right" title="Customers whose FIRST-EVER XVIE purchase (across all time) lands inside the loaded window">
-                New XVIE
-              </Th>
-              <Th align="right" title="Customers whose FIRST-EVER Serum purchase (across all time) lands inside the loaded window">
-                New Serum
-              </Th>
+              {FAMILIES.map((f) => (
+                <Th
+                  key={f.key}
+                  align="right"
+                  title={
+                    f.key === "Gummies"
+                      ? "Units in orders Shopify tagged 'first order' (N) vs all other orders (E). Hover the cell for $."
+                      : `Units sold to customers whose first-ever ${f.label} purchase is inside this window (N) vs returning customers (E). Hover the cell for $.`
+                  }
+                >
+                  {f.label}
+                </Th>
+              ))}
               <Th align="right" className="border-l border-rule">Net sales</Th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.rep} className="border-t border-rule/60">
-                <Td>{r.region}</Td>
-                <Td className="text-muted">{r.rank}</Td>
-                <Td className="font-medium text-ink">{r.rep}</Td>
-                <Td className="text-muted text-[11px]">{fmtLastOrder(r.lastOrderAt)}</Td>
-                <Td align="right">{r.orders ? fmtN(r.orders) : "—"}</Td>
-                <Td align="right">{r.firstOrderGummy ? fmtN(r.firstOrderGummy) : "—"}</Td>
-                <Td align="right">{r.newXvieAccts ? fmtN(r.newXvieAccts) : "—"}</Td>
-                <Td align="right">{r.newSerumAccts ? fmtN(r.newSerumAccts) : "—"}</Td>
-                <Td align="right" className="font-semibold border-l border-rule">
-                  {fmt$(r.net)}
-                </Td>
-              </tr>
-            ))}
+            {rows.map((r) => {
+              const prior = priorByRep ? priorByRep[r.rep] : null;
+              return (
+                <tr key={r.rep} className="border-t border-rule/60">
+                  <Td>{r.region}</Td>
+                  <Td className="text-muted">{r.rank}</Td>
+                  <Td className="font-medium text-ink">{r.rep}</Td>
+                  <Td className="text-muted text-[11px]">{fmtLastOrder(r.lastOrderAt)}</Td>
+                  <Td align="right">
+                    {r.orders ? fmtN(r.orders) : "—"}
+                    {priorByRep && (
+                      <DeltaBelow
+                        cur={r.orders || 0}
+                        prior={prior ? prior.orders : null}
+                        fmt={fmtN}
+                      />
+                    )}
+                  </Td>
+                  {FAMILIES.map((f) => {
+                    const cur = (r.productMix && r.productMix[f.key]) || blankSlot;
+                    const pri =
+                      prior && prior.productMix ? prior.productMix[f.key] : null;
+                    return (
+                      <Td key={f.key} align="right">
+                        <ProductCell slot={cur} />
+                        {priorByRep && <ProductDeltaBelow cur={cur} prior={pri} />}
+                      </Td>
+                    );
+                  })}
+                  <Td align="right" className="font-semibold border-l border-rule">
+                    {fmt$(r.net)}
+                    {priorByRep && (
+                      <DeltaBelow
+                        cur={r.net || 0}
+                        prior={prior ? prior.net : null}
+                        fmt={fmt$}
+                      />
+                    )}
+                  </Td>
+                </tr>
+              );
+            })}
             {!rows.length && (
               <tr>
-                <td colSpan={9} className="py-4 text-center text-muted text-xs">
+                <td colSpan={5 + FAMILIES.length + 1} className="py-4 text-center text-muted text-xs">
                   No reps in this territory.
                 </td>
               </tr>
@@ -122,12 +244,28 @@ function RepTable({ title, rows }) {
           <tfoot>
             <tr className="bg-paper2 font-semibold">
               <Td colSpan={4} className="italic text-inksoft">{title} subtotal</Td>
-              <Td align="right">{fmtN(totals.orders)}</Td>
-              <Td align="right">{fmtN(totals.firstOrderGummy)}</Td>
-              <Td align="right">{fmtN(totals.newXvieAccts)}</Td>
-              <Td align="right">{fmtN(totals.newSerumAccts)}</Td>
+              <Td align="right">
+                {fmtN(totals.orders)}
+                {priorTotals && (
+                  <DeltaBelow cur={totals.orders} prior={priorTotals.orders} fmt={fmtN} />
+                )}
+              </Td>
+              {FAMILIES.map((f) => (
+                <Td key={f.key} align="right">
+                  <ProductCell slot={totals.productMix[f.key]} />
+                  {priorTotals && (
+                    <ProductDeltaBelow
+                      cur={totals.productMix[f.key]}
+                      prior={priorTotals.productMix[f.key]}
+                    />
+                  )}
+                </Td>
+              ))}
               <Td align="right" className="text-brown border-l border-rule">
                 {fmt$(totals.net)}
+                {priorTotals && (
+                  <DeltaBelow cur={totals.net} prior={priorTotals.net} fmt={fmt$} />
+                )}
               </Td>
             </tr>
           </tfoot>
@@ -136,37 +274,172 @@ function RepTable({ title, rows }) {
 
       {/* Mobile card list */}
       <div className="md:hidden divide-y divide-rule/60">
-        {rows.map((r) => (
-          <div key={r.rep} className="px-4 py-3 flex items-center gap-3">
-            <div className="w-6 text-right text-[11px] text-muted tabular-nums">{r.rank}</div>
-            <div className="min-w-0 flex-1">
-              <div className="font-sans text-sm text-ink truncate">{r.rep}</div>
-              <div className="font-sans text-[11px] text-muted">
-                {r.region} · {fmtN(r.orders)} ord · {fmtN(r.firstOrderGummy)} G ·{" "}
-                {fmtN(r.newXvieAccts || 0)} X · {fmtN(r.newSerumAccts || 0)} S
+        {rows.map((r) => {
+          const prior = priorByRep ? priorByRep[r.rep] : null;
+          return (
+            <div key={r.rep} className="px-4 py-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-6 text-right text-[11px] text-muted tabular-nums">{r.rank}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-sans text-sm text-ink truncate">{r.rep}</div>
+                  <div className="font-sans text-[11px] text-muted">
+                    {r.region} · {fmtN(r.orders)} ord · {fmtLastOrder(r.lastOrderAt)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-display text-base font-semibold text-ink tabular-nums">
+                    {fmt$(r.net)}
+                  </div>
+                  {priorByRep && (
+                    <DeltaBelow
+                      cur={r.net || 0}
+                      prior={prior ? prior.net : null}
+                      fmt={fmt$}
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 pl-9">
+                {FAMILIES.map((f) => {
+                  const cur = (r.productMix && r.productMix[f.key]) || blankSlot;
+                  const pri =
+                    prior && prior.productMix ? prior.productMix[f.key] : null;
+                  return (
+                    <ProductChip
+                      key={f.key}
+                      label={f.label}
+                      slot={cur}
+                      prior={priorByRep ? pri : undefined}
+                    />
+                  );
+                })}
               </div>
             </div>
-            <div className="font-display text-base font-semibold text-ink tabular-nums">
-              {fmt$(r.net)}
-            </div>
-          </div>
-        ))}
-        <div className="px-4 py-3 bg-paper2 flex items-center justify-between font-semibold">
-          <span className="font-sans text-sm text-inksoft italic">Subtotal</span>
-          <span className="font-display text-base text-brown tabular-nums">
-            {fmt$(totals.net)}
-          </span>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function Th({ children, align = "left", width, className = "", title }) {
+/**
+ * Desktop cell: "5N · 28E". N in brand maroon, E in muted color, dot
+ * separator. Tooltip shows the dollar split so the user can verify
+ * the breakdown without losing the units-first scan.
+ */
+function ProductCell({ slot }) {
+  const n = slot.newUnits || 0;
+  const e = slot.existingUnits || 0;
+  if (n === 0 && e === 0) return <span className="text-muted">—</span>;
+  const tooltip = `New: ${fmtN(n)} units · ${fmt$(slot.newDollars)}
+Existing: ${fmtN(e)} units · ${fmt$(slot.existingDollars)}`;
+  return (
+    <span title={tooltip} className="inline-flex items-baseline gap-1 tabular-nums">
+      <span className={n > 0 ? "text-brown font-semibold" : "text-muted"}>
+        {fmtN(n)}N
+      </span>
+      <span className="text-muted/60">·</span>
+      <span className={e > 0 ? "text-inksoft" : "text-muted"}>
+        {fmtN(e)}E
+      </span>
+    </span>
+  );
+}
+
+/** Delta subtext under any single numeric value. */
+function DeltaBelow({ cur, prior, fmt }) {
+  if (prior === undefined || prior === null) {
+    return (
+      <div className="font-sans text-[9.5px] text-muted tabular-nums leading-tight mt-0.5">
+        —
+      </div>
+    );
+  }
+  const color = deltaColor(cur, prior, true);
+  const ar = arrow(cur, prior);
+  return (
+    <div
+      className="font-sans text-[9.5px] tabular-nums leading-tight mt-0.5"
+      style={{ color }}
+      title={`Prior: ${fmt(prior)}`}
+    >
+      {fmt(prior)} {ar} {deltaPctText(cur, prior)}
+    </div>
+  );
+}
+
+/** Delta subtext for product cells — compares total units (N + E). */
+function ProductDeltaBelow({ cur, prior }) {
+  if (!prior) {
+    return (
+      <div className="font-sans text-[9.5px] text-muted tabular-nums leading-tight mt-0.5">
+        —
+      </div>
+    );
+  }
+  const curT = (cur.newUnits || 0) + (cur.existingUnits || 0);
+  const priorT = (prior.newUnits || 0) + (prior.existingUnits || 0);
+  const color = deltaColor(curT, priorT, true);
+  const ar = arrow(curT, priorT);
+  return (
+    <div
+      className="font-sans text-[9.5px] tabular-nums leading-tight mt-0.5"
+      style={{ color }}
+      title={`Prior: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorT} units)`}
+    >
+      {priorT}u {ar} {deltaPctText(curT, priorT)}
+    </div>
+  );
+}
+
+/** Mobile chip — same N/E split, label visible. Adds delta when compare is on. */
+function ProductChip({ label, slot, prior }) {
+  const n = slot.newUnits || 0;
+  const e = slot.existingUnits || 0;
+  const total = n + e;
+  const showDelta = prior !== undefined;
+  const priorTotal = prior ? (prior.newUnits || 0) + (prior.existingUnits || 0) : 0;
+  return (
+    <div
+      className={`flex flex-col gap-0.5 px-2 py-1 rounded border font-sans text-[11px] ${
+        total > 0 ? "bg-paper2 border-tan" : "bg-paper border-rule"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className={`font-semibold ${total > 0 ? "text-inksoft" : "text-muted"}`}>
+          {label}
+        </span>
+        <span className="tabular-nums">
+          <span className={n > 0 ? "text-brown font-semibold" : "text-muted"}>
+            {fmtN(n)}N
+          </span>
+          <span className="text-muted/60 mx-0.5">·</span>
+          <span className={e > 0 ? "text-inksoft" : "text-muted"}>
+            {fmtN(e)}E
+          </span>
+        </span>
+      </div>
+      {showDelta && (
+        <div
+          className="font-sans text-[9.5px] tabular-nums leading-tight"
+          style={{ color: prior ? deltaColor(total, priorTotal, true) : NEUTRAL }}
+        >
+          {prior
+            ? `${priorTotal}u ${arrow(total, priorTotal)} ${deltaPctText(total, priorTotal)}`
+            : "—"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Th({ children, align = "left", width, className = "", title, rowSpan, colSpan }) {
   const alignClass = align === "right" ? "text-right" : "text-left";
   return (
     <th
       title={title}
+      rowSpan={rowSpan}
+      colSpan={colSpan}
       style={width ? { width: `${width}px` } : undefined}
       className={`py-2 px-3 font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold ${alignClass} ${className}`}
     >

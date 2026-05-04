@@ -10,8 +10,59 @@ const fmtCurrency = (n) =>
 const fmtNum = (n) => new Intl.NumberFormat("en-US").format(n || 0);
 const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 
-export default function KpiTiles({ kpis }) {
+// Brand-aligned compare colors (also defined in tailwind.config — using
+// inline rgb for resilience in case theme tokens drift).
+const FAVORABLE = "#5C8A6F"; // green sage
+const UNFAVORABLE = "#5C2F2E"; // brand maroon
+const NEUTRAL = "#9A8F80";
+
+function deltaColor(cur, prior, higherIsBetter = true) {
+  if (prior === undefined || prior === null) return NEUTRAL;
+  if (cur === prior) return NEUTRAL;
+  const up = cur > prior;
+  if (higherIsBetter) return up ? FAVORABLE : UNFAVORABLE;
+  return up ? UNFAVORABLE : FAVORABLE;
+}
+
+function deltaPct(cur, prior) {
+  if (!prior || prior === 0) return null;
+  return (cur - prior) / prior;
+}
+
+function arrow(cur, prior) {
+  if (prior === undefined || prior === null) return "";
+  if (cur > prior) return "▲";
+  if (cur < prior) return "▼";
+  return "·";
+}
+
+function CompareLine({ cur, prior, label, fmt = fmtCurrency, higherIsBetter = true }) {
+  if (prior === undefined || prior === null) {
+    return (
+      <div className="font-sans text-[10px] md:text-[11px] text-muted tabular-nums">
+        — no {label} data
+      </div>
+    );
+  }
+  const pct = deltaPct(cur, prior);
+  const color = deltaColor(cur, prior, higherIsBetter);
+  const ar = arrow(cur, prior);
+  return (
+    <div
+      className="font-sans text-[10px] md:text-[11px] tabular-nums leading-tight"
+      style={{ color }}
+    >
+      {fmt(prior)} <span style={{ marginLeft: 2 }}>{ar}</span>{" "}
+      {pct === null ? "—" : `${pct >= 0 ? "+" : ""}${(pct * 100).toFixed(1)}%`}
+      <span className="text-muted"> vs {label}</span>
+    </div>
+  );
+}
+
+export default function KpiTiles({ kpis, compare }) {
   if (!kpis) return null;
+  const cmp = compare && compare.kpis ? compare.kpis : null;
+  const cmpLabel = compare ? labelFor(compare) : null;
 
   // Three MUTUALLY EXCLUSIVE buckets that sum to total net sales.
   // B2B excludes ADCS now (per Sam's request). ADCS is its own line.
@@ -23,6 +74,8 @@ export default function KpiTiles({ kpis }) {
         kpis.b2bAOV
       )}`,
       tone: "primary",
+      cur: kpis.b2bNetSales,
+      prior: cmp ? cmp.b2bNetSales : null,
     },
     {
       label: "ADCS net sales",
@@ -31,6 +84,8 @@ export default function KpiTiles({ kpis }) {
         kpis.adcsAOV
       )}`,
       tone: "accent",
+      cur: kpis.adcsNetSales,
+      prior: cmp ? cmp.adcsNetSales : null,
     },
     {
       label: "DTC net sales",
@@ -39,19 +94,36 @@ export default function KpiTiles({ kpis }) {
         kpis.dtcAOV
       )}`,
       tone: "muted",
+      cur: kpis.dtcNetSales,
+      prior: cmp ? cmp.dtcNetSales : null,
     },
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
       {tiles.map((t) => (
-        <Tile key={t.label} {...t} />
+        <Tile key={t.label} {...t} cmpLabel={cmpLabel} compareOn={!!cmp} />
       ))}
     </div>
   );
 }
 
-function Tile({ label, value, sub, tone }) {
+function labelFor(compare) {
+  if (!compare) return null;
+  if (compare.mode === "yoy") return "last year";
+  // Friendly window length label for prior-period mode.
+  const f = new Date(compare.from + "T00:00:00Z");
+  const t = new Date(compare.to + "T00:00:00Z");
+  const days = Math.round((t - f) / 86400000) + 1;
+  if (days === 1) return "yesterday";
+  if (days === 7) return "prior 7d";
+  if (days === 14) return "prior 14d";
+  if (days === 30) return "prior 30d";
+  if (days === 90) return "prior 90d";
+  return `prior ${days}d`;
+}
+
+function Tile({ label, value, sub, tone, cur, prior, cmpLabel, compareOn }) {
   const stripe =
     tone === "primary"
       ? "before:bg-brown"
@@ -70,6 +142,17 @@ function Tile({ label, value, sub, tone }) {
         {value}
       </div>
       <div className="font-sans text-[11px] md:text-xs text-inksoft mt-1.5 leading-snug">{sub}</div>
+      {compareOn && (
+        <div className="mt-1.5 pt-1.5 border-t border-rule/60">
+          <CompareLine
+            cur={cur}
+            prior={prior}
+            label={cmpLabel}
+            fmt={fmtCurrency}
+            higherIsBetter
+          />
+        </div>
+      )}
     </div>
   );
 }
