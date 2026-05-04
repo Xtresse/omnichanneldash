@@ -297,7 +297,7 @@ export default function Dashboard({ initial }) {
               <KpiTiles kpis={data.kpis} compare={data.compare} />
             </div>
 
-            {/* Net-sales reconciliation note — shows the gross→net waterfall so Sam can sanity check */}
+            {/* Net-sales reconciliation note */}
             <div className="mb-5 md:mb-7 rounded-xl border border-rule bg-card px-3 py-2.5 md:px-4 md:py-3">
               <p className="font-sans text-[11px] md:text-xs leading-snug text-inksoft">
                 <span className="font-semibold text-ink">Net sales reconciliation</span>
