@@ -79,13 +79,9 @@ export default function Dashboard({ initial }) {
   // User-selected chart granularity. "auto" lets the server pick.
   const [granularity, setGranularity] = useState("auto");
   // Compare mode: "off" | "prior" | "yoy". URL-state-driven so deep links
-  // preserve the user's last selection. Initial value is read from the
-  // ?compare= query param on mount; subsequent changes write back.
-  const [compareMode, setCompareMode] = useState(() => {
-    if (typeof window === "undefined") return "off";
-    const v = new URLSearchParams(window.location.search).get("compare");
-    return v === "prior" || v === "yoy" ? v : "off";
-  });
+  // preserve the user's last selection. Initial value is "off" (SSR-safe),
+  // and the mount effect below reads ?compare= on the client and reconciles.
+  const [compareMode, setCompareMode] = useState("off");
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
 
@@ -183,18 +179,23 @@ export default function Dashboard({ initial }) {
     return () => clearInterval(id);
   }, []);
 
-  // If the page loaded with ?compare=prior or ?compare=yoy in the URL but
-  // the SSR'd `initial` data doesn't include the compare snapshot (it's
-  // pre-rendered without that param), trigger a one-shot refetch on mount
-  // so the deltas, dashed overlays, and reconciliation strip populate
-  // without the user having to click the toggle.
+  // On mount, read ?compare= from the URL and reconcile state. Lazy
+  // useState initializers that read window during hydration can desync
+  // server vs client renders, so we do this in an effect: state starts
+  // as "off" (matching SSR), then the effect promotes it to "prior" or
+  // "yoy" and triggers a one-shot refetch so the deltas / overlays /
+  // reconciliation strip populate without the user clicking the toggle.
   useEffect(() => {
-    if (compareMode === "off") return;
-    if (data && data.compare) return;
-    if (!customFrom || !customTo) return;
-    startTransition(() =>
-      loadFromUrl(buildQs(customFrom, customTo, granularity, compareMode))
-    );
+    if (typeof window === "undefined") return;
+    const v = new URLSearchParams(window.location.search).get("compare");
+    const next = v === "prior" || v === "yoy" ? v : "off";
+    if (next === "off") return;
+    setCompareMode(next);
+    if (customFrom && customTo) {
+      startTransition(() =>
+        loadFromUrl(buildQs(customFrom, customTo, granularity, next))
+      );
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
