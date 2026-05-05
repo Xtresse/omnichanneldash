@@ -4,7 +4,6 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import KpiTiles from "./KpiTiles.jsx";
 import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
-import LazyMount from "./LazyMount.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
@@ -376,104 +375,89 @@ export default function Dashboard({ initial }) {
               </ChartGrid>
             </Section>
 
-            {/* Below-fold sections wrapped in LazyMount — they only render
-                when the user scrolls within ~400px of them, keeping first
-                paint fast on slower connections / phones. minHeight matches
-                the typical chart cell so layout doesn't jump. */}
-            <LazyMount minHeight={520}>
-              <Section title="Customer dynamics" detail="Tier 2 / 4 charts">
-                <ChartGrid>
-                  <ChartCell title="New vs returning — B2B (gummies only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
-                    <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="B2B" />
-                  </ChartCell>
-                  <ChartCell title="New vs returning — DTC" subtitle={`${G} stacked · all DTC orders`}>
-                    <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="DTC" />
-                  </ChartCell>
-                  <ChartCell title="Repeat purchase rate" subtitle={`% returning, ${G.toLowerCase()}`}>
-                    <RepeatRate data={data.repeatRate} compare={data.compare} />
-                  </ChartCell>
-                  <ChartCell title="DTC subscription vs one-time" subtitle={`Net sales mix, ${G.toLowerCase()}`}>
-                    <SubVsOneTime data={data.subVsOneTime} />
-                  </ChartCell>
-                </ChartGrid>
-              </Section>
-            </LazyMount>
+            <Section title="Customer dynamics" detail="Tier 2 / 4 charts">
+              <ChartGrid>
+                <ChartCell title="New vs returning — B2B (gummies only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
+                  <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="B2B" />
+                </ChartCell>
+                <ChartCell title="New vs returning — DTC" subtitle={`${G} stacked · all DTC orders`}>
+                  <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="DTC" />
+                </ChartCell>
+                <ChartCell title="Repeat purchase rate" subtitle={`% returning, ${G.toLowerCase()}`}>
+                  <RepeatRate data={data.repeatRate} compare={data.compare} />
+                </ChartCell>
+                <ChartCell title="DTC subscription vs one-time" subtitle={`Net sales mix, ${G.toLowerCase()}`}>
+                  <SubVsOneTime data={data.subVsOneTime} />
+                </ChartCell>
+              </ChartGrid>
+            </Section>
 
-            <LazyMount minHeight={520}>
-              <Section title="Operational & geographic" detail="Tier 3 / 3 charts">
-                <ChartGrid>
-                  <ChartCell title="Top 15 states by net sales" subtitle="Channel split" wide>
-                    <RevenueByState data={data.revenueByState} />
-                  </ChartCell>
-                  <ChartCell title="Discount code usage" subtitle="Top 12 by frequency">
-                    <DiscountUsage data={data.discountUsage} />
-                  </ChartCell>
-                  <ChartCell title="3PL fulfillment split" subtitle="Order count by location">
-                    <FulfillmentSplit data={data.fulfillmentSplit} />
-                  </ChartCell>
-                </ChartGrid>
-              </Section>
-            </LazyMount>
+            <Section title="Operational & geographic" detail="Tier 3 / 3 charts">
+              <ChartGrid>
+                <ChartCell title="Top 15 states by net sales" subtitle="Channel split" wide>
+                  <RevenueByState data={data.revenueByState} />
+                </ChartCell>
+                <ChartCell title="Discount code usage" subtitle="Top 12 by frequency">
+                  <DiscountUsage data={data.discountUsage} />
+                </ChartCell>
+                <ChartCell title="3PL fulfillment split" subtitle="Order count by location">
+                  <FulfillmentSplit data={data.fulfillmentSplit} />
+                </ChartCell>
+              </ChartGrid>
+            </Section>
 
-            <LazyMount minHeight={640}>
-              <Section
-                title="Sales by rep"
-                detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
-              >
-                <ChartGrid>
-                  <ChartCell title="Net sales by rep" subtitle={`${G} trend · click chips to toggle`}>
-                    <RepTrendChart
-                      data={data.repSalesMonthly || []}
-                      reps={data.repsList || []}
-                      valueType="currency"
-                      compare={data.compare}
-                      priorKey="repSalesMonthly"
-                    />
-                  </ChartCell>
-                  <ChartCell title="New gummy accounts by rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
-                    <RepTrendChart
-                      data={data.repNewAccountsMonthly || []}
-                      reps={data.repsList || []}
-                      valueType="count"
-                      compare={data.compare}
-                      priorKey="repNewAccountsMonthly"
-                    />
-                  </ChartCell>
-                </ChartGrid>
-                <div className="mt-3 md:mt-4">
-                  <RepPerformance
-                    repPerformance={data.repPerformance || []}
+            <Section
+              title="Sales by rep"
+              detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
+            >
+              <ChartGrid>
+                <ChartCell title="Net sales by rep" subtitle={`${G} trend · click chips to toggle`}>
+                  <RepTrendChart
+                    data={data.repSalesMonthly || []}
+                    reps={data.repsList || []}
+                    valueType="currency"
                     compare={data.compare}
+                    priorKey="repSalesMonthly"
                   />
-                </div>
-              </Section>
-            </LazyMount>
-
-            <LazyMount minHeight={400}>
-              <Section
-                title="Reconciliation"
-                detail="Cross-checks chart totals against the headline KPIs"
-              >
-                <ReconciliationCheck
-                  reconciliation={data.reconciliation}
-                  kpis={data.kpis}
+                </ChartCell>
+                <ChartCell title="New gummy accounts by rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
+                  <RepTrendChart
+                    data={data.repNewAccountsMonthly || []}
+                    reps={data.repsList || []}
+                    valueType="count"
+                    compare={data.compare}
+                    priorKey="repNewAccountsMonthly"
+                  />
+                </ChartCell>
+              </ChartGrid>
+              <div className="mt-3 md:mt-4">
+                <RepPerformance
+                  repPerformance={data.repPerformance || []}
                   compare={data.compare}
                 />
-              </Section>
-            </LazyMount>
+              </div>
+            </Section>
 
-            <LazyMount minHeight={400}>
-              <Section
-                title="Orders audit trail"
-                detail={`${(data.orders?.length || 0).toLocaleString()} orders in period`}
-              >
-                <OrdersTable orders={data.orders || []} />
-              </Section>
-            </LazyMount>
+            <Section
+              title="Reconciliation"
+              detail="Cross-checks chart totals against the headline KPIs"
+            >
+              <ReconciliationCheck
+                reconciliation={data.reconciliation}
+                kpis={data.kpis}
+                compare={data.compare}
+              />
+            </Section>
 
-            <LazyMount minHeight={400}>
-              <Section title="Marketing performance" detail="Tier 4 / pending connectors">
-                <ChartGrid>
+            <Section
+              title="Orders audit trail"
+              detail={`${(data.orders?.length || 0).toLocaleString()} orders in period`}
+            >
+              <OrdersTable orders={data.orders || []} />
+            </Section>
+
+            <Section title="Marketing performance" detail="Tier 4 / pending connectors">
+              <ChartGrid>
                 <ChartCell title="Blended ROAS" subtitle="DTC ad spend → all channel revenue">
                   <MarketingPlaceholder label="Blended ROAS" />
                 </ChartCell>
@@ -487,8 +471,7 @@ export default function Dashboard({ initial }) {
               <p className="font-sans text-xs text-muted mt-3 leading-snug max-w-2xl">
                 Activates once Google Ads, Meta, TikTok, and Klaviyo are authorized on Windsor.ai.
               </p>
-              </Section>
-            </LazyMount>
+            </Section>
 
             <footer className="font-sans text-[10px] md:text-xs text-muted mt-10 border-t border-rule pt-4 leading-relaxed">
               <p>
