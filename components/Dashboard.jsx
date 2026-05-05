@@ -334,7 +334,7 @@ export default function Dashboard({ initial }) {
                   <CumulativeYTD data={data.cumulativeYTD} />
                 </ChartCell>
                 <ChartCell title="Net sales by product family" subtitle="Gummies · Serum · XVIE · Sachets">
-                  <ProductFamily data={data.productFamily} />
+                  <ProductFamily data={data.productFamily} compare={data.compare} />
                 </ChartCell>
               </ChartGrid>
             </Section>
@@ -342,13 +342,13 @@ export default function Dashboard({ initial }) {
             <Section title="Customer dynamics" detail="Tier 2 / 4 charts">
               <ChartGrid>
                 <ChartCell title="New vs returning — B2B (gummies only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
-                  <NewVsReturning data={data.customerDynamics} channel="B2B" />
+                  <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="B2B" />
                 </ChartCell>
                 <ChartCell title="New vs returning — DTC" subtitle={`${G} stacked · all DTC orders`}>
-                  <NewVsReturning data={data.customerDynamics} channel="DTC" />
+                  <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="DTC" />
                 </ChartCell>
                 <ChartCell title="Repeat purchase rate" subtitle={`% returning, ${G.toLowerCase()}`}>
-                  <RepeatRate data={data.repeatRate} />
+                  <RepeatRate data={data.repeatRate} compare={data.compare} />
                 </ChartCell>
                 <ChartCell title="DTC subscription vs one-time" subtitle={`Net sales mix, ${G.toLowerCase()}`}>
                   <SubVsOneTime data={data.subVsOneTime} />
