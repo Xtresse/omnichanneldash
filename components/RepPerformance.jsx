@@ -219,7 +219,10 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
                   <Td>{r.region}</Td>
                   <Td className="text-muted">{r.rank}</Td>
                   <Td className="font-medium text-ink">{r.rep}</Td>
-                  <Td className="text-muted text-[11px]">{fmtLastOrder(r.lastOrderAt)}</Td>
+                  <Td className="text-muted text-[11px]">
+                    {fmtLastOrder(r.lastOrderAt)}
+                    {r.lastShipment && <ShipmentPill ship={r.lastShipment} />}
+                  </Td>
                   <Td align="right">
                     {r.orders ? fmtN(r.orders) : "—"}
                     {priorByRep && (
@@ -308,6 +311,11 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
                   <div className="font-sans text-sm text-ink truncate">{r.rep}</div>
                   <div className="font-sans text-[11px] text-muted">
                     {r.region} · {fmtN(r.orders)} ord · {fmtLastOrder(r.lastOrderAt)}
+                    {r.lastShipment && (
+                      <span className="ml-1.5 inline-block align-middle">
+                        <ShipmentPill ship={r.lastShipment} />
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -479,6 +487,47 @@ function ProductChip({ label, slot, prior, compareLabel }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Tiny status pill rendered next to "Last order" on each rep row. Shows
+ * the most recent shipment status — Pending / Shipped / In transit /
+ * Delivered / Issue — with the ship date and days-in-transit on hover.
+ *
+ * Source: data.repPerformance[i].rows[j].lastShipment from windsor.js
+ * deriveFulfillment(). Null when no order for this rep has shipped yet.
+ */
+function ShipmentPill({ ship }) {
+  if (!ship) return null;
+  const STATUS = {
+    pending:    { color: "#9A8F80", label: "Pending" },
+    shipped:    { color: "#a89478", label: "Shipped" },
+    in_transit: { color: "#7a3a2d", label: "In transit" },
+    delivered:  { color: "#5C8A6F", label: "Delivered" },
+    exception:  { color: "#5C2F2E", label: "Issue" },
+  };
+  const s = STATUS[ship.status] || STATUS.shipped;
+  const days = ship.daysInTransit;
+  const tip = [
+    `Last shipment: ${ship.label || s.label}`,
+    ship.shippedAt ? `Shipped ${new Date(ship.shippedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : null,
+    days !== null && days !== undefined ? `${days}d ago` : null,
+    ship.carrier ? `via ${ship.carrier}` : null,
+    ship.trackingNumber ? `#${ship.trackingNumber}` : null,
+  ].filter(Boolean).join(" · ");
+  return (
+    <span
+      className="ml-1.5 inline-flex items-center gap-1 px-1 py-0.5 rounded text-[9.5px] tabular-nums border align-middle"
+      style={{ borderColor: s.color + "55", color: s.color, lineHeight: 1 }}
+      title={tip}
+    >
+      <span className="w-1 h-1 rounded-full" style={{ background: s.color }} />
+      <span>
+        {s.label}
+        {days !== null && days !== undefined ? ` · ${days}d` : ""}
+      </span>
+    </span>
   );
 }
 

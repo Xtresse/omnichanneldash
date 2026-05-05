@@ -169,7 +169,7 @@ export default function OrdersTable({ orders }) {
               <th className="py-2 pr-3 text-right">Gross</th>
               <th className="py-2 pr-3 text-right">Disc</th>
               <th className="py-2 pr-3 text-right">Ret</th>
-              <th className="py-2 pr-0 text-right">
+              <th className="py-2 pr-3 text-right">
                 <SortHeader
                   active={sortKey === "net"}
                   dir={sortDir}
@@ -179,6 +179,7 @@ export default function OrdersTable({ orders }) {
                   Net
                 </SortHeader>
               </th>
+              <th className="py-2 pr-0">Tracking</th>
             </tr>
           </thead>
           <tbody>
@@ -224,14 +225,17 @@ export default function OrdersTable({ orders }) {
                 <td className="py-2 pr-3 text-right text-muted tabular-nums whitespace-nowrap">
                   {o.returns ? fmtMoney(o.returns) : "—"}
                 </td>
-                <td className="py-2 pr-0 text-right text-ink font-semibold tabular-nums whitespace-nowrap">
+                <td className="py-2 pr-3 text-right text-ink font-semibold tabular-nums whitespace-nowrap">
                   {fmtMoney(o.net)}
+                </td>
+                <td className="py-2 pr-0 whitespace-nowrap">
+                  <TrackingCell f={o.fulfillment} />
                 </td>
               </tr>
             ))}
             {!pageRows.length && (
               <tr>
-                <td colSpan={10} className="py-8 text-center text-muted">
+                <td colSpan={11} className="py-8 text-center text-muted">
                   No orders match the current filter.
                 </td>
               </tr>
@@ -286,6 +290,14 @@ export default function OrdersTable({ orders }) {
                 <>
                   <div className="text-muted">Returns</div>
                   <div className="text-inksoft tabular-nums">{fmtMoney(o.returns)}</div>
+                </>
+              )}
+              {o.fulfillment && (
+                <>
+                  <div className="text-muted">Tracking</div>
+                  <div className="text-inksoft min-w-0">
+                    <TrackingCell f={o.fulfillment} compact />
+                  </div>
                 </>
               )}
             </div>
@@ -384,6 +396,69 @@ function ChannelBadge({ channel, adcs, sub }) {
     <span className="inline-flex items-center gap-1">
       <span className={`${base} bg-dtc text-paper`}>DTC</span>
       {sub && <span className={`${base} bg-tan text-paper`}>Sub</span>}
+    </span>
+  );
+}
+
+/**
+ * Tracking cell — renders a colored status pill (Pending / Shipped / In
+ * transit / Delivered / Issue) plus, when available, the carrier name and
+ * a clickable tracking number that opens the carrier's tracking URL.
+ *
+ * Hover/tap shows the explicit ship date and days-in-transit. The compact
+ * variant is used in the mobile card list where horizontal space is at
+ * a premium.
+ */
+function TrackingCell({ f, compact }) {
+  if (!f || f.status === "pending") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-sans text-[10px] text-muted bg-paper2 border border-rule"
+        title="Not yet shipped"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-tan/70" />
+        {compact ? "—" : "Pending"}
+      </span>
+    );
+  }
+  const STATUS = {
+    shipped: { dot: "#a89478", pillBg: "bg-paper2", pillText: "text-inksoft", border: "border-tan" },
+    in_transit: { dot: "#7a3a2d", pillBg: "bg-paper2", pillText: "text-brown", border: "border-tan" },
+    delivered: { dot: "#5C8A6F", pillBg: "bg-paper2", pillText: "text-inksoft", border: "border-rule" },
+    exception: { dot: "#5C2F2E", pillBg: "bg-paper2", pillText: "text-brown", border: "border-tan" },
+  };
+  const s = STATUS[f.status] || STATUS.shipped;
+  const tip = [
+    `${f.label}`,
+    f.shippedAt ? `Shipped ${new Date(f.shippedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : null,
+    f.daysInTransit !== null && f.daysInTransit !== undefined
+      ? `${f.daysInTransit} day${f.daysInTransit === 1 ? "" : "s"} in transit`
+      : null,
+    f.carrier ? `via ${f.carrier}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const trackingHref = f.trackingUrl || (f.trackingNumber ? `https://www.google.com/search?q=${encodeURIComponent(f.trackingNumber)}` : null);
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded font-sans text-[10px] ${s.pillBg} ${s.pillText} border ${s.border}`}
+      title={tip}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} />
+      <span>{compact ? f.label.replace("Not yet shipped", "Pending") : f.label}</span>
+      {!compact && f.trackingNumber && trackingHref && (
+        <a
+          href={trackingHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] tabular-nums underline-offset-2 hover:underline text-muted"
+          onClick={(e) => e.stopPropagation()}
+          title={`Track ${f.trackingNumber}${f.carrier ? ` (${f.carrier})` : ""}`}
+        >
+          {f.trackingNumber.length > 14 ? f.trackingNumber.slice(0, 12) + "…" : f.trackingNumber}
+        </a>
+      )}
     </span>
   );
 }
