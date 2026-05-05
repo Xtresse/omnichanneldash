@@ -400,6 +400,8 @@ export default function Dashboard({ initial }) {
                     data={data.repSalesMonthly || []}
                     reps={data.repsList || []}
                     valueType="currency"
+                    compare={data.compare}
+                    priorKey="repSalesMonthly"
                   />
                 </ChartCell>
                 <ChartCell title="New gummy accounts by rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
@@ -407,6 +409,8 @@ export default function Dashboard({ initial }) {
                     data={data.repNewAccountsMonthly || []}
                     reps={data.repsList || []}
                     valueType="count"
+                    compare={data.compare}
+                    priorKey="repNewAccountsMonthly"
                   />
                 </ChartCell>
               </ChartGrid>

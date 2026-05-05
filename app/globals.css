@@ -5,17 +5,47 @@
 /* Self-host Google Fonts via @import (Next 14 will inline) */
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap");
 
+/* Brand palette — split out as space-separated RGB triplets so Tailwind
+   utilities like `bg-paper/50` can apply alpha modifiers. The dark-mode
+   block below flips the values; every component using the brand classes
+   (bg-paper, text-ink, border-rule, bg-card, text-brown, etc.) auto-adapts. */
 :root {
-  --paper: #f4ede0;
-  --paper-2: #fbf6ed;
-  --ink: #2b1a10;
-  --ink-soft: #5a4232;
-  --rule: #d8cab2;
-  --brown: #3c1f15;
-  --accent: #7a3d23;
-  --b2b: #7a3d23;
-  --dtc: #3a7a6f;
-  --tan: #a89478;
+  --paper: 245 241 234;       /* page background */
+  --paper2: 250 247 242;      /* soft cream surfaces — filter bar, subtotals */
+  --card: 255 255 255;        /* white card */
+  --ink: 43 26 16;            /* primary text */
+  --inksoft: 90 66 50;        /* secondary text */
+  --rule: 212 208 200;        /* hairline borders */
+  --brown: 92 42 26;          /* primary brand rust */
+  --browndeep: 63 28 15;      /* section banners */
+  --accent: 122 58 45;        /* rust light */
+  --b2b: 92 42 26;
+  --dtc: 58 122 111;
+  --muted: 138 115 89;
+  --tan: 168 148 120;
+}
+
+/* Dark mode — auto via OS / browser preference. Inverted brand palette:
+   warm cream "ink" on a deep coffee/aubergine background. The brand rust
+   warms to a golden cream so it still reads as the dominant accent.
+   Status colors (favorable green sage / unfavorable maroon) are left
+   alone in the components themselves so semantics stay obvious. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: 24 18 16;        /* deep coffee */
+    --paper2: 34 25 23;       /* slightly lighter card surface */
+    --card: 28 22 19;         /* card background */
+    --ink: 240 230 212;       /* warm cream text */
+    --inksoft: 184 168 144;   /* secondary cream */
+    --rule: 58 44 32;         /* dim hairline */
+    --brown: 212 161 122;     /* golden cream — flips rust direction */
+    --browndeep: 196 138 100; /* slightly warmer */
+    --accent: 196 114 75;
+    --b2b: 212 161 122;
+    --dtc: 90 168 152;        /* sage stays sage, brightened */
+    --muted: 158 132 104;
+    --tan: 138 118 90;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -23,8 +53,8 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--paper);
-  color: var(--ink);
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
   font-family: "Cormorant Garamond", Georgia, serif;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
@@ -52,37 +82,58 @@ button, [role="button"] {
   touch-action: manipulation;
 }
 
-/* Date inputs styled to match the paper aesthetic */
+/* Date inputs styled to match the paper aesthetic. Dark mode picks up
+   the var-based palette automatically. */
 input[type="date"] {
-  background: var(--paper-2);
-  border: 1px solid var(--rule);
+  background: rgb(var(--paper2));
+  border: 1px solid rgb(var(--rule));
   border-radius: 4px;
   padding: 6px 10px;
-  color: var(--ink);
+  color: rgb(var(--ink));
   font-size: 14px;
   min-height: 36px;
+  /* Make the date-picker icon visible against either background — Chrome
+     uses a system color, but the calendar glyph defaults to dark which
+     vanishes on dark mode. invert() flips it to a light icon. */
+}
+@media (prefers-color-scheme: dark) {
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+  }
 }
 
 /* Hide scrollbars on horizontal-scroll filter bar */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
-/* Recharts overrides for paper aesthetic */
+/* Recharts overrides for paper aesthetic. Dark mode flips the tooltip
+   surface and text-color via the var palette so per-chart components
+   don't need their own dark-mode overrides. */
 .recharts-tooltip-wrapper { outline: none !important; }
 .recharts-default-tooltip {
-  background: #fff !important;
-  border: 1px solid var(--rule) !important;
+  background: rgb(var(--card)) !important;
+  border: 1px solid rgb(var(--rule)) !important;
   border-radius: 6px !important;
   font-family: Inter, system-ui, sans-serif !important;
   font-size: 12px !important;
+  color: rgb(var(--ink)) !important;
+}
+.recharts-default-tooltip .recharts-tooltip-label,
+.recharts-default-tooltip .recharts-tooltip-item-name,
+.recharts-default-tooltip .recharts-tooltip-item-separator {
+  color: rgb(var(--ink)) !important;
 }
 .recharts-cartesian-axis-tick-value {
   font-family: Inter, system-ui, sans-serif !important;
   font-size: 11px !important;
-  fill: var(--ink-soft) !important;
+  fill: rgb(var(--inksoft)) !important;
 }
 .recharts-legend-item-text {
   font-family: Inter, system-ui, sans-serif !important;
   font-size: 12px !important;
-  color: var(--ink-soft) !important;
+  color: rgb(var(--inksoft)) !important;
+}
+/* Cartesian grid lines — softer in dark mode so they don't compete with data. */
+.recharts-cartesian-grid line {
+  stroke: rgb(var(--rule)) !important;
 }

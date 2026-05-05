@@ -7,19 +7,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        paper: "#f5f1ea",     // page background — matches leadership PAGE_BG
-        paper2: "#faf7f2",    // soft cream — matches leadership SOFT_BG (filter bar, subtotal rows)
-        card: "#ffffff",      // pure white card surface — matches leadership
-        ink: "#2b1a10",
-        inksoft: "#5a4232",
-        rule: "#d4d0c8",      // matches leadership BORDER
-        brown: "#5c2a1a",     // RUST primary brand — matches leadership RUST
-        browndeep: "#3f1c0f", // section banners — matches leadership banner color
-        accent: "#7a3a2d",    // matches leadership RUST_LT
-        b2b: "#5c2a1a",
-        dtc: "#3a7a6f",
-        muted: "#8a7359",
-        tan: "#a89478",
+        // Brand palette — values are CSS variables defined in app/globals.css.
+        // The rgb(var(--token) / <alpha-value>) shape lets Tailwind utilities
+        // like `bg-paper/50` keep working with alpha modifiers, AND it lets
+        // the dark-mode @media block in globals.css flip every brand class
+        // automatically without duplicating the palette here.
+        paper: "rgb(var(--paper) / <alpha-value>)",
+        paper2: "rgb(var(--paper2) / <alpha-value>)",
+        card: "rgb(var(--card) / <alpha-value>)",
+        ink: "rgb(var(--ink) / <alpha-value>)",
+        inksoft: "rgb(var(--inksoft) / <alpha-value>)",
+        rule: "rgb(var(--rule) / <alpha-value>)",
+        brown: "rgb(var(--brown) / <alpha-value>)",
+        browndeep: "rgb(var(--browndeep) / <alpha-value>)",
+        accent: "rgb(var(--accent) / <alpha-value>)",
+        b2b: "rgb(var(--b2b) / <alpha-value>)",
+        dtc: "rgb(var(--dtc) / <alpha-value>)",
+        muted: "rgb(var(--muted) / <alpha-value>)",
+        tan: "rgb(var(--tan) / <alpha-value>)",
       },
       fontFamily: {
         serif: ["'Cormorant Garamond'", "Georgia", "serif"],

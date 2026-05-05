@@ -37,12 +37,23 @@ const fmtInt = (n) => new Intl.NumberFormat("en-US").format(Math.round(n || 0));
  *   reps:      string[] of all rep names that may appear in data
  *   valueType: "currency" | "count" — controls Y axis + tooltip format
  *   defaultTopN: how many reps to show by default (default 6)
+ *   compare:   optional { mode, monthlySeries|repSalesMonthly|repNewAccountsMonthly }
+ *              When provided, a dashed muted-brown line is rendered showing
+ *              the SUM of the currently-selected reps for the prior window,
+ *              aligned by bucket index. Useful so Sam can see whether the
+ *              top-rep cohort he's focusing on is up vs prior period without
+ *              eyeballing each individual line.
+ *   priorKey:  which key on `compare` to pull the prior per-rep series from
+ *              ("repSalesMonthly" or "repNewAccountsMonthly"). Defaults to
+ *              repSalesMonthly to match the currency variant.
  */
 export default function RepTrendChart({
   data,
   reps,
   valueType = "currency",
   defaultTopN = 6,
+  compare,
+  priorKey = "repSalesMonthly",
 }) {
   // Compute total per rep over the loaded period to pick a sensible default.
   const totals = useMemo(() => {
@@ -108,6 +119,24 @@ export default function RepTrendChart({
   const visibleReps = sortedReps.filter((r) => selected.has(r));
   const hasData = data && data.length > 0;
 
+  // Merge prior totals into the chart data by bucket index. The prior total
+  // is the SUM of currently-visible reps for that bucket, so it always
+  // tracks the cohort Sam is looking at — toggling reps on/off retunes
+  // the dashed line in real time without needing a refetch.
+  const priorSeries = compare && compare[priorKey] ? compare[priorKey] : null;
+  const showPrior = !!priorSeries && priorSeries.length > 0;
+  const merged = useMemo(() => {
+    if (!hasData) return data || [];
+    if (!showPrior) return data;
+    return data.map((row, i) => {
+      const p = priorSeries[i];
+      if (!p) return { ...row, priorTotal: null };
+      let sum = 0;
+      for (const rep of visibleReps) sum += p[rep] || 0;
+      return { ...row, priorTotal: sum };
+    });
+  }, [data, hasData, priorSeries, showPrior, visibleReps]);
+
   return (
     <div className="space-y-3">
       {/* Rep toggle chips */}
@@ -168,11 +197,11 @@ export default function RepTrendChart({
       <div className="w-full h-72 md:h-96">
         {hasData ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
+            <LineChart data={merged} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" vertical={false} />
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
               <YAxis tickFormatter={fmt} tickLine={false} axisLine={false} width={56} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={tooltipFmt} />
+              <Tooltip formatter={tooltipFmt} itemSorter={(it) => -(it.value || 0)} />
               <Legend wrapperStyle={{ paddingTop: 8, fontSize: 11 }} />
               {visibleReps.map((rep) => (
                 <Line
@@ -185,6 +214,21 @@ export default function RepTrendChart({
                   activeDot={{ r: 4 }}
                 />
               ))}
+              {showPrior && (
+                <Line
+                  type="monotone"
+                  dataKey="priorTotal"
+                  stroke="#9A8F80"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                  dot={false}
+                  name={
+                    compare.mode === "yoy"
+                      ? "Selected — last year"
+                      : "Selected — prior period"
+                  }
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         ) : (
