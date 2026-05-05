@@ -322,13 +322,13 @@ export default function Dashboard({ initial }) {
             <Section title="Top-line performance" detail="Tier 1 / 5 charts">
               <ChartGrid>
                 <ChartCell title="Net sales by channel" subtitle={`${G}, B2B vs DTC`}>
-                  <RevenueByChannel data={data.monthlySeries} />
+                  <RevenueByChannel data={data.monthlySeries} compare={data.compare} />
                 </ChartCell>
                 <ChartCell title="Order count by channel" subtitle={G}>
-                  <OrdersByChannel data={data.monthlySeries} />
+                  <OrdersByChannel data={data.monthlySeries} compare={data.compare} />
                 </ChartCell>
                 <ChartCell title="Average order value" subtitle="Net basis, dual axis">
-                  <AOVByChannel data={data.monthlySeries} />
+                  <AOVByChannel data={data.monthlySeries} compare={data.compare} />
                 </ChartCell>
                 <ChartCell title="Cumulative net YTD" subtitle="By calendar year">
                   <CumulativeYTD data={data.cumulativeYTD} />
@@ -404,6 +404,7 @@ export default function Dashboard({ initial }) {
             >
               <ReconciliationCheck
                 reconciliation={data.reconciliation}
+                kpis={data.kpis}
                 compare={data.compare}
               />
             </Section>

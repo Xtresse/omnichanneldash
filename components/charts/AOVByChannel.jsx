@@ -11,10 +11,19 @@ import {
 } from "recharts";
 import { ChartShell, COLORS, fmtCurrencyShort, fmtCurrencyFull } from "./_shared.js";
 
-export default function AOVByChannel({ data }) {
+/**
+ * Average-order-value by channel, dual-axis (B2B left, DTC right).
+ * Optional `compare` adds dashed prior-period AOV lines on each axis so
+ * Sam can spot AOV trend shifts independent of channel mix changes.
+ */
+export default function AOVByChannel({ data, compare }) {
+  const merged = mergePriorAOV(data, compare);
+  const showPrior = compare && compare.monthlySeries && compare.monthlySeries.length > 0;
+  const priorLabel = compare && compare.mode === "yoy" ? "last yr" : "prior";
+
   return (
     <ChartShell>
-      <LineChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
+      <LineChart data={merged} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" vertical={false} />
         <XAxis dataKey="label" tickLine={false} axisLine={false} interval="preserveStartEnd" />
         <YAxis
@@ -55,7 +64,48 @@ export default function AOVByChannel({ data }) {
           strokeWidth={2}
           dot={false}
         />
+        {showPrior && (
+          <>
+            <Line
+              yAxisId="b2b"
+              type="monotone"
+              dataKey="priorB2BAOV"
+              name={`B2B ${priorLabel}`}
+              stroke={COLORS.B2B}
+              strokeWidth={1.5}
+              strokeDasharray="4 4"
+              strokeOpacity={0.55}
+              dot={false}
+            />
+            <Line
+              yAxisId="dtc"
+              type="monotone"
+              dataKey="priorDTCAOV"
+              name={`DTC ${priorLabel}`}
+              stroke={COLORS.DTC}
+              strokeWidth={1.5}
+              strokeDasharray="4 4"
+              strokeOpacity={0.55}
+              dot={false}
+            />
+          </>
+        )}
       </LineChart>
     </ChartShell>
   );
+}
+
+function mergePriorAOV(current, compare) {
+  if (!current || current.length === 0) return current || [];
+  if (!compare || !compare.monthlySeries || compare.monthlySeries.length === 0) {
+    return current;
+  }
+  return current.map((bucket, i) => {
+    const p = compare.monthlySeries[i];
+    return {
+      ...bucket,
+      priorB2BAOV: p ? p.B2B_AOV ?? null : null,
+      priorDTCAOV: p ? p.DTC_AOV ?? null : null,
+    };
+  });
 }

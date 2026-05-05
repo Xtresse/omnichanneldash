@@ -51,7 +51,7 @@ function compareLabel(compare) {
   return `prior ${days}d (${compare.from} → ${compare.to})`;
 }
 
-export default function ReconciliationCheck({ reconciliation, compare }) {
+export default function ReconciliationCheck({ reconciliation, kpis, compare }) {
   if (!reconciliation) return null;
   const ns = reconciliation.netSales || {};
   const na = reconciliation.newAccounts || {};
@@ -60,12 +60,13 @@ export default function ReconciliationCheck({ reconciliation, compare }) {
   return (
     <div className="bg-card border border-rule rounded-xl overflow-hidden">
       <div className="p-3 md:p-5 space-y-4 md:space-y-5">
-        {/* Compare-mode strip — shows the prior-window reconciliation totals
-            alongside the current ones so Sam can quickly see whether a
-            slip in the headline number is due to changed mix or just lower
-            volume. Hidden when compare is off. */}
+        {/* Compare-mode strip — shows current vs prior for the four
+            headline channel totals (B2B / ADCS / DTC / Total net) so Sam
+            can quickly tell whether a discrepancy in any reconciliation
+            row carried over from the prior window or is fresh. Hidden
+            when compare is off. */}
         {compare && compare.kpis && (
-          <CompareStrip current={ns.kpiTotal} compare={compare} />
+          <CompareStrip kpis={kpis} compare={compare} />
         )}
 
         {/* Net sales checks */}
@@ -188,25 +189,22 @@ export default function ReconciliationCheck({ reconciliation, compare }) {
  * net, B2B, ADCS, DTC) alongside a delta % so Sam can quickly tell
  * whether a discrepancy is fresh or carries over from the prior period.
  */
-function CompareStrip({ current, compare }) {
+function CompareStrip({ kpis, compare }) {
   const lbl = compareLabel(compare);
-  const k = compare.kpis || {};
-  const tiles = [
-    { label: "Total net", cur: current || 0, prior: (k.b2bNetSales || 0) + (k.adcsNetSales || 0) + (k.dtcNetSales || 0) },
-    { label: "B2B net", cur: (current || 0) > 0 ? null : null, prior: k.b2bNetSales || 0, fromCmp: true, key: "b2bNetSales" },
-    { label: "ADCS net", cur: null, prior: k.adcsNetSales || 0, key: "adcsNetSales" },
-    { label: "DTC net", cur: null, prior: k.dtcNetSales || 0, key: "dtcNetSales" },
-  ];
+  const k = kpis || {};
+  const p = compare.kpis || {};
+  const curTotal = (k.b2bNetSales || 0) + (k.adcsNetSales || 0) + (k.dtcNetSales || 0);
+  const priTotal = (p.b2bNetSales || 0) + (p.adcsNetSales || 0) + (p.dtcNetSales || 0);
   return (
     <div className="rounded-md border border-rule bg-paper2/50 px-3 py-2 md:px-4 md:py-3">
       <div className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.18em] text-muted font-semibold mb-1.5">
         Compare — vs {lbl}
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-        <CompareTile label="Total net" prior={(k.b2bNetSales || 0) + (k.adcsNetSales || 0) + (k.dtcNetSales || 0)} cur={current} />
-        <CompareTile label="B2B net" prior={k.b2bNetSales} cur={null} />
-        <CompareTile label="ADCS net" prior={k.adcsNetSales} cur={null} />
-        <CompareTile label="DTC net" prior={k.dtcNetSales} cur={null} />
+        <CompareTile label="Total net" cur={curTotal} prior={priTotal} />
+        <CompareTile label="B2B net" cur={k.b2bNetSales || 0} prior={p.b2bNetSales || 0} />
+        <CompareTile label="ADCS net" cur={k.adcsNetSales || 0} prior={p.adcsNetSales || 0} />
+        <CompareTile label="DTC net" cur={k.dtcNetSales || 0} prior={p.dtcNetSales || 0} />
       </div>
     </div>
   );
