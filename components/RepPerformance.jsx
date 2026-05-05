@@ -86,6 +86,10 @@ export default function RepPerformance({ repPerformance, compare }) {
     compare && compare.reps
       ? Object.fromEntries(compare.reps.map((r) => [r.rep, r]))
       : null;
+  // Explicit human label like "prior 30d (Apr 4 – May 4, 2026)" used in
+  // every delta cell's hover/tap tooltip so the comparison context is
+  // unambiguous. Built once at the top so we don't redo the work per cell.
+  const compareLabel = compare ? buildCompareLabel(compare) : null;
 
   return (
     <div className="space-y-3 md:space-y-4">
@@ -95,13 +99,30 @@ export default function RepPerformance({ repPerformance, compare }) {
           title={TERRITORY_LABEL[territory] || territory}
           rows={rows}
           priorByRep={priorByRep}
+          compareLabel={compareLabel}
         />
       ))}
     </div>
   );
 }
 
-function RepTable({ title, rows, priorByRep }) {
+function buildCompareLabel(compare) {
+  if (!compare || !compare.from || !compare.to) return null;
+  const f = new Date(compare.from + "T00:00:00Z");
+  const t = new Date(compare.to + "T00:00:00Z");
+  if (isNaN(f.getTime()) || isNaN(t.getTime())) return null;
+  const days = Math.round((t - f) / 86400000) + 1;
+  const opts = { month: "short", day: "numeric", timeZone: "UTC" };
+  const fStr = f.toLocaleDateString("en-US", opts);
+  const tStr = t.toLocaleDateString("en-US", { ...opts, year: "numeric" });
+  const window =
+    compare.mode === "yoy" ? "last year" :
+    days === 1 ? "yesterday" :
+    `prior ${days}d`;
+  return `${window} (${fStr} – ${tStr})`;
+}
+
+function RepTable({ title, rows, priorByRep, compareLabel }) {
   // Sum each family's slot for the subtotal row.
   const totals = {
     net: 0,
@@ -206,6 +227,7 @@ function RepTable({ title, rows, priorByRep }) {
                         cur={r.orders || 0}
                         prior={prior ? prior.orders : null}
                         fmt={fmtN}
+                        compareLabel={compareLabel}
                       />
                     )}
                   </Td>
@@ -216,7 +238,7 @@ function RepTable({ title, rows, priorByRep }) {
                     return (
                       <Td key={f.key} align="right">
                         <ProductCell slot={cur} />
-                        {priorByRep && <ProductDeltaBelow cur={cur} prior={pri} />}
+                        {priorByRep && <ProductDeltaBelow cur={cur} prior={pri} compareLabel={compareLabel} />}
                       </Td>
                     );
                   })}
@@ -227,6 +249,7 @@ function RepTable({ title, rows, priorByRep }) {
                         cur={r.net || 0}
                         prior={prior ? prior.net : null}
                         fmt={fmt$}
+                        compareLabel={compareLabel}
                       />
                     )}
                   </Td>
@@ -247,7 +270,7 @@ function RepTable({ title, rows, priorByRep }) {
               <Td align="right">
                 {fmtN(totals.orders)}
                 {priorTotals && (
-                  <DeltaBelow cur={totals.orders} prior={priorTotals.orders} fmt={fmtN} />
+                  <DeltaBelow cur={totals.orders} prior={priorTotals.orders} fmt={fmtN} compareLabel={compareLabel} />
                 )}
               </Td>
               {FAMILIES.map((f) => (
@@ -257,6 +280,7 @@ function RepTable({ title, rows, priorByRep }) {
                     <ProductDeltaBelow
                       cur={totals.productMix[f.key]}
                       prior={priorTotals.productMix[f.key]}
+                      compareLabel={compareLabel}
                     />
                   )}
                 </Td>
@@ -264,7 +288,7 @@ function RepTable({ title, rows, priorByRep }) {
               <Td align="right" className="text-brown border-l border-rule">
                 {fmt$(totals.net)}
                 {priorTotals && (
-                  <DeltaBelow cur={totals.net} prior={priorTotals.net} fmt={fmt$} />
+                  <DeltaBelow cur={totals.net} prior={priorTotals.net} fmt={fmt$} compareLabel={compareLabel} />
                 )}
               </Td>
             </tr>
@@ -295,6 +319,7 @@ function RepTable({ title, rows, priorByRep }) {
                       cur={r.net || 0}
                       prior={prior ? prior.net : null}
                       fmt={fmt$}
+                      compareLabel={compareLabel}
                     />
                   )}
                 </div>
@@ -310,6 +335,7 @@ function RepTable({ title, rows, priorByRep }) {
                       label={f.label}
                       slot={cur}
                       prior={priorByRep ? pri : undefined}
+                      compareLabel={compareLabel}
                     />
                   );
                 })}
@@ -346,22 +372,29 @@ Existing: ${fmtN(e)} units · ${fmt$(slot.existingDollars)}`;
   );
 }
 
-/** Delta subtext under any single numeric value. */
-function DeltaBelow({ cur, prior, fmt }) {
+/** Delta subtext under any single numeric value. Tooltip is explicit
+ * about the comparison window so "vs prior 30d" can never be ambiguous. */
+function DeltaBelow({ cur, prior, fmt, compareLabel }) {
   if (prior === undefined || prior === null) {
     return (
-      <div className="font-sans text-[9.5px] text-muted tabular-nums leading-tight mt-0.5">
+      <div
+        className="font-sans text-[9.5px] text-muted tabular-nums leading-tight mt-0.5"
+        title={compareLabel ? `No data for ${compareLabel}` : "No prior-period data"}
+      >
         —
       </div>
     );
   }
   const color = deltaColor(cur, prior, true);
   const ar = arrow(cur, prior);
+  const tooltip = compareLabel
+    ? `vs ${compareLabel}: ${fmt(prior)}`
+    : `Prior: ${fmt(prior)}`;
   return (
     <div
       className="font-sans text-[9.5px] tabular-nums leading-tight mt-0.5"
       style={{ color }}
-      title={`Prior: ${fmt(prior)}`}
+      title={tooltip}
     >
       {fmt(prior)} {ar} {deltaPctText(cur, prior)}
     </div>
@@ -369,10 +402,13 @@ function DeltaBelow({ cur, prior, fmt }) {
 }
 
 /** Delta subtext for product cells — compares total units (N + E). */
-function ProductDeltaBelow({ cur, prior }) {
+function ProductDeltaBelow({ cur, prior, compareLabel }) {
   if (!prior) {
     return (
-      <div className="font-sans text-[9.5px] text-muted tabular-nums leading-tight mt-0.5">
+      <div
+        className="font-sans text-[9.5px] text-muted tabular-nums leading-tight mt-0.5"
+        title={compareLabel ? `No data for ${compareLabel}` : "No prior-period data"}
+      >
         —
       </div>
     );
@@ -381,11 +417,14 @@ function ProductDeltaBelow({ cur, prior }) {
   const priorT = (prior.newUnits || 0) + (prior.existingUnits || 0);
   const color = deltaColor(curT, priorT, true);
   const ar = arrow(curT, priorT);
+  const tooltip = compareLabel
+    ? `vs ${compareLabel}: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorT} units)`
+    : `Prior: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorT} units)`;
   return (
     <div
       className="font-sans text-[9.5px] tabular-nums leading-tight mt-0.5"
       style={{ color }}
-      title={`Prior: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorT} units)`}
+      title={tooltip}
     >
       {priorT}u {ar} {deltaPctText(curT, priorT)}
     </div>
@@ -393,17 +432,27 @@ function ProductDeltaBelow({ cur, prior }) {
 }
 
 /** Mobile chip — same N/E split, label visible. Adds delta when compare is on. */
-function ProductChip({ label, slot, prior }) {
+function ProductChip({ label, slot, prior, compareLabel }) {
   const n = slot.newUnits || 0;
   const e = slot.existingUnits || 0;
   const total = n + e;
   const showDelta = prior !== undefined;
   const priorTotal = prior ? (prior.newUnits || 0) + (prior.existingUnits || 0) : 0;
+  const tooltip = !showDelta
+    ? null
+    : prior
+      ? compareLabel
+        ? `vs ${compareLabel}: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorTotal} units)`
+        : `Prior: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorTotal} units)`
+      : compareLabel
+        ? `No data for ${compareLabel}`
+        : "No prior-period data";
   return (
     <div
       className={`flex flex-col gap-0.5 px-2 py-1 rounded border font-sans text-[11px] ${
         total > 0 ? "bg-paper2 border-tan" : "bg-paper border-rule"
       }`}
+      title={tooltip || undefined}
     >
       <div className="flex items-center justify-between gap-2">
         <span className={`font-semibold ${total > 0 ? "text-inksoft" : "text-muted"}`}>

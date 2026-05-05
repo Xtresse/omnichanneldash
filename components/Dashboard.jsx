@@ -183,6 +183,21 @@ export default function Dashboard({ initial }) {
     return () => clearInterval(id);
   }, []);
 
+  // If the page loaded with ?compare=prior or ?compare=yoy in the URL but
+  // the SSR'd `initial` data doesn't include the compare snapshot (it's
+  // pre-rendered without that param), trigger a one-shot refetch on mount
+  // so the deltas, dashed overlays, and reconciliation strip populate
+  // without the user having to click the toggle.
+  useEffect(() => {
+    if (compareMode === "off") return;
+    if (data && data.compare) return;
+    if (!customFrom || !customTo) return;
+    startTransition(() =>
+      loadFromUrl(buildQs(customFrom, customTo, granularity, compareMode))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => () => debounceRef.current && clearTimeout(debounceRef.current), []);
 
   if (error && !data) {

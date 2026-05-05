@@ -36,7 +36,7 @@ function arrow(cur, prior) {
   return "·";
 }
 
-function CompareLine({ cur, prior, label, fmt = fmtCurrency, higherIsBetter = true }) {
+function CompareLine({ cur, prior, label, dateRange, fmt = fmtCurrency, higherIsBetter = true }) {
   if (prior === undefined || prior === null) {
     return (
       <div className="font-sans text-[10px] md:text-[11px] text-muted tabular-nums">
@@ -47,10 +47,17 @@ function CompareLine({ cur, prior, label, fmt = fmtCurrency, higherIsBetter = tr
   const pct = deltaPct(cur, prior);
   const color = deltaColor(cur, prior, higherIsBetter);
   const ar = arrow(cur, prior);
+  // Full hover/tap tooltip — includes the explicit date range so the
+  // "vs prior 30d" label can never be ambiguous about which window was
+  // compared. Falls back to the short label when no date range is known.
+  const tooltip = dateRange
+    ? `vs ${label} (${dateRange}): ${fmt(prior)}`
+    : `vs ${label}: ${fmt(prior)}`;
   return (
     <div
       className="font-sans text-[10px] md:text-[11px] tabular-nums leading-tight"
       style={{ color }}
+      title={tooltip}
     >
       {fmt(prior)} <span style={{ marginLeft: 2 }}>{ar}</span>{" "}
       {pct === null ? "—" : `${pct >= 0 ? "+" : ""}${(pct * 100).toFixed(1)}%`}
@@ -63,6 +70,7 @@ export default function KpiTiles({ kpis, compare }) {
   if (!kpis) return null;
   const cmp = compare && compare.kpis ? compare.kpis : null;
   const cmpLabel = compare ? labelFor(compare) : null;
+  const dateRange = compare ? formatDateRange(compare.from, compare.to) : null;
 
   // Three MUTUALLY EXCLUSIVE buckets that sum to total net sales.
   // B2B excludes ADCS now (per Sam's request). ADCS is its own line.
@@ -102,10 +110,33 @@ export default function KpiTiles({ kpis, compare }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
       {tiles.map((t) => (
-        <Tile key={t.label} {...t} cmpLabel={cmpLabel} compareOn={!!cmp} />
+        <Tile
+          key={t.label}
+          {...t}
+          cmpLabel={cmpLabel}
+          dateRange={dateRange}
+          compareOn={!!cmp}
+        />
       ))}
     </div>
   );
+}
+
+/**
+ * Friendly date-range label like "Apr 4 – May 4, 2026" for tooltip use.
+ * Returns null when either input is missing or unparseable so callers
+ * can degrade gracefully.
+ */
+function formatDateRange(from, to) {
+  if (!from || !to) return null;
+  const f = new Date(from + "T00:00:00Z");
+  const t = new Date(to + "T00:00:00Z");
+  if (isNaN(f.getTime()) || isNaN(t.getTime())) return null;
+  const opts = { month: "short", day: "numeric", timeZone: "UTC" };
+  const sameYear = f.getUTCFullYear() === t.getUTCFullYear();
+  const fStr = f.toLocaleDateString("en-US", opts);
+  const tStr = t.toLocaleDateString("en-US", { ...opts, year: "numeric" });
+  return sameYear ? `${fStr} – ${tStr}` : `${fStr}, ${f.getUTCFullYear()} – ${tStr}`;
 }
 
 function labelFor(compare) {
@@ -123,7 +154,7 @@ function labelFor(compare) {
   return `prior ${days}d`;
 }
 
-function Tile({ label, value, sub, tone, cur, prior, cmpLabel, compareOn }) {
+function Tile({ label, value, sub, tone, cur, prior, cmpLabel, dateRange, compareOn }) {
   const stripe =
     tone === "primary"
       ? "before:bg-brown"
@@ -148,6 +179,7 @@ function Tile({ label, value, sub, tone, cur, prior, cmpLabel, compareOn }) {
             cur={cur}
             prior={prior}
             label={cmpLabel}
+            dateRange={dateRange}
             fmt={fmtCurrency}
             higherIsBetter
           />
