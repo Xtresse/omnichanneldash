@@ -246,7 +246,7 @@ export default function Dashboard({ initial }) {
     <main className="min-h-screen pb-12">
       <div className="max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-7">
         {/* Header — title in single brown ink, period strip below */}
-        <header className="flex items-start justify-between gap-3 flex-wrap mb-4 md:mb-6">
+        <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4 md:mb-6">
           <div className="min-w-0">
             <h1 className="font-display text-3xl md:text-5xl font-semibold text-brown leading-none tracking-tight">
               Xtresse Omni Channel Dashboard
@@ -263,7 +263,11 @@ export default function Dashboard({ initial }) {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap justify-end">
+          {/* On mobile this row sits below the title and wraps cleanly so
+              the compare toggle, refresh, and export button all fit
+              within a 375px viewport. md+ keeps the original right-aligned
+              cluster. */}
+          <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap md:justify-end">
             {data && (
               <div
                 className="font-sans text-[10px] md:text-xs text-muted w-full md:w-auto md:order-1"
