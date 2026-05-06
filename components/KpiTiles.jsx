@@ -24,9 +24,17 @@ function deltaColor(cur, prior, higherIsBetter = true) {
   return up ? UNFAVORABLE : FAVORABLE;
 }
 
-function deltaPct(cur, prior) {
-  if (!prior || prior === 0) return null;
-  return (cur - prior) / prior;
+// Returns:
+//   null  → prior data is missing entirely (treat as "no comparison data")
+//   "new" → prior was zero / negative and current is positive (no meaningful %)
+//   "—"   → both sides are zero/non-positive (nothing to compare)
+//   string with sign — otherwise the rounded percent change
+function deltaPctText(cur, prior) {
+  if (prior === undefined || prior === null) return null;
+  if (!prior || prior <= 0) return cur > 0 ? "new" : "—";
+  const x = (cur - prior) / prior;
+  if (!isFinite(x)) return "—";
+  return `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)}%`;
 }
 
 function arrow(cur, prior) {
@@ -44,7 +52,7 @@ function CompareLine({ cur, prior, label, dateRange, fmt = fmtCurrency, higherIs
       </div>
     );
   }
-  const pct = deltaPct(cur, prior);
+  const pctText = deltaPctText(cur, prior);
   const color = deltaColor(cur, prior, higherIsBetter);
   const ar = arrow(cur, prior);
   // Full hover/tap tooltip — includes the explicit date range so the
@@ -60,7 +68,7 @@ function CompareLine({ cur, prior, label, dateRange, fmt = fmtCurrency, higherIs
       title={tooltip}
     >
       {fmt(prior)} <span style={{ marginLeft: 2 }}>{ar}</span>{" "}
-      {pct === null ? "—" : `${pct >= 0 ? "+" : ""}${(pct * 100).toFixed(1)}%`}
+      {pctText ?? "—"}
       <span className="text-muted"> vs {label}</span>
     </div>
   );

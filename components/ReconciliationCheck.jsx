@@ -201,21 +201,25 @@ function CompareStrip({ kpis, compare }) {
         Compare — vs {lbl}
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-        <CompareTile label="Total net" cur={curTotal} prior={priTotal} />
-        <CompareTile label="B2B net" cur={k.b2bNetSales || 0} prior={p.b2bNetSales || 0} />
-        <CompareTile label="ADCS net" cur={k.adcsNetSales || 0} prior={p.adcsNetSales || 0} />
-        <CompareTile label="DTC net" cur={k.dtcNetSales || 0} prior={p.dtcNetSales || 0} />
+        <CompareTile label="Total net" cur={curTotal} prior={priTotal} compareLabel={lbl} />
+        <CompareTile label="B2B net" cur={k.b2bNetSales || 0} prior={p.b2bNetSales || 0} compareLabel={lbl} />
+        <CompareTile label="ADCS net" cur={k.adcsNetSales || 0} prior={p.adcsNetSales || 0} compareLabel={lbl} />
+        <CompareTile label="DTC net" cur={k.dtcNetSales || 0} prior={p.dtcNetSales || 0} compareLabel={lbl} />
       </div>
     </div>
   );
 }
 
-function CompareTile({ label, prior, cur }) {
+function CompareTile({ label, prior, cur, compareLabel: lbl }) {
   // For tiles where we don't pass a current value, just show the prior
   // figure as a reference. The KPI tiles up top already carry the live
   // delta — this strip is for at-a-glance scanning of prior totals.
+  // The full-window label (e.g. "prior 30d (Apr 4 – May 4, 2026)") is
+  // surfaced in the tooltip so a hover/tap on any tile clarifies which
+  // comparison window the prior figure refers to.
+  const tooltip = lbl ? `vs ${lbl}: ${fmt$(prior)}` : `Prior: ${fmt$(prior)}`;
   return (
-    <div className="rounded border border-rule bg-paper px-2.5 py-1.5">
+    <div className="rounded border border-rule bg-paper px-2.5 py-1.5" title={tooltip}>
       <div className="font-sans text-[9.5px] uppercase tracking-[0.14em] text-muted font-semibold leading-tight">
         {label}
       </div>
@@ -227,7 +231,6 @@ function CompareTile({ label, prior, cur }) {
           <div
             className="font-sans text-[10px] tabular-nums leading-tight"
             style={{ color: deltaColor(cur, prior, true) }}
-            title={`Prior: ${fmt$(prior)}`}
           >
             {fmt$(prior)} prior · {deltaPctText(cur, prior)}
           </div>
