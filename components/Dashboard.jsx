@@ -355,7 +355,7 @@ export default function Dashboard({ initial }) {
               </p>
             </div>
 
-            <Section title="Top-line performance" detail="Tier 1 / 5 charts">
+            <Section title="Top-line performance" detail="Tier 1 / 5 charts" collapsible>
               <ChartGrid>
                 <ChartCell title="Net sales by channel" subtitle={`${G}, B2B vs DTC`}>
                   <RevenueByChannel data={data.monthlySeries} compare={data.compare} />
@@ -375,7 +375,7 @@ export default function Dashboard({ initial }) {
               </ChartGrid>
             </Section>
 
-            <Section title="Customer dynamics" detail="Tier 2 / 4 charts">
+            <Section title="Customer dynamics" detail="Tier 2 / 4 charts" collapsible>
               <ChartGrid>
                 <ChartCell title="New vs returning — B2B (gummies only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
                   <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="B2B" />
@@ -392,7 +392,7 @@ export default function Dashboard({ initial }) {
               </ChartGrid>
             </Section>
 
-            <Section title="Operational & geographic" detail="Tier 3 / 3 charts">
+            <Section title="Operational & geographic" detail="Tier 3 / 3 charts" collapsible>
               <ChartGrid>
                 <ChartCell title="Top 15 states by net sales" subtitle="Channel split" wide>
                   <RevenueByState data={data.revenueByState} />
@@ -409,6 +409,7 @@ export default function Dashboard({ initial }) {
             <Section
               title="Sales by rep"
               detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
+              collapsible
             >
               <ChartGrid>
                 <ChartCell title="Net sales by rep" subtitle={`${G} trend · click chips to toggle`}>
@@ -441,6 +442,8 @@ export default function Dashboard({ initial }) {
             <Section
               title="Reconciliation"
               detail="Cross-checks chart totals against the headline KPIs"
+              collapsible
+              defaultCollapsed
             >
               <ReconciliationCheck
                 reconciliation={data.reconciliation}
@@ -452,11 +455,13 @@ export default function Dashboard({ initial }) {
             <Section
               title="Orders audit trail"
               detail={`${(data.orders?.length || 0).toLocaleString()} orders in period`}
+              collapsible
+              defaultCollapsed
             >
               <OrdersTable orders={data.orders || []} />
             </Section>
 
-            <Section title="Marketing performance" detail="Tier 4 / pending connectors">
+            <Section title="Marketing performance" detail="Tier 4 / pending connectors" collapsible defaultCollapsed>
               <ChartGrid>
                 <ChartCell title="Blended ROAS" subtitle="DTC ad spend → all channel revenue">
                   <MarketingPlaceholder label="Blended ROAS" />
@@ -501,12 +506,25 @@ export default function Dashboard({ initial }) {
   );
 }
 
-function Section({ title, detail, children }) {
+function Section({ title, detail, children, collapsible = false, defaultCollapsed = false }) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   return (
     <section className="mt-5 md:mt-7">
       <div className="bg-browndeep text-paper rounded-md px-4 py-2.5 md:px-5 md:py-3 mb-3 md:mb-4">
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
-          <h2 className="font-display text-lg md:text-2xl font-semibold leading-tight">{title}</h2>
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h2 className="font-display text-lg md:text-2xl font-semibold leading-tight">{title}</h2>
+            {collapsible && (
+              <button
+                type="button"
+                onClick={() => setCollapsed((c) => !c)}
+                aria-expanded={!collapsed}
+                className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] bg-paper/10 hover:bg-paper/20 border border-paper/30 rounded px-2 py-0.5 transition-colors"
+              >
+                {collapsed ? "Show" : "Hide"}
+              </button>
+            )}
+          </div>
           {detail && (
             <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] opacity-80">
               {detail}
@@ -514,7 +532,7 @@ function Section({ title, detail, children }) {
           )}
         </div>
       </div>
-      {children}
+      {!collapsed && children}
     </section>
   );
 }
