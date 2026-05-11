@@ -8,6 +8,7 @@ import RepPerformance from "./RepPerformance.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
+import BudgetVsActual from "./BudgetVsActual.jsx";
 import RevenueByChannel from "./charts/RevenueByChannel.jsx";
 import OrdersByChannel from "./charts/OrdersByChannel.jsx";
 import AOVByChannel from "./charts/AOVByChannel.jsx";
@@ -354,6 +355,10 @@ export default function Dashboard({ initial }) {
                 so the channel split stays accurate.
               </p>
             </div>
+
+            <Section title="Budget vs Goal vs Actual" detail="Per-product, monthly · Sheet-backed" collapsible>
+              <BudgetVsActual productFamily={data.productFamily} periodLabel={periodLabel} />
+            </Section>
 
             <Section title="Top-line performance" detail="Tier 1 / 5 charts" collapsible>
               <ChartGrid>

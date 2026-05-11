@@ -1,0 +1,531 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ReferenceLine, ResponsiveContainer, LabelList,
+} from "recharts";
+
+// Brand palette (mirrors KpiTiles + RepPerformance for consistency).
+const FAVORABLE = "#5C8A6F";   // sage — ≥100% of target
+const PARTIAL   = "#C58A2D";   // amber — 90–100% of target
+const UNFAVORABLE = "#5C2F2E"; // brand maroon — <90% of target
+const NEUTRAL   = "#9A8F80";   // muted brown — no target / unknown
+
+const BRAND_BROWN = "#5C2A1A";
+const BRAND_SAGE  = "#5C8A6F";
+const BRAND_AMBER = "#C58A2D";
+
+const PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachet"];
+
+const fmt$ = (n) => {
+  const v = Number(n) || 0;
+  const sign = v < 0 ? "-" : "";
+  return sign + "$" + Math.round(Math.abs(v)).toLocaleString();
+};
+const fmt$k = (n) => {
+  const v = Number(n) || 0;
+  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(v) >= 1_000) return `$${(v / 1_000).toFixed(0)}k`;
+  return fmt$(v);
+};
+const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
+
+/** "2026-05" → label like "May 2026". */
+function monthLabel(ym) {
+  if (!ym) return "—";
+  const [y, m] = ym.split("-").map(Number);
+  if (!y || !m) return ym;
+  const d = new Date(Date.UTC(y, m - 1, 1));
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+function colorForPct(pct) {
+  if (!isFinite(pct)) return NEUTRAL;
+  if (pct >= 1.0)  return FAVORABLE;
+  if (pct >= 0.9)  return PARTIAL;
+  return UNFAVORABLE;
+}
+
+/** Build the +/- N month list around a center month. */
+function monthOffsets(center, before = 3, after = 3) {
+  if (!center) return [];
+  const [y, m] = center.split("-").map(Number);
+  const out = [];
+  for (let d = -before; d <= after; d++) {
+    const dt = new Date(Date.UTC(y, m - 1 + d, 1));
+    out.push(`${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+  return out;
+}
+
+function currentMonth() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Map omnichanneldash productFamily entries → BudgetVsActual products.
+ * The dashboard's productFamily has entries with `family` field:
+ *   "Gummies" | "Serum" | "XVIE" | "Sachet" | "Other" | "Excluded"
+ * We only consume the four targeted families and ignore Other/Excluded.
+ */
+function actualsFromProductFamily(productFamily) {
+  const totals = { Gummies: 0, Serum: 0, XVIE: 0, Sachet: 0 };
+  if (!Array.isArray(productFamily)) return totals;
+  for (const row of productFamily) {
+    const f = row?.family;
+    if (f && totals[f] !== undefined) {
+      totals[f] += Number(row.value || row.net || row.amount || 0);
+    }
+  }
+  return totals;
+}
+
+/**
+ * Budget vs Goal vs Actual section. Renders inside a Section (the
+ * collapsible wrapper) in Dashboard.jsx. Reads:
+ *   - /api/budget for budget + rep goals (Sheet-backed; stub when env
+ *     vars not set)
+ *   - data.productFamily from the parent dashboard load for the
+ *     current period's actuals
+ *
+ * Headline: a per-product table comparing the SELECTED budget month's
+ * budget + rep-goal total to the dashboard's currently-loaded actuals.
+ * Three Recharts visualizations sit below the table.
+ */
+export default function BudgetVsActual({ productFamily, periodLabel }) {
+  const [budgetData, setBudgetData] = useState(null);
+  const [loadErr, setLoadErr] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth());
+  const [drillRep, setDrillRep] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/budget", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => { if (!cancelled) setBudgetData(j); })
+      .catch((e) => { if (!cancelled) setLoadErr(String(e?.message || e)); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const actuals = useMemo(() => actualsFromProductFamily(productFamily), [productFamily]);
+
+  // Build the per-product rows for the selected month.
+  const rows = useMemo(() => {
+    const b = budgetData?.budget || {};
+    const goalsByRep = budgetData?.repGoals || {};
+    const out = PRODUCTS.map((p) => {
+      const budget = Number(b[p]?.[selectedMonth] || 0);
+      let goalSum = 0;
+      for (const rep of Object.keys(goalsByRep)) {
+        goalSum += Number(goalsByRep[rep]?.[p]?.[selectedMonth] || 0);
+      }
+      const actual = Number(actuals[p] || 0);
+      const dBudget = actual - budget;
+      const dGoal = actual - goalSum;
+      const pctBudget = budget > 0 ? actual / budget : null;
+      const pctGoal = goalSum > 0 ? actual / goalSum : null;
+      return { product: p, budget, goal: goalSum, actual, dBudget, dGoal, pctBudget, pctGoal };
+    });
+    return out;
+  }, [budgetData, selectedMonth, actuals]);
+
+  const totals = useMemo(() => {
+    const t = rows.reduce(
+      (acc, r) => ({
+        budget: acc.budget + r.budget,
+        goal: acc.goal + r.goal,
+        actual: acc.actual + r.actual,
+      }),
+      { budget: 0, goal: 0, actual: 0 }
+    );
+    return {
+      ...t,
+      dBudget: t.actual - t.budget,
+      dGoal: t.actual - t.goal,
+      pctBudget: t.budget > 0 ? t.actual / t.budget : null,
+      pctGoal: t.goal > 0 ? t.actual / t.goal : null,
+    };
+  }, [rows]);
+
+  const monthOpts = useMemo(() => monthOffsets(selectedMonth, 3, 3), [selectedMonth]);
+  const isStub = budgetData?.mode === "stub";
+
+  return (
+    <div className="space-y-3 md:space-y-4">
+      {/* Stub-mode banner */}
+      {budgetData && isStub && (
+        <div className="rounded-md border border-amber-300/60 bg-amber-50/60 px-3 py-2 md:px-4 md:py-2.5 font-sans text-[11px] md:text-xs text-amber-900 leading-snug">
+          <strong>Showing $0 placeholder data.</strong> The Sheet
+          {" "}<a
+            href="https://docs.google.com/spreadsheets/d/1_GRiHlLup8Ls7bFcagYD7MlPYLciakNz5qAK0JmFaP8/edit"
+            target="_blank" rel="noreferrer"
+            className="underline hover:no-underline"
+          >Xtresse Net Revenue Budget &amp; Rep Goals 2026</a>{" "}
+          is connected but env vars are not wired yet. Set <code className="bg-amber-100 px-1 rounded">BUDGET_CSV_URL_BUDGET</code>
+          {" "}+ <code className="bg-amber-100 px-1 rounded">BUDGET_CSV_URL_GOALS</code> on Vercel
+          (or the <code className="bg-amber-100 px-1 rounded">GOOGLE_SHEETS_SA_*</code> pair) to flip to live data —
+          see <code className="bg-amber-100 px-1 rounded">lib/budgetSheet.js</code> for setup.
+        </div>
+      )}
+
+      {loadErr && (
+        <div className="rounded-md border border-red-300/60 bg-red-50/60 px-3 py-2 font-sans text-[11px] text-red-900">
+          Couldn&apos;t load /api/budget: {loadErr}
+        </div>
+      )}
+
+      {/* Month selector + actuals window */}
+      <div className="flex flex-wrap items-center gap-2 md:gap-3">
+        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold">
+          Budget month
+        </span>
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="rounded border border-rule bg-paper px-2 py-1 font-sans text-xs md:text-sm text-inksoft"
+        >
+          {monthOpts.map((m) => (
+            <option key={m} value={m}>{monthLabel(m)}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => setSelectedMonth(currentMonth())}
+          className="rounded border border-rule bg-paper hover:bg-paper2 px-2 py-1 font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-inksoft"
+          title="Reset to the current calendar month"
+        >
+          This month
+        </button>
+        <span className="font-sans text-[10px] md:text-xs text-muted ml-auto leading-tight">
+          Actuals · {periodLabel || "current dashboard window"}
+        </span>
+      </div>
+
+      {/* Per-product table */}
+      <div className="bg-card border border-rule rounded-xl overflow-hidden">
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-xs font-sans border-collapse">
+            <thead>
+              <tr className="bg-paper2 text-left">
+                <Th align="left">Product</Th>
+                <Th align="right">Budget</Th>
+                <Th align="right">Rep Goal</Th>
+                <Th align="right">Actual</Th>
+                <Th align="right">Δ Budget→Actual</Th>
+                <Th align="right">Δ Goal→Actual</Th>
+                <Th align="right">% to Budget</Th>
+                <Th align="right">% to Goal</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.product} className="border-t border-rule/60">
+                  <Td className="font-medium text-ink">{r.product}</Td>
+                  <Td align="right">{fmt$(r.budget)}</Td>
+                  <Td align="right">{fmt$(r.goal)}</Td>
+                  <Td align="right" className="font-semibold">{fmt$(r.actual)}</Td>
+                  <Td align="right" style={{ color: colorForPct(r.pctBudget) }}>
+                    {(r.dBudget >= 0 ? "+" : "") + fmt$(r.dBudget)}
+                  </Td>
+                  <Td align="right" style={{ color: colorForPct(r.pctGoal) }}>
+                    {(r.dGoal >= 0 ? "+" : "") + fmt$(r.dGoal)}
+                  </Td>
+                  <Td align="right" style={{ color: colorForPct(r.pctBudget) }}>
+                    {r.pctBudget == null ? "—" : fmtPct(r.pctBudget)}
+                  </Td>
+                  <Td align="right" style={{ color: colorForPct(r.pctGoal) }}>
+                    {r.pctGoal == null ? "—" : fmtPct(r.pctGoal)}
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-paper2 font-semibold border-t border-rule/60">
+                <Td className="italic text-inksoft">Total</Td>
+                <Td align="right">{fmt$(totals.budget)}</Td>
+                <Td align="right">{fmt$(totals.goal)}</Td>
+                <Td align="right" className="text-brown">{fmt$(totals.actual)}</Td>
+                <Td align="right" style={{ color: colorForPct(totals.pctBudget) }}>
+                  {(totals.dBudget >= 0 ? "+" : "") + fmt$(totals.dBudget)}
+                </Td>
+                <Td align="right" style={{ color: colorForPct(totals.pctGoal) }}>
+                  {(totals.dGoal >= 0 ? "+" : "") + fmt$(totals.dGoal)}
+                </Td>
+                <Td align="right" style={{ color: colorForPct(totals.pctBudget) }}>
+                  {totals.pctBudget == null ? "—" : fmtPct(totals.pctBudget)}
+                </Td>
+                <Td align="right" style={{ color: colorForPct(totals.pctGoal) }}>
+                  {totals.pctGoal == null ? "—" : fmtPct(totals.pctGoal)}
+                </Td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        {/* Mobile: stacked cards */}
+        <div className="md:hidden divide-y divide-rule/60">
+          {rows.map((r) => (
+            <button
+              key={r.product}
+              type="button"
+              onClick={() => setDrillRep("ALL")}
+              className="block w-full text-left px-4 py-3 hover:bg-paper2 focus:outline-none"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-sans text-sm font-semibold text-ink">{r.product}</span>
+                <span className="font-display text-base font-semibold text-ink tabular-nums">{fmt$(r.actual)}</span>
+              </div>
+              <div className="font-sans text-[11px] text-muted tabular-nums mt-1">
+                Budget {fmt$(r.budget)} · Goal {fmt$(r.goal)}
+              </div>
+              <div className="font-sans text-[11px] tabular-nums mt-0.5" style={{ color: colorForPct(r.pctBudget) }}>
+                {r.pctBudget == null ? "—" : fmtPct(r.pctBudget)} of budget · {r.pctGoal == null ? "—" : fmtPct(r.pctGoal)} of goal
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Charts grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+        <ChartCell title="Grouped bars" subtitle="Budget · Goal · Actual per product">
+          <GroupedBars rows={rows} />
+        </ChartCell>
+        <ChartCell title="Variance waterfall" subtitle="Budget → Goal Δ → Actual Δ">
+          <Waterfall totals={totals} />
+        </ChartCell>
+        <ChartCell title="% to target" subtitle="MTD pace · target line at 100%" wide>
+          <PaceBars rows={rows} />
+        </ChartCell>
+      </div>
+
+      {/* Per-rep drill-down drawer */}
+      {drillRep && (
+        <RepDrillDrawer
+          rep={drillRep}
+          selectedMonth={selectedMonth}
+          repGoals={budgetData?.repGoals || {}}
+          actuals={actuals}
+          onClose={() => setDrillRep(null)}
+        />
+      )}
+
+      <div className="font-sans text-[10px] text-muted leading-snug">
+        Variance color key: <span style={{ color: FAVORABLE }} className="font-semibold">sage</span> ≥100% of target ·{" "}
+        <span style={{ color: PARTIAL }} className="font-semibold">amber</span> 90–100% ·{" "}
+        <span style={{ color: UNFAVORABLE }} className="font-semibold">maroon</span> &lt;90%.
+        Actuals come from the dashboard&apos;s current date window — change the date range above to see other periods.
+      </div>
+    </div>
+  );
+}
+
+// ─── Chart cell wrapper (mirrors Dashboard.jsx ChartCell) ──────────────
+
+function ChartCell({ title, subtitle, children, wide }) {
+  return (
+    <div className={`bg-card border border-rule rounded-xl p-3 md:p-4 ${wide ? "lg:col-span-2" : ""}`}>
+      <div className="flex items-baseline justify-between gap-2 mb-2 md:mb-3">
+        <h4 className="font-display text-base md:text-lg font-semibold text-ink">{title}</h4>
+        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted">{subtitle}</span>
+      </div>
+      <div className="h-64 md:h-72">{children}</div>
+    </div>
+  );
+}
+
+// ─── Chart: grouped bars ───────────────────────────────────────────────
+
+function GroupedBars({ rows }) {
+  const data = rows.map((r) => ({
+    product: r.product,
+    Budget: r.budget,
+    Goal: r.goal,
+    Actual: r.actual,
+  }));
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" vertical={false} />
+        <XAxis dataKey="product" tickLine={false} axisLine={false} />
+        <YAxis tickFormatter={fmt$k} tickLine={false} axisLine={false} width={56} />
+        <Tooltip formatter={(v) => fmt$(v)} />
+        <Legend wrapperStyle={{ paddingTop: 4 }} />
+        <Bar dataKey="Budget" fill={BRAND_BROWN} />
+        <Bar dataKey="Goal" fill={BRAND_SAGE} />
+        <Bar dataKey="Actual" fill={BRAND_AMBER} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── Chart: variance waterfall (Budget → Goal Δ → Actual Δ → current) ───
+
+function Waterfall({ totals }) {
+  // Build 4 bars: Budget (start), Goal Δ, Actual Δ (relative to Goal),
+  // and Actual (final). Goal/Actual Δs render as floating bars using
+  // a [base, top] pair so positive deltas stack upward and negatives
+  // stack downward visibly.
+  const budget = totals.budget;
+  const goal = totals.goal;
+  const actual = totals.actual;
+  const goalDelta = goal - budget;
+  const actualDelta = actual - goal;
+
+  const data = [
+    { name: "Budget", base: 0, value: budget, color: BRAND_BROWN },
+    {
+      name: "Goal Δ",
+      base: goalDelta >= 0 ? budget : goal,
+      value: Math.abs(goalDelta),
+      color: goalDelta >= 0 ? BRAND_SAGE : UNFAVORABLE,
+    },
+    {
+      name: "Actual Δ",
+      base: actualDelta >= 0 ? goal : actual,
+      value: Math.abs(actualDelta),
+      color: actualDelta >= 0 ? BRAND_SAGE : UNFAVORABLE,
+    },
+    { name: "Actual", base: 0, value: actual, color: BRAND_AMBER },
+  ];
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" vertical={false} />
+        <XAxis dataKey="name" tickLine={false} axisLine={false} />
+        <YAxis tickFormatter={fmt$k} tickLine={false} axisLine={false} width={56} />
+        <Tooltip
+          formatter={(_v, _n, ctx) => {
+            const d = ctx?.payload;
+            if (!d) return "";
+            return fmt$((d.base || 0) + (d.value || 0));
+          }}
+        />
+        <Bar dataKey="base" stackId="a" fill="transparent" />
+        <Bar dataKey="value" stackId="a">
+          {data.map((d, i) => (
+            <Bar key={i} dataKey="value" fill={d.color} />
+          ))}
+          <LabelList
+            dataKey="value"
+            position="top"
+            formatter={(v) => fmt$k(v)}
+            style={{ fontSize: 11, fill: "#5A4F40" }}
+          />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── Chart: % to target horizontal stacked bars ───────────────────────
+
+function PaceBars({ rows }) {
+  const data = rows.map((r) => ({
+    product: r.product,
+    pctBudget: Math.round((r.pctBudget || 0) * 100),
+    pctGoal: Math.round((r.pctGoal || 0) * 100),
+  }));
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 24, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" horizontal={false} />
+        <XAxis type="number" domain={[0, "dataMax + 20"]} tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey="product" tickLine={false} axisLine={false} width={72} />
+        <Tooltip formatter={(v) => `${v}%`} />
+        <Legend wrapperStyle={{ paddingTop: 4 }} />
+        <ReferenceLine x={100} stroke="#5A4F40" strokeDasharray="4 4" label={{ value: "100% target", fill: "#5A4F40", fontSize: 10, position: "right" }} />
+        <Bar dataKey="pctBudget" fill={BRAND_BROWN} name="% of Budget" />
+        <Bar dataKey="pctGoal" fill={BRAND_SAGE} name="% of Rep Goal" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── Per-rep drill-down drawer ────────────────────────────────────────
+
+function RepDrillDrawer({ rep, selectedMonth, repGoals, actuals, onClose }) {
+  // For v0: just show the rep-goal table for the selected month. Actuals
+  // are dashboard-wide (no per-rep actual computation in this section
+  // yet — that lives in the existing rep performance table).
+  const repList = Object.keys(repGoals);
+  return (
+    <div className="fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/30"
+        onClick={onClose}
+        aria-label="Close drill-down"
+      />
+      <div className="relative w-full max-w-md bg-card border-l border-rule shadow-xl overflow-y-auto">
+        <div className="bg-browndeep text-paper px-4 py-3 flex items-center justify-between">
+          <h3 className="font-display text-lg font-semibold">Per-rep goal · {monthLabel(selectedMonth)}</h3>
+          <button onClick={onClose} className="font-sans text-xs uppercase tracking-[0.14em] bg-paper/10 hover:bg-paper/20 border border-paper/30 rounded px-2 py-0.5">
+            Close
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          {repList.length === 0 ? (
+            <p className="font-sans text-sm text-muted">
+              No rep goals entered yet for any month. Once the &quot;Rep Goals&quot; tab is populated,
+              each rep&apos;s per-product target shows here.
+            </p>
+          ) : (
+            <table className="w-full text-xs font-sans border-collapse">
+              <thead>
+                <tr className="bg-paper2 text-left">
+                  <Th align="left">Rep</Th>
+                  {PRODUCTS.map((p) => <Th key={p} align="right">{p}</Th>)}
+                  <Th align="right">Total</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {repList.map((r) => {
+                  const cells = PRODUCTS.map((p) => Number(repGoals[r]?.[p]?.[selectedMonth] || 0));
+                  const tot = cells.reduce((a, b) => a + b, 0);
+                  return (
+                    <tr key={r} className="border-t border-rule/60">
+                      <Td className="font-medium text-ink">{r}</Td>
+                      {cells.map((v, i) => <Td key={i} align="right">{fmt$(v)}</Td>)}
+                      <Td align="right" className="font-semibold">{fmt$(tot)}</Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          <p className="font-sans text-[10px] text-muted leading-snug">
+            Per-rep <em>actual</em> contribution is in the &quot;Sales by rep&quot; section above.
+            This drawer just lists rep-level targets for the selected month.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Cell helpers ─────────────────────────────────────────────────────
+
+function Th({ children, align = "left", className = "" }) {
+  const alignClass = align === "right" ? "text-right" : "text-left";
+  return (
+    <th className={`py-2 px-3 font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold ${alignClass} ${className}`}>
+      {children}
+    </th>
+  );
+}
+
+function Td({ children, align = "left", className = "", style }) {
+  const alignClass = align === "right" ? "text-right tabular-nums" : "text-left";
+  return (
+    <td
+      style={style}
+      className={`py-2 px-3 text-inksoft whitespace-nowrap ${alignClass} ${className}`}
+    >
+      {children}
+    </td>
+  );
+}
