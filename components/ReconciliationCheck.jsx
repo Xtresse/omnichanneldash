@@ -113,6 +113,16 @@ export default function ReconciliationCheck({ reconciliation, kpis, compare }) {
             expected={ns.b2bTotal}
             delta={ns.repPerformanceDelta}
           />
+          <CheckRow
+            label="DTC channel · tag-based vs SKU-allowlist (xtressedtcdash)"
+            actual={ns.dtcSkuTotal}
+            expected={ns.dtcTagTotal}
+            delta={ns.dtcReconcileDelta}
+            note={`Tag-based DTC: ${fmtN(ns.dtcTagOrders || 0)} orders · ${fmt$(ns.dtcTagTotal)}. ` +
+              `SKU-allowlist (X-GN-060CT-001 / X-FRC-30ML-001 / XTR-DTC-GMFR-02): ${fmtN(ns.dtcSkuOrders || 0)} orders · ${fmt$(ns.dtcSkuTotal)}. ` +
+              `Delta = tag-based DTC orders that don't have a retail SKU, or retail-SKU orders that got tagged B2B/ADCS.`}
+            allowDelta
+          />
         </CheckSection>
 
         {/* New accounts checks */}
