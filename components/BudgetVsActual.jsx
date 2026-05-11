@@ -16,7 +16,7 @@ const BRAND_BROWN = "#5C2A1A";
 const BRAND_SAGE  = "#5C8A6F";
 const BRAND_AMBER = "#C58A2D";
 
-const PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachet"];
+const PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"];
 
 const fmt$ = (n) => {
   const v = Number(n) || 0;
@@ -67,16 +67,24 @@ function currentMonth() {
 /**
  * Map omnichanneldash productFamily entries → BudgetVsActual products.
  * The dashboard's productFamily has entries with `family` field:
- *   "Gummies" | "Serum" | "XVIE" | "Sachet" | "Other" | "Excluded"
+ *   "Gummies" | "Serum" | "XVIE" | "Sachets" | "Other" | "Excluded"
  * We only consume the four targeted families and ignore Other/Excluded.
  */
 function actualsFromProductFamily(productFamily) {
-  const totals = { Gummies: 0, Serum: 0, XVIE: 0, Sachet: 0 };
+  const totals = { Gummies: 0, Serum: 0, XVIE: 0, Sachets: 0 };
   if (!Array.isArray(productFamily)) return totals;
   for (const row of productFamily) {
     const f = row?.family;
     if (f && totals[f] !== undefined) {
-      totals[f] += Number(row.value || row.net || row.amount || 0);
+      // Dashboard's productFamily rows are { family, B2B, ADCS, DTC }.
+      // Actuals for budget comparison = sum across all channels. We
+      // also fall back to flat-shape entries (value/net/amount) in case
+      // upstream schema ever changes.
+      totals[f] +=
+        Number(row.B2B || 0) +
+        Number(row.ADCS || 0) +
+        Number(row.DTC || 0) +
+        Number(row.value || row.net || row.amount || 0);
     }
   }
   return totals;
