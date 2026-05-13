@@ -365,7 +365,7 @@ export default function Dashboard({ initial }) {
               </p>
             </div>
 
-            <Section title="Budget vs Goal vs Actual" detail="Per-product, monthly · Sheet-backed" collapsible>
+            <Section title="Actual vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
               <BudgetVsActual productFamily={data.productFamily} periodLabel={periodLabel} />
             </Section>
 

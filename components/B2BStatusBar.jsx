@@ -69,6 +69,7 @@ export default function B2BStatusBar() {
   const [editing, setEditing] = useState(null); // product label currently in edit mode
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState(null);  // last save error msg, cleared on next attempt
 
   const ym = useMemo(() => currentYearMonth(), []);
   const { day, total } = useMemo(() => dayProgress(), []);
@@ -110,20 +111,33 @@ export default function B2BStatusBar() {
 
   async function saveGoal(product, value) {
     const goalNum = Number(String(value).replace(/[^0-9.]/g, ""));
-    if (!isFinite(goalNum) || goalNum < 0) return;
+    if (!isFinite(goalNum) || goalNum < 0) {
+      setSaveErr("Enter a valid non-negative number.");
+      return;
+    }
     setSaving(true);
+    setSaveErr(null);
     try {
       const res = await fetch("/api/b2b-goals", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ product, yearMonth: ym, goal: goalNum }),
       });
-      const j = await res.json();
-      if (j.ok) {
+      let j = null;
+      try { j = await res.json(); } catch (_) { /* ignore JSON parse errors */ }
+      if (res.ok && j && j.ok) {
         setGoals(j.goals || {});
         setEditing(null);
         setDraft("");
+        setSaveErr(null);
+      } else {
+        const msg = (j && j.error)
+          ? String(j.error)
+          : `Save failed (HTTP ${res.status}).`;
+        setSaveErr(msg);
       }
+    } catch (e) {
+      setSaveErr(String(e?.message || e));
     } finally {
       setSaving(false);
     }
@@ -139,6 +153,20 @@ export default function B2BStatusBar() {
           Day {day}/{total} · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
         </span>
       </div>
+
+      {saveErr && (
+        <div className="mb-2.5 md:mb-3 rounded-md border border-red-300/60 bg-red-50/60 px-3 py-2 font-sans text-[11px] md:text-xs text-red-900 leading-snug flex items-start justify-between gap-2">
+          <span><strong>Couldn&apos;t save goal:</strong> {saveErr}</span>
+          <button
+            type="button"
+            onClick={() => setSaveErr(null)}
+            className="shrink-0 font-sans text-[10px] uppercase tracking-[0.12em] text-red-900 hover:underline"
+            aria-label="Dismiss error"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {PRODUCTS.map((p) => {
@@ -180,7 +208,7 @@ export default function B2BStatusBar() {
 
       <p className="font-sans text-[10px] text-muted leading-snug mt-2.5 md:mt-3">
         MTD B2B net sales (gross − discounts − refunds). Pace = MTD ÷ day-of-month × days-in-month (linear projection).
-        Goal is set once per product per month and persists in <code className="bg-paper px-1 rounded">data/b2b-goals.json</code>.
+        Goal is set once per product per month and persists in Vercel KV (or <code className="bg-paper px-1 rounded">data/b2b-goals.json</code> locally).
       </p>
     </div>
   );

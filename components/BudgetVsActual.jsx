@@ -12,7 +12,8 @@ const PARTIAL   = "#C58A2D";   // amber — 90–100% of target
 const UNFAVORABLE = "#5C2F2E"; // brand maroon — <90% of target
 const NEUTRAL   = "#9A8F80";   // muted brown — no target / unknown
 
-const BRAND_BROWN = "#5C2A1A";
+// BRAND_BROWN previously colored the Budget bars/Δs; removed when Sam
+// dropped Budget from the display. Keeping SAGE (Goal) + AMBER (Actual).
 const BRAND_SAGE  = "#5C8A6F";
 const BRAND_AMBER = "#C58A2D";
 
@@ -91,16 +92,19 @@ function actualsFromProductFamily(productFamily) {
 }
 
 /**
- * Budget vs Goal vs Actual section. Renders inside a Section (the
- * collapsible wrapper) in Dashboard.jsx. Reads:
- *   - /api/budget for budget + rep goals (Sheet-backed; stub when env
- *     vars not set)
+ * Actual vs Goal section. Renders inside a Section (the collapsible
+ * wrapper) in Dashboard.jsx. Reads:
+ *   - /api/budget for rep goals (Sheet-backed; stub when env vars not
+ *     set). The same endpoint also returns company-budget numbers, but
+ *     they're intentionally not displayed here — Sam only wants the
+ *     Actual-vs-Goal comparison surfaced. Budget data is still fetched
+ *     so it's available if we ever want to flip it back on.
  *   - data.productFamily from the parent dashboard load for the
  *     current period's actuals
  *
- * Headline: a per-product table comparing the SELECTED budget month's
- * budget + rep-goal total to the dashboard's currently-loaded actuals.
- * Three Recharts visualizations sit below the table.
+ * Headline: a per-product table comparing the SELECTED month's rep-goal
+ * total to the dashboard's currently-loaded actuals. Recharts
+ * visualizations sit below the table.
  */
 export default function BudgetVsActual({ productFamily, periodLabel }) {
   const [budgetData, setBudgetData] = useState(null);
@@ -165,7 +169,7 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
       {/* Stub-mode banner */}
       {budgetData && isStub && (
         <div className="rounded-md border border-amber-300/60 bg-amber-50/60 px-3 py-2 md:px-4 md:py-2.5 font-sans text-[11px] md:text-xs text-amber-900 leading-snug">
-          <strong>Showing $0 placeholder data.</strong> The Sheet
+          <strong>Showing $0 placeholder goals.</strong> The Sheet
           {" "}<a
             href="https://docs.google.com/spreadsheets/d/1_GRiHlLup8Ls7bFcagYD7MlPYLciakNz5qAK0JmFaP8/edit"
             target="_blank" rel="noreferrer"
@@ -187,7 +191,7 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
       {/* Month selector + actuals window */}
       <div className="flex flex-wrap items-center gap-2 md:gap-3">
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold">
-          Budget month
+          Goal month
         </span>
         <select
           value={selectedMonth}
@@ -218,12 +222,9 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
             <thead>
               <tr className="bg-paper2 text-left">
                 <Th align="left">Product</Th>
-                <Th align="right">Budget</Th>
                 <Th align="right">Rep Goal</Th>
                 <Th align="right">Actual</Th>
-                <Th align="right">Δ Budget→Actual</Th>
                 <Th align="right">Δ Goal→Actual</Th>
-                <Th align="right">% to Budget</Th>
                 <Th align="right">% to Goal</Th>
               </tr>
             </thead>
@@ -231,17 +232,10 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
               {rows.map((r) => (
                 <tr key={r.product} className="border-t border-rule/60">
                   <Td className="font-medium text-ink">{r.product}</Td>
-                  <Td align="right">{fmt$(r.budget)}</Td>
                   <Td align="right">{fmt$(r.goal)}</Td>
                   <Td align="right" className="font-semibold">{fmt$(r.actual)}</Td>
-                  <Td align="right" style={{ color: colorForPct(r.pctBudget) }}>
-                    {(r.dBudget >= 0 ? "+" : "") + fmt$(r.dBudget)}
-                  </Td>
                   <Td align="right" style={{ color: colorForPct(r.pctGoal) }}>
                     {(r.dGoal >= 0 ? "+" : "") + fmt$(r.dGoal)}
-                  </Td>
-                  <Td align="right" style={{ color: colorForPct(r.pctBudget) }}>
-                    {r.pctBudget == null ? "—" : fmtPct(r.pctBudget)}
                   </Td>
                   <Td align="right" style={{ color: colorForPct(r.pctGoal) }}>
                     {r.pctGoal == null ? "—" : fmtPct(r.pctGoal)}
@@ -252,17 +246,10 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
             <tfoot>
               <tr className="bg-paper2 font-semibold border-t border-rule/60">
                 <Td className="italic text-inksoft">Total</Td>
-                <Td align="right">{fmt$(totals.budget)}</Td>
                 <Td align="right">{fmt$(totals.goal)}</Td>
                 <Td align="right" className="text-brown">{fmt$(totals.actual)}</Td>
-                <Td align="right" style={{ color: colorForPct(totals.pctBudget) }}>
-                  {(totals.dBudget >= 0 ? "+" : "") + fmt$(totals.dBudget)}
-                </Td>
                 <Td align="right" style={{ color: colorForPct(totals.pctGoal) }}>
                   {(totals.dGoal >= 0 ? "+" : "") + fmt$(totals.dGoal)}
-                </Td>
-                <Td align="right" style={{ color: colorForPct(totals.pctBudget) }}>
-                  {totals.pctBudget == null ? "—" : fmtPct(totals.pctBudget)}
                 </Td>
                 <Td align="right" style={{ color: colorForPct(totals.pctGoal) }}>
                   {totals.pctGoal == null ? "—" : fmtPct(totals.pctGoal)}
@@ -286,10 +273,10 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
                 <span className="font-display text-base font-semibold text-ink tabular-nums">{fmt$(r.actual)}</span>
               </div>
               <div className="font-sans text-[11px] text-muted tabular-nums mt-1">
-                Budget {fmt$(r.budget)} · Goal {fmt$(r.goal)}
+                Goal {fmt$(r.goal)}
               </div>
-              <div className="font-sans text-[11px] tabular-nums mt-0.5" style={{ color: colorForPct(r.pctBudget) }}>
-                {r.pctBudget == null ? "—" : fmtPct(r.pctBudget)} of budget · {r.pctGoal == null ? "—" : fmtPct(r.pctGoal)} of goal
+              <div className="font-sans text-[11px] tabular-nums mt-0.5" style={{ color: colorForPct(r.pctGoal) }}>
+                {r.pctGoal == null ? "—" : fmtPct(r.pctGoal)} of goal
               </div>
             </button>
           ))}
@@ -298,13 +285,13 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
-        <ChartCell title="Grouped bars" subtitle="Budget · Goal · Actual per product">
+        <ChartCell title="Grouped bars" subtitle="Goal · Actual per product">
           <GroupedBars rows={rows} />
         </ChartCell>
-        <ChartCell title="Variance waterfall" subtitle="Budget → Goal Δ → Actual Δ">
+        <ChartCell title="Variance waterfall" subtitle="Goal → Actual Δ">
           <Waterfall totals={totals} />
         </ChartCell>
-        <ChartCell title="% to target" subtitle="MTD pace · target line at 100%" wide>
+        <ChartCell title="% to goal" subtitle="MTD pace · target line at 100%" wide>
           <PaceBars rows={rows} />
         </ChartCell>
       </div>
@@ -349,7 +336,6 @@ function ChartCell({ title, subtitle, children, wide }) {
 function GroupedBars({ rows }) {
   const data = rows.map((r) => ({
     product: r.product,
-    Budget: r.budget,
     Goal: r.goal,
     Actual: r.actual,
   }));
@@ -361,7 +347,6 @@ function GroupedBars({ rows }) {
         <YAxis tickFormatter={fmt$k} tickLine={false} axisLine={false} width={56} />
         <Tooltip formatter={(v) => fmt$(v)} />
         <Legend wrapperStyle={{ paddingTop: 4 }} />
-        <Bar dataKey="Budget" fill={BRAND_BROWN} />
         <Bar dataKey="Goal" fill={BRAND_SAGE} />
         <Bar dataKey="Actual" fill={BRAND_AMBER} />
       </BarChart>
@@ -369,27 +354,19 @@ function GroupedBars({ rows }) {
   );
 }
 
-// ─── Chart: variance waterfall (Budget → Goal Δ → Actual Δ → current) ───
+// ─── Chart: variance waterfall (Goal → Actual Δ → Actual) ───
 
 function Waterfall({ totals }) {
-  // Build 4 bars: Budget (start), Goal Δ, Actual Δ (relative to Goal),
-  // and Actual (final). Goal/Actual Δs render as floating bars using
-  // a [base, top] pair so positive deltas stack upward and negatives
-  // stack downward visibly.
-  const budget = totals.budget;
+  // Build 3 bars: Goal (start), Actual Δ (relative to Goal), and Actual
+  // (final). The Actual Δ renders as a floating bar using a [base, top]
+  // pair so positive deltas stack upward and negatives stack downward
+  // visibly.
   const goal = totals.goal;
   const actual = totals.actual;
-  const goalDelta = goal - budget;
   const actualDelta = actual - goal;
 
   const data = [
-    { name: "Budget", base: 0, value: budget, color: BRAND_BROWN },
-    {
-      name: "Goal Δ",
-      base: goalDelta >= 0 ? budget : goal,
-      value: Math.abs(goalDelta),
-      color: goalDelta >= 0 ? BRAND_SAGE : UNFAVORABLE,
-    },
+    { name: "Goal", base: 0, value: goal, color: BRAND_SAGE },
     {
       name: "Actual Δ",
       base: actualDelta >= 0 ? goal : actual,
@@ -434,7 +411,6 @@ function Waterfall({ totals }) {
 function PaceBars({ rows }) {
   const data = rows.map((r) => ({
     product: r.product,
-    pctBudget: Math.round((r.pctBudget || 0) * 100),
     pctGoal: Math.round((r.pctGoal || 0) * 100),
   }));
   return (
@@ -446,7 +422,6 @@ function PaceBars({ rows }) {
         <Tooltip formatter={(v) => `${v}%`} />
         <Legend wrapperStyle={{ paddingTop: 4 }} />
         <ReferenceLine x={100} stroke="#5A4F40" strokeDasharray="4 4" label={{ value: "100% target", fill: "#5A4F40", fontSize: 10, position: "right" }} />
-        <Bar dataKey="pctBudget" fill={BRAND_BROWN} name="% of Budget" />
         <Bar dataKey="pctGoal" fill={BRAND_SAGE} name="% of Rep Goal" />
       </BarChart>
     </ResponsiveContainer>
