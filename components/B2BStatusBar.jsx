@@ -38,14 +38,17 @@ function currentYearMonth() {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-// Returns {day, total} — current day-of-month and total days in the
-// current month. Uses local time (the dashboard is operationally US-based
-// and Sam reads it in local time; MTD always means "today's local date").
+// Returns {completed, total} — *completed* full days so far this month
+// (i.e. day-of-month minus 1, since today is only partial) and total days
+// in the current month. Pacing uses completed-day count as the divisor
+// so a half-finished today doesn't get treated as a full day of run-rate.
+// On the 1st of the month, completed = 0 and pacing is hidden.
 function dayProgress() {
   const now = new Date();
-  const day = now.getDate();
+  const dayOfMonth = now.getDate();
+  const completed = Math.max(0, dayOfMonth - 1);
   const total = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  return { day, total };
+  return { completed, total };
 }
 
 // First-of-month → today in YYYY-MM-DD, matching app/page.jsx's mtdRange().
@@ -72,7 +75,7 @@ export default function B2BStatusBar() {
   const [saveErr, setSaveErr] = useState(null);  // last save error msg, cleared on next attempt
 
   const ym = useMemo(() => currentYearMonth(), []);
-  const { day, total } = useMemo(() => dayProgress(), []);
+  const { completed, total } = useMemo(() => dayProgress(), []);
 
   // Fetch MTD product-family data (always MTD, independent of FilterBar state).
   useEffect(() => {
@@ -150,7 +153,7 @@ export default function B2BStatusBar() {
           B2B Month-to-Date
         </h2>
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted">
-          Day {day}/{total} · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+          Day {completed}/{total} complete · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
         </span>
       </div>
 
@@ -171,7 +174,11 @@ export default function B2BStatusBar() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {PRODUCTS.map((p) => {
           const actual = mtd ? Number(mtd[p.family] || 0) : null;
-          const pace = actual != null && day > 0 ? (actual / day) * total : null;
+          // Pace is based on COMPLETED full days only — today's partial day
+          // is excluded from the divisor so a slow morning doesn't artificially
+          // lower the run-rate projection. On day 1 of the month there are no
+          // completed days, so pace is null (renders as "—").
+          const pace = actual != null && completed > 0 ? (actual / completed) * total : null;
           const key = `${p.family}|${ym}`;
           const goalEntry = goals[key];
           const goal = goalEntry ? Number(goalEntry.goal) : null;
@@ -207,7 +214,7 @@ export default function B2BStatusBar() {
       </div>
 
       <p className="font-sans text-[10px] text-muted leading-snug mt-2.5 md:mt-3">
-        MTD B2B net sales (gross − discounts − refunds). Pace = MTD ÷ day-of-month × days-in-month (linear projection).
+        MTD B2B net sales (gross − discounts − refunds). Pace = MTD ÷ completed-full-days × days-in-month (today's partial day is excluded from the divisor).
         Goal is set once per product per month and persists in Vercel KV (or <code className="bg-paper px-1 rounded">data/b2b-goals.json</code> locally).
       </p>
     </div>
