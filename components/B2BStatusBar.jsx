@@ -51,18 +51,26 @@ function dayProgress() {
   return { completed, total };
 }
 
-// First-of-month → today in YYYY-MM-DD, matching app/page.jsx's mtdRange().
+// First-of-month → end of *yesterday* in YYYY-MM-DD. We deliberately stop
+// at the last completed full day so MTD and pace stay internally
+// consistent — pacing already excludes today as a partial day, and the
+// headline MTD number now matches that basis. Returns null on the 1st of
+// the month (no completed days yet).
 function mtdRange() {
   const now = new Date();
+  // Yesterday in local time.
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  // If today is the 1st, yesterday is in the previous month — no completed
+  // days in *this* month yet, so signal "no data" with null.
+  if (yesterday.getMonth() !== now.getMonth()) return null;
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
   const ymd = (d) => {
-    // Use local YMD so we don't accidentally skew across midnight UTC.
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${dd}`;
   };
-  return { from: ymd(start), to: ymd(now) };
+  return { from: ymd(start), to: ymd(yesterday) };
 }
 
 export default function B2BStatusBar() {
@@ -77,11 +85,18 @@ export default function B2BStatusBar() {
   const ym = useMemo(() => currentYearMonth(), []);
   const { completed, total } = useMemo(() => dayProgress(), []);
 
-  // Fetch MTD product-family data (always MTD, independent of FilterBar state).
+  // Fetch MTD product-family data through end of yesterday (always MTD-
+  // through-completed-days, independent of FilterBar state). On day 1 of
+  // the month there are no completed days yet — show zeros.
   useEffect(() => {
     let cancelled = false;
-    const { from, to } = mtdRange();
-    const qs = new URLSearchParams({ from, to, granularity: "auto" });
+    const range = mtdRange();
+    if (!range) {
+      // Day 1 of the month — no completed-day data yet.
+      setMtd({ Serum: 0, XVIE: 0, Gummies: 0 });
+      return () => { cancelled = true; };
+    }
+    const qs = new URLSearchParams({ from: range.from, to: range.to, granularity: "auto" });
     fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
@@ -214,7 +229,7 @@ export default function B2BStatusBar() {
       </div>
 
       <p className="font-sans text-[10px] text-muted leading-snug mt-2.5 md:mt-3">
-        MTD B2B net sales (gross − discounts − refunds). Pace = MTD ÷ completed-full-days × days-in-month (today's partial day is excluded from the divisor).
+        B2B net sales (gross − discounts − refunds) through end of yesterday — today's partial day is excluded so MTD and pace use the same completed-day basis. Pace = MTD ÷ completed-full-days × days-in-month.
         Goal is set once per product per month and persists in Vercel KV (or <code className="bg-paper px-1 rounded">data/b2b-goals.json</code> locally).
       </p>
     </div>
