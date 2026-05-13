@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import KpiTiles from "./KpiTiles.jsx";
 import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
+import B2BStatusBar from "./B2BStatusBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
@@ -313,6 +314,14 @@ export default function Dashboard({ initial }) {
             {data && <ExportButton data={data} periodLabel={periodLabel} />}
           </div>
         </header>
+
+        {/* B2B MTD status bar — always shows current month, independent of
+            the FilterBar date selection below. Pulls product-family MTD
+            B2B net sales for Serum / Xvié / Gummies with linear pacing
+            and user-entered monthly goals. */}
+        <div className="mb-4 md:mb-6">
+          <B2BStatusBar />
+        </div>
 
         <div className="mb-4 md:mb-6">
           <FilterBar
