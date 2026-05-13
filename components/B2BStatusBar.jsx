@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-// B2B MTD status bar — three side-by-side cards (Serum / Xvie / Gummies)
+// B2B MTD status bar — three side-by-side cards (Gummies / Xvié / Serum)
 // showing month-to-date B2B sales, linear pacing, user-entered monthly goal,
 // % to goal, and a progress bar. Sits above the KPI tiles.
 //
 // Data source: /api/dashboard?from=<1st-of-month>&to=<today>, which reuses
 // the canonical net-sales aggregation (gross − discounts − refunds) and
 // already returns a productFamily array keyed by family. We pull the
-// .B2B value for Serum / XVIE / Gummies regardless of what the user has
+// .B2B value for Gummies / XVIE / Serum regardless of what the user has
 // selected in the main FilterBar — this card is *always* MTD.
 //
 // Goals are stored server-side at data/b2b-goals.json via /api/b2b-goals.
@@ -17,9 +17,9 @@ import { useEffect, useMemo, useState } from "react";
 // but a small "edit" affordance allows corrections.
 
 const PRODUCTS = [
-  { label: "Serum",   family: "Serum",   skuNote: "X-FRC-30ML-001 + X-FRC-30ML-CASE" },
-  { label: "Xvié",    family: "XVIE",    skuNote: "X-XVIE-* family" },
   { label: "Gummies", family: "Gummies", skuNote: "X-GN-* family · incl. 860011740100 (B2B case)" },
+  { label: "Xvié",    family: "XVIE",    skuNote: "X-XVIE-* family" },
+  { label: "Serum",   family: "Serum",   skuNote: "X-FRC-30ML-001 + X-FRC-30ML-CASE" },
 ];
 
 const fmt$ = (n) =>
