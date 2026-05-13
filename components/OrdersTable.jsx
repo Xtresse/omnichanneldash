@@ -59,6 +59,7 @@ export default function OrdersTable({ orders }) {
       list = list.filter((o) => {
         if (o.id && o.id.toLowerCase().includes(q)) return true;
         if (o.name && o.name.toLowerCase().includes(q)) return true;
+        if (o.customer && o.customer.toLowerCase().includes(q)) return true;
         if (o.email && o.email.toLowerCase().includes(q)) return true;
         if (o.rep && o.rep.toLowerCase().includes(q)) return true;
         if (o.state && o.state.toLowerCase().includes(q)) return true;
@@ -111,7 +112,7 @@ export default function OrdersTable({ orders }) {
             setQuery(e.target.value);
             setPage(0);
           }}
-          placeholder="Search id / email / rep / code"
+          placeholder="Search id / customer / email / rep / code"
           className="flex-1 min-w-[180px] bg-paper text-inksoft border border-rule rounded-md px-3 min-h-touch font-sans text-xs md:text-sm placeholder:text-muted/60"
         />
         <div className="flex items-center gap-1 flex-wrap">
@@ -202,10 +203,24 @@ export default function OrdersTable({ orders }) {
                 <td className="py-2 pr-3 whitespace-nowrap">
                   <ChannelBadge channel={o.channel} adcs={o.adcs} sub={o.sub} />
                 </td>
-                <td className="py-2 pr-3 max-w-[220px]">
-                  <div className="truncate text-inksoft" title={o.rep || o.email || ""}>
-                    {o.rep || o.email || "—"}
-                  </div>
+                <td className="py-2 pr-3 max-w-[240px]">
+                  {(() => {
+                    // B2B: show customer name (main) + rep (secondary, small).
+                    // DTC: show email; rep is null so nothing to stack.
+                    // Falls back gracefully when customer name isn't set
+                    // (some legacy B2B orders may only have rep).
+                    const primary = o.customer || o.email || o.rep || "—";
+                    const secondary = o.customer && o.rep ? o.rep : null;
+                    const titleAttr = [o.customer, o.email, o.rep].filter(Boolean).join(" · ") || "";
+                    return (
+                      <div title={titleAttr}>
+                        <div className="truncate text-inksoft">{primary}</div>
+                        {secondary && (
+                          <div className="truncate text-[10px] text-muted">Rep: {secondary}</div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </td>
                 <td className="py-2 pr-3 text-inksoft whitespace-nowrap">
                   {o.state || "—"}
@@ -264,8 +279,18 @@ export default function OrdersTable({ orders }) {
               </div>
             </div>
             <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] font-sans">
-              <div className="text-muted">{o.rep ? "Rep" : "Email"}</div>
-              <div className="text-inksoft truncate">{o.rep || o.email || "—"}</div>
+              {o.customer && (
+                <>
+                  <div className="text-muted">Customer</div>
+                  <div className="text-inksoft truncate">{o.customer}</div>
+                </>
+              )}
+              {(o.rep || o.email) && (
+                <>
+                  <div className="text-muted">{o.rep ? "Rep" : "Email"}</div>
+                  <div className="text-inksoft truncate">{o.rep || o.email || "—"}</div>
+                </>
+              )}
               <div className="text-muted">State</div>
               <div className="text-inksoft">{o.state || "—"}</div>
               {o.codes && o.codes.length > 0 && (
