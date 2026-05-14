@@ -6,6 +6,7 @@ import KpiTiles from "./KpiTiles.jsx";
 import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
 import B2BStatusBar from "./B2BStatusBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
+import PresidentsClub from "./PresidentsClub.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
@@ -451,6 +452,18 @@ export default function Dashboard({ initial }) {
                   compare={data.compare}
                 />
               </div>
+            </Section>
+
+            <Section
+              title="President's Club"
+              detail="Weighted leaderboard · First-Time 60% / Returning 40%"
+              collapsible
+              defaultCollapsed
+            >
+              <PresidentsClub
+                repPerformance={data.repPerformance || []}
+                compare={data.compare}
+              />
             </Section>
 
             <Section
