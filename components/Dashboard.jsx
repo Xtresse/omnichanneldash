@@ -465,7 +465,7 @@ export default function Dashboard({ initial }) {
 
             <Section
               title="President's Club"
-              detail="Weighted leaderboard · First-Time 60% / Returning 40%"
+              detail="W-2 reps · B2B only · First-Time 60% / Returning 40%"
               collapsible
               defaultCollapsed
             >

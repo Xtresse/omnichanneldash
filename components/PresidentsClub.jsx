@@ -73,14 +73,27 @@ function aggregateRep(r) {
 
 /**
  * Flatten repPerformance (grouped by territory) into one ranked list.
+ *
+ * President's Club eligibility:
+ *   - W-2 reps only — territory must be 'Existing' or 'New'.
+ *     1099 contractor reps (Lexi Cavaliere, Jim & Anne Weeks,
+ *     Sevi McCutcheon) are excluded.
+ *   - B2B sales only — guaranteed upstream because rep attribution in
+ *     classifyOrderChannel() only fires when the order's channel resolves
+ *     to "B2B" (ADCS orders are flagged "__EXCLUDE__" and never reach
+ *     repAgg; DTC orders force rep=null).
+ *
  * Reps with zero weighted sales drop to the bottom but are still shown
- * so the user can see who's on the roster but hasn't qualified yet.
+ * so the user can see who's on the W-2 roster but hasn't qualified yet.
  */
+const ELIGIBLE_TERRITORIES = new Set(["Existing", "New"]);
+
 function flattenAndRank(repPerformance) {
   if (!repPerformance) return [];
   const flat = [];
   for (const sec of repPerformance) {
     const territory = sec.territory;
+    if (!ELIGIBLE_TERRITORIES.has(territory)) continue;
     for (const r of sec.rows || []) {
       flat.push(aggregateRep({ ...r, territory }));
     }
@@ -171,10 +184,15 @@ export default function PresidentsClub({ repPerformance, compare }) {
     <div className="space-y-3 md:space-y-4">
       <div className="bg-card border border-rule rounded-xl px-3 py-2.5 md:px-4 md:py-3">
         <p className="font-sans text-[11px] md:text-xs leading-snug text-inksoft">
-          <span className="font-semibold text-ink">Weighted Sales formula</span>{" "}
-          — First-Time × 60% + Returning × 40%, summed across all four product
-          families (Gummies, Serum, XVIE, Sachets). Rank is by weighted sales in
-          the selected window; ties broken by alphabetical rep name.
+          <span className="font-semibold text-ink">Weighted Sales</span>{" "}
+          = First-Time × 60% + Returning × 40%, summed across all four product
+          families (Gummies, Serum, XVIE, Sachets).{" "}
+          <span className="font-semibold text-ink">B2B only</span> — DTC and
+          ADCS orders are excluded upstream by the channel classifier.{" "}
+          <span className="font-semibold text-ink">W-2 reps only</span> — the
+          three 1099 contractors (Lexi Cavaliere, Jim &amp; Anne Weeks, Sevi
+          McCutcheon) are excluded. Rank is by weighted sales in the selected
+          window; ties broken alphabetically.
         </p>
       </div>
 
