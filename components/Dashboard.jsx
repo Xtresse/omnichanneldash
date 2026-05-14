@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import KpiTiles from "./KpiTiles.jsx";
+import SalesPulse from "./SalesPulse.jsx";
 import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
 import B2BStatusBar from "./B2BStatusBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
@@ -340,6 +341,10 @@ export default function Dashboard({ initial }) {
         {data && (
           <>
             <div className="mb-4 md:mb-6">
+              <SalesPulse data={data} />
+            </div>
+
+            <div id="kpi-channels" className="mb-4 md:mb-6">
               <KpiTiles kpis={data.kpis} compare={data.compare} />
             </div>
 
@@ -369,7 +374,7 @@ export default function Dashboard({ initial }) {
               <BudgetVsActual productFamily={data.productFamily} periodLabel={periodLabel} />
             </Section>
 
-            <Section title="Top-line performance" detail="Tier 1 / 5 charts" collapsible>
+            <Section title="Top-line performance" detail="Tier 1 / 5 charts" collapsible anchorId="topline">
               <ChartGrid>
                 <ChartCell title="Net sales by channel" subtitle={`${G}, B2B vs DTC`}>
                   <RevenueByChannel data={data.monthlySeries} compare={data.compare} />
@@ -389,7 +394,7 @@ export default function Dashboard({ initial }) {
               </ChartGrid>
             </Section>
 
-            <Section title="Customer dynamics" detail="Tier 2 / 4 charts" collapsible>
+            <Section title="Customer dynamics" detail="Tier 2 / 4 charts" collapsible anchorId="customer-dynamics">
               <ChartGrid>
                 <ChartCell title="New vs returning — B2B (gummies only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
                   <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="B2B" />
@@ -406,7 +411,7 @@ export default function Dashboard({ initial }) {
               </ChartGrid>
             </Section>
 
-            <Section title="Operational & geographic" detail="Tier 3 / 3 charts" collapsible>
+            <Section title="Operational & geographic" detail="Tier 3 / 3 charts" collapsible anchorId="operational">
               <ChartGrid>
                 <ChartCell title="Top 15 states by net sales" subtitle="Channel split" wide>
                   <RevenueByState data={data.revenueByState} />
@@ -424,6 +429,7 @@ export default function Dashboard({ initial }) {
               title="Sales by rep"
               detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
               collapsible
+              anchorId="sales-by-rep"
             >
               <ChartGrid>
                 <ChartCell title="Net sales by rep" subtitle={`${G} trend · click chips to toggle`}>
@@ -458,6 +464,7 @@ export default function Dashboard({ initial }) {
               detail="Cross-checks chart totals against the headline KPIs"
               collapsible
               defaultCollapsed
+              anchorId="reconciliation"
             >
               <ReconciliationCheck
                 reconciliation={data.reconciliation}
@@ -520,10 +527,10 @@ export default function Dashboard({ initial }) {
   );
 }
 
-function Section({ title, detail, children, collapsible = false, defaultCollapsed = false }) {
+function Section({ title, detail, children, collapsible = false, defaultCollapsed = false, anchorId }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   return (
-    <section className="mt-5 md:mt-7">
+    <section id={anchorId} className="mt-5 md:mt-7 scroll-mt-20">
       <div className="bg-browndeep text-paper rounded-md px-4 py-2.5 md:px-5 md:py-3 mb-3 md:mb-4">
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
           <div className="flex items-baseline gap-3 min-w-0">
