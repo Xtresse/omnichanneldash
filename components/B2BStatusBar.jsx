@@ -17,9 +17,9 @@ import { useEffect, useMemo, useState } from "react";
 // but a small "edit" affordance allows corrections.
 
 const PRODUCTS = [
-  { label: "Gummies", family: "Gummies", skuNote: "X-GN-* family · incl. 860011740100 (B2B case)" },
+  { label: "Gummies", family: "Gummies", skuNote: "860011740100 · B2B Hair Growth Gummy Case" },
   { label: "Xvié",    family: "XVIE",    skuNote: "X-XVIE-* family" },
-  { label: "Serum",   family: "Serum",   skuNote: "X-FRC-30ML-001 + X-FRC-30ML-CASE" },
+  { label: "Serum",   family: "Serum",   skuNote: "X-FRC-30ML-CASE · B2B Concentrate Case" },
 ];
 
 const fmt$ = (n) =>
@@ -106,9 +106,19 @@ export default function B2BStatusBar() {
           return;
         }
         const totals = { Serum: 0, XVIE: 0, Gummies: 0 };
-        for (const row of j.productFamily || []) {
-          if (row?.family && totals[row.family] !== undefined) {
-            totals[row.family] = Number(row.B2B || 0);
+        // Prefer b2bFocusByFamily (case-SKU-filtered) when present. Falls
+        // back to productFamily.B2B for old API responses that haven't been
+        // redeployed yet — guarantees the widget still renders during the
+        // brief window between commits.
+        if (j.b2bFocusByFamily && typeof j.b2bFocusByFamily === "object") {
+          for (const fam of Object.keys(totals)) {
+            totals[fam] = Number(j.b2bFocusByFamily[fam] || 0);
+          }
+        } else {
+          for (const row of j.productFamily || []) {
+            if (row?.family && totals[row.family] !== undefined) {
+              totals[row.family] = Number(row.B2B || 0);
+            }
           }
         }
         setMtd(totals);
@@ -229,7 +239,7 @@ export default function B2BStatusBar() {
       </div>
 
       <p className="font-sans text-[10px] text-muted leading-snug mt-2.5 md:mt-3">
-        B2B net sales (gross − discounts − refunds) through end of yesterday — today's partial day is excluded so MTD and pace use the same completed-day basis. Pace = MTD ÷ completed-full-days × days-in-month.
+        B2B case-SKU net sales (gross − discounts − refunds) through end of yesterday. Serum and Gummies count only the dedicated B2B case SKU; Xvié counts all XVIE SKUs (no separate B2B case). Pace = MTD ÷ completed-full-days × days-in-month.
         Goal is set once per product per month and persists in Vercel KV (or <code className="bg-paper px-1 rounded">data/b2b-goals.json</code> locally).
       </p>
     </div>
