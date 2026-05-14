@@ -105,7 +105,11 @@ function aggregateRep(r) {
  * President's Club eligibility:
  *   - W-2 reps only — territory must be 'Existing' or 'New'.
  *     1099 contractor reps (Lexi Cavaliere, Jim & Anne Weeks,
- *     Sevi McCutcheon) are excluded.
+ *     Sevi McCutcheon, Krista Taylor, Ryan Masa) are excluded.
+ *   - Active sales reps only — managers and former reps who no longer
+ *     carry a quota are excluded by name (PC_EXCLUDED_REPS below).
+ *     Their historical orders still attribute to them in the rep
+ *     table for accounting, but they don't show in the leaderboard.
  *   - B2B sales only — guaranteed upstream because rep attribution in
  *     classifyOrderChannel() only fires when the order's channel resolves
  *     to "B2B" (ADCS orders are flagged "__EXCLUDE__" and never reach
@@ -116,6 +120,13 @@ function aggregateRep(r) {
  */
 const ELIGIBLE_TERRITORIES = new Set(["Existing", "New"]);
 
+// Reps in REPS for historical-attribution purposes but NOT eligible for
+// President's Club (managers, former reps without a quota, etc.).
+const PC_EXCLUDED_REPS = new Set([
+  "Julie Fetter",   // now a manager
+  "Becky Curry",    // now a manager
+]);
+
 function flattenAndRank(repPerformance) {
   if (!repPerformance) return [];
   const flat = [];
@@ -123,6 +134,7 @@ function flattenAndRank(repPerformance) {
     const territory = sec.territory;
     if (!ELIGIBLE_TERRITORIES.has(territory)) continue;
     for (const r of sec.rows || []) {
+      if (PC_EXCLUDED_REPS.has(r.rep)) continue;
       flat.push(aggregateRep({ ...r, territory }));
     }
   }
@@ -217,10 +229,12 @@ export default function PresidentsClub({ repPerformance, compare }) {
           families.{" "}
           <span className="font-semibold text-ink">B2B only</span> — DTC and
           ADCS orders are excluded upstream by the channel classifier.{" "}
-          <span className="font-semibold text-ink">W-2 reps only</span> —
-          1099 contractors (Lexi Cavaliere, Jim &amp; Anne Weeks, Sevi
-          McCutcheon) are excluded. Rank is by weighted sales in the selected
-          window; ties broken alphabetically.
+          <span className="font-semibold text-ink">Active W-2 reps only</span> —
+          1099 contractors and managers (Julie Fetter, Becky Curry) are
+          excluded. Their historical orders still attribute to them in
+          the rep table for accounting; they just don't appear in the
+          leaderboard. Rank is by weighted sales in the selected window;
+          ties broken alphabetically.
         </p>
         <p className="font-sans text-[10px] md:text-[11px] leading-snug text-muted mt-1.5">
           Product columns show{" "}
