@@ -37,6 +37,15 @@ const NEUTRAL = "#9A8F80";
 const FIRST_TIME_WEIGHT = 0.6;
 const RETURNING_WEIGHT = 0.4;
 
+// Product families to break out in the leaderboard. Order matches the
+// leadership dashboard's column order so tie-out is visual.
+const FAMILIES = [
+  { key: "Gummies", label: "Gummies" },
+  { key: "Serum", label: "Serum" },
+  { key: "XVIE", label: "XVIE" },
+  { key: "Sachets", label: "Sachets" },
+];
+
 function rankColor(rank) {
   if (rank === 1) return "#8C6A1F"; // brass
   if (rank === 2) return "#7A7A7A"; // silver
@@ -45,17 +54,35 @@ function rankColor(rank) {
 }
 
 /**
- * Collapse a repPerformance row's productMix (per-family newDollars /
- * existingDollars) into single first-time / returning totals for the
- * "All Products" view that mirrors the Excel "All Products" rollup.
+ * Collapse a repPerformance row's productMix into:
+ *   - per-family newDollars / existingDollars / totals (for the
+ *     leaderboard table's product columns)
+ *   - rolled-up firstTime / returning / total / weighted (for ranking)
+ *
+ * Tie-out: the per-family totals here match the omnichannel Sales-by-rep
+ * table's hover tooltips ("New: N units · $X / Existing: ...") and the
+ * leadership dashboard's product columns. Leadership shows the New/Returning
+ * split for Gummies only; this component shows the split for all four
+ * families so the weighted-sales math is fully transparent.
  */
 function aggregateRep(r) {
   const mix = r.productMix || {};
   let firstTime = 0;
   let returning = 0;
-  for (const key of Object.keys(mix)) {
-    firstTime += mix[key]?.newDollars || 0;
-    returning += mix[key]?.existingDollars || 0;
+  const families = {};
+  for (const f of FAMILIES) {
+    const slot = mix[f.key] || {};
+    const fNew = slot.newDollars || 0;
+    const fRet = slot.existingDollars || 0;
+    firstTime += fNew;
+    returning += fRet;
+    families[f.key] = {
+      firstTime: Math.round(fNew),
+      returning: Math.round(fRet),
+      total: Math.round(fNew + fRet),
+      newUnits: slot.newUnits || 0,
+      existingUnits: slot.existingUnits || 0,
+    };
   }
   const total = firstTime + returning;
   const weighted =
@@ -64,6 +91,7 @@ function aggregateRep(r) {
     rep: r.rep,
     region: r.region,
     territory: r.territory,
+    families,
     firstTime: Math.round(firstTime),
     returning: Math.round(returning),
     total: Math.round(total),
@@ -186,13 +214,25 @@ export default function PresidentsClub({ repPerformance, compare }) {
         <p className="font-sans text-[11px] md:text-xs leading-snug text-inksoft">
           <span className="font-semibold text-ink">Weighted Sales</span>{" "}
           = First-Time × 60% + Returning × 40%, summed across all four product
-          families (Gummies, Serum, XVIE, Sachets).{" "}
+          families.{" "}
           <span className="font-semibold text-ink">B2B only</span> — DTC and
           ADCS orders are excluded upstream by the channel classifier.{" "}
-          <span className="font-semibold text-ink">W-2 reps only</span> — the
-          three 1099 contractors (Lexi Cavaliere, Jim &amp; Anne Weeks, Sevi
+          <span className="font-semibold text-ink">W-2 reps only</span> —
+          1099 contractors (Lexi Cavaliere, Jim &amp; Anne Weeks, Sevi
           McCutcheon) are excluded. Rank is by weighted sales in the selected
           window; ties broken alphabetically.
+        </p>
+        <p className="font-sans text-[10px] md:text-[11px] leading-snug text-muted mt-1.5">
+          Product columns show{" "}
+          <span className="text-brown font-semibold">first-time $</span> on top,{" "}
+          <span className="text-inksoft">returning $</span> below. First-time
+          definition matches the Sales-by-rep table above: Gummies = order
+          tagged <code className="bg-paper2 px-1 rounded">first order</code>;
+          Serum / XVIE / Sachets = customer's first-ever purchase of that
+          family falls inside the window. Numbers tie to{" "}
+          xtresse-leadershipdash for the same date window — first-time-Gummies
+          and returning-Gummies match column-for-column; Serum / XVIE / Sachets
+          there show the total (first-time + returning combined).
         </p>
       </div>
 
@@ -224,19 +264,35 @@ export default function PresidentsClub({ repPerformance, compare }) {
                   </Th>
                 )}
                 <Th align="left">Rep</Th>
-                <Th width="80" align="left">
+                <Th width="64" align="left">
                   Region
                 </Th>
-                <Th align="right" title="Sales to first-time customers in window">
+                {FAMILIES.map((f) => (
+                  <Th
+                    key={f.key}
+                    align="right"
+                    title={`${f.label} — first-time (top, brown) / returning (bottom). Hover for units.`}
+                  >
+                    {f.label}
+                  </Th>
+                ))}
+                <Th
+                  align="right"
+                  className="border-l border-rule"
+                  title="Sum of first-time dollars across all four product families"
+                >
                   First-Time
                 </Th>
-                <Th align="right" title="Sales to returning customers in window">
+                <Th
+                  align="right"
+                  title="Sum of returning dollars across all four product families"
+                >
                   Returning
                 </Th>
                 <Th align="right">Total</Th>
                 <Th
                   align="right"
-                  className="border-l border-rule"
+                  className="border-l border-rule bg-paper"
                   title="First-Time × 60% + Returning × 40%"
                 >
                   Weighted
@@ -289,7 +345,18 @@ export default function PresidentsClub({ repPerformance, compare }) {
                     )}
                     <Td className="font-medium text-ink">{r.rep}</Td>
                     <Td className="text-muted text-[11px]">{r.region}</Td>
-                    <Td align="right" className="text-brown">
+                    {FAMILIES.map((f) => {
+                      const fam = r.families?.[f.key];
+                      return (
+                        <Td key={f.key} align="right">
+                          <ProductDollarCell fam={fam} />
+                        </Td>
+                      );
+                    })}
+                    <Td
+                      align="right"
+                      className="text-brown font-semibold border-l border-rule"
+                    >
                       {fmt$(r.firstTime)}
                     </Td>
                     <Td align="right" className="text-inksoft">
@@ -298,7 +365,7 @@ export default function PresidentsClub({ repPerformance, compare }) {
                     <Td align="right">{fmt$(r.total)}</Td>
                     <Td
                       align="right"
-                      className="font-semibold border-l border-rule"
+                      className="font-semibold border-l border-rule bg-paper"
                     >
                       {fmt$(r.weighted)}
                     </Td>
@@ -325,11 +392,13 @@ export default function PresidentsClub({ repPerformance, compare }) {
 
               {/* Reps on the roster with no qualifying sales — kept
                   visible but visually quieted so the qualified list
-                  reads cleanly. */}
+                  reads cleanly. Column count:
+                    base 11 = Rank + Rep + Region + 4 families + FT + Ret + Total + Weighted
+                    + 2 when prior is on (Δ + vs Prior) = 13. */}
               {unqualified.length > 0 && (
                 <tr className="border-t-2 border-rule">
                   <Td
-                    colSpan={priorByRep ? 9 : 7}
+                    colSpan={priorByRep ? 13 : 11}
                     className="bg-paper text-muted italic text-[11px] py-1"
                   >
                     Roster — no qualifying weighted sales in this window
@@ -344,10 +413,17 @@ export default function PresidentsClub({ repPerformance, compare }) {
                   {priorByRep && <Td align="center">—</Td>}
                   <Td>{r.rep}</Td>
                   <Td className="text-[11px]">{r.region}</Td>
-                  <Td align="right">$0</Td>
-                  <Td align="right">$0</Td>
-                  <Td align="right">$0</Td>
+                  {FAMILIES.map((f) => (
+                    <Td key={f.key} align="right">
+                      —
+                    </Td>
+                  ))}
                   <Td align="right" className="border-l border-rule">
+                    $0
+                  </Td>
+                  <Td align="right">$0</Td>
+                  <Td align="right">$0</Td>
+                  <Td align="right" className="border-l border-rule bg-paper">
                     $0
                   </Td>
                   {priorByRep && <Td align="right">—</Td>}
@@ -362,14 +438,36 @@ export default function PresidentsClub({ repPerformance, compare }) {
                 >
                   Team total ({ranked.length} reps)
                 </Td>
-                <Td align="right" className="text-brown">
+                {FAMILIES.map((f) => {
+                  const famTotal = ranked.reduce(
+                    (acc, r) => ({
+                      first: acc.first + (r.families?.[f.key]?.firstTime || 0),
+                      ret: acc.ret + (r.families?.[f.key]?.returning || 0),
+                    }),
+                    { first: 0, ret: 0 }
+                  );
+                  return (
+                    <Td key={f.key} align="right">
+                      <ProductDollarCell
+                        fam={{
+                          firstTime: famTotal.first,
+                          returning: famTotal.ret,
+                        }}
+                      />
+                    </Td>
+                  );
+                })}
+                <Td align="right" className="text-brown border-l border-rule">
                   {fmt$(totals.firstTime)}
                 </Td>
                 <Td align="right" className="text-inksoft">
                   {fmt$(totals.returning)}
                 </Td>
                 <Td align="right">{fmt$(totals.total)}</Td>
-                <Td align="right" className="text-brown border-l border-rule">
+                <Td
+                  align="right"
+                  className="text-brown border-l border-rule bg-paper"
+                >
                   {fmt$(totals.weighted)}
                 </Td>
                 {priorByRep && <Td align="right">—</Td>}
@@ -436,9 +534,23 @@ export default function PresidentsClub({ repPerformance, compare }) {
                     )}
                   </div>
                 </div>
+                {/* Rep totals row */}
                 <div className="grid grid-cols-2 gap-1.5 mt-2 pl-12">
                   <ProductChip label="First-Time" value={r.firstTime} accent />
                   <ProductChip label="Returning" value={r.returning} />
+                </div>
+                {/* Per-product breakdown */}
+                <div className="grid grid-cols-2 gap-1.5 mt-1.5 pl-12">
+                  {FAMILIES.map((f) => {
+                    const fam = r.families?.[f.key];
+                    return (
+                      <ProductMobileCell
+                        key={f.key}
+                        label={f.label}
+                        fam={fam}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -463,6 +575,73 @@ export default function PresidentsClub({ repPerformance, compare }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Per-family dollar cell — stacked first-time over returning so both
+ * numbers stay legible without doubling the table width. First-time in
+ * brand brown (the metric we weight at 60%), returning in muted
+ * inksoft. Tooltip surfaces unit counts to tie out against the
+ * Sales-by-rep table directly above this section.
+ */
+function ProductDollarCell({ fam }) {
+  const first = fam?.firstTime || 0;
+  const ret = fam?.returning || 0;
+  if (!first && !ret) return <span className="text-muted">—</span>;
+  const tooltip = [
+    `New: ${fam?.newUnits || 0} units · ${fmt$(first)}`,
+    `Existing: ${fam?.existingUnits || 0} units · ${fmt$(ret)}`,
+  ].join("\n");
+  return (
+    <div
+      title={tooltip}
+      className="flex flex-col items-end tabular-nums leading-tight"
+    >
+      <span className={first > 0 ? "text-brown font-semibold" : "text-muted/60"}>
+        {first ? fmt$(first) : "—"}
+      </span>
+      <span className={ret > 0 ? "text-inksoft text-[10px]" : "text-muted/60 text-[10px]"}>
+        {ret ? fmt$(ret) : "—"}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Mobile per-product cell — shows the family label plus stacked
+ * first-time / returning dollars. Matches the desktop ProductDollarCell
+ * styling so the same color cues (brown first-time, muted returning)
+ * carry across breakpoints.
+ */
+function ProductMobileCell({ label, fam }) {
+  const first = fam?.firstTime || 0;
+  const ret = fam?.returning || 0;
+  const tooltip = [
+    `New: ${fam?.newUnits || 0} units · ${fmt$(first)}`,
+    `Existing: ${fam?.existingUnits || 0} units · ${fmt$(ret)}`,
+  ].join("\n");
+  const hasData = first > 0 || ret > 0;
+  return (
+    <div
+      title={tooltip}
+      className={`flex items-center justify-between gap-2 px-2 py-1 rounded border font-sans text-[11px] ${
+        hasData ? "bg-paper2 border-tan" : "bg-paper border-rule"
+      }`}
+    >
+      <span className={hasData ? "text-inksoft font-semibold" : "text-muted"}>
+        {label}
+      </span>
+      <span className="tabular-nums text-right leading-tight">
+        <span className={first > 0 ? "text-brown font-semibold" : "text-muted/60"}>
+          {first ? fmt$(first) : "—"}
+        </span>
+        <span className="text-muted/60 mx-1">·</span>
+        <span className={ret > 0 ? "text-inksoft" : "text-muted/60"}>
+          {ret ? fmt$(ret) : "—"}
+        </span>
+      </span>
     </div>
   );
 }
