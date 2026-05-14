@@ -311,6 +311,15 @@ export default function Dashboard({ initial }) {
               {/* Icon-only on phones to keep the header tight; full label from sm+ */}
               <span className="hidden sm:inline">{isPending ? "Refreshing…" : "Refresh"}</span>
             </button>
+            <a
+              href="/ask"
+              className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-brown text-paper hover:bg-browndeep transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
+              title="Open the Claude-powered analyst — full-page chat over the data rails"
+            >
+              <span aria-hidden="true">✦</span>
+              <span className="hidden sm:inline">Ask Claude</span>
+              <span className="sm:hidden">Ask</span>
+            </a>
             {data && <ExportButton data={data} periodLabel={periodLabel} />}
           </div>
         </header>
