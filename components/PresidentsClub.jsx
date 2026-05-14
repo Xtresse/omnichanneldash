@@ -330,13 +330,27 @@ export default function PresidentsClub({ repPerformance, compare }) {
                 const rankClr = rankColor(r.rank);
                 return (
                   <tr key={r.rep} className="border-t border-rule/60">
-                    <Td align="center" className="font-semibold tabular-nums">
-                      <span
-                        style={rankClr ? { color: rankClr } : undefined}
-                        className={rankClr ? "font-display text-base" : "text-inksoft"}
-                      >
-                        {r.rank}
-                      </span>
+                    <Td align="center" className="tabular-nums">
+                      {/* 2026-05: uniform rank styling for visual consistency.
+                          Previously top-3 used font-display (Cormorant serif)
+                          which made #1/#2/#3 noticeably different sizes from
+                          #4+ and looked "off-grid". Now all ranks use the
+                          same sans-serif tabular-nums, with a subtle 4px
+                          medal stripe on the left edge of the top-3 cells
+                          to keep the "podium" cue without breaking the
+                          visual rhythm. */}
+                      <div className="relative inline-flex items-center justify-center">
+                        {rankClr && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute -left-3 top-1/2 -translate-y-1/2 w-1 h-4 rounded-sm"
+                            style={{ backgroundColor: rankClr }}
+                          />
+                        )}
+                        <span className="font-semibold text-inksoft">
+                          {r.rank}
+                        </span>
+                      </div>
                     </Td>
                     {priorByRep && (
                       <Td align="center">
@@ -504,17 +518,15 @@ export default function PresidentsClub({ repPerformance, compare }) {
             return (
               <div key={r.rep} className="px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 text-center tabular-nums"
-                    style={rankClr ? { color: rankClr } : undefined}
-                  >
-                    <div
-                      className={
-                        rankClr
-                          ? "font-display text-2xl font-semibold leading-none"
-                          : "font-display text-xl text-inksoft font-semibold leading-none"
-                      }
-                    >
+                  <div className="w-10 text-center tabular-nums relative">
+                    {rankClr && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-sm"
+                        style={{ backgroundColor: rankClr }}
+                      />
+                    )}
+                    <div className="text-xl text-inksoft font-semibold leading-none">
                       {r.rank}
                     </div>
                     {rankDelta && (
