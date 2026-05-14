@@ -172,13 +172,17 @@ export default function B2BStatusBar() {
   }
 
   return (
-    <div className="rounded-xl border border-rule bg-paper2/60 p-3 md:p-4">
-      <div className="flex items-baseline justify-between gap-3 mb-2.5 md:mb-3">
-        <h2 className="font-display text-lg md:text-xl font-semibold text-brown leading-tight">
-          B2B Month-to-Date
-        </h2>
-        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted">
-          Day {completed}/{total} complete · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+    <div className="rounded-xl border border-rule bg-paper2/70 backdrop-blur-[1px] p-3 md:p-4 shadow-card">
+      <div className="flex items-baseline justify-between gap-3 mb-2.5 md:mb-3 pb-2.5 md:pb-3 border-b border-rule/70">
+        <div className="min-w-0">
+          <div className="eyebrow text-brown leading-tight mb-1">B2B · Hero SKUs</div>
+          <h2 className="font-display text-lg md:text-xl font-semibold text-ink leading-tight tracking-tight">
+            Month-to-Date
+          </h2>
+        </div>
+        <span className="font-sans text-[10px] md:text-xs uppercase tracking-chip text-muted text-right shrink-0">
+          Day {completed}/{total} complete<br className="md:hidden" />
+          <span className="text-inksoft"> · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
         </span>
       </div>
 
@@ -262,13 +266,11 @@ function ProductCard({
         : "#5C2F2E";
 
   return (
-    <div className="relative bg-card border border-rule rounded-xl px-4 py-3.5 md:px-5 md:py-4 overflow-hidden
-                    before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-brown">
+    <div className="relative card-tile card-surface-hover px-4 py-3.5 md:px-5 md:py-4 overflow-hidden group">
+      <span aria-hidden="true" className="absolute left-0 top-0 bottom-0 w-1 bg-brown transition-[width] duration-mid ease-out group-hover:w-1.5" />
       <div className="flex items-baseline justify-between gap-2">
-        <div className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.18em] text-muted leading-tight">
-          {label}
-        </div>
-        <div className="font-sans text-[10px] text-muted">B2B</div>
+        <div className="eyebrow text-muted leading-tight">{label}</div>
+        <div className="pill bg-brown/10 text-brown">B2B</div>
       </div>
 
       {/* MTD value */}

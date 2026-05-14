@@ -18,6 +18,7 @@ module.exports = {
         ink: "rgb(var(--ink) / <alpha-value>)",
         inksoft: "rgb(var(--inksoft) / <alpha-value>)",
         rule: "rgb(var(--rule) / <alpha-value>)",
+        rulestrong: "rgb(var(--rulestrong) / <alpha-value>)",
         brown: "rgb(var(--brown) / <alpha-value>)",
         browndeep: "rgb(var(--browndeep) / <alpha-value>)",
         accent: "rgb(var(--accent) / <alpha-value>)",
@@ -25,6 +26,11 @@ module.exports = {
         dtc: "rgb(var(--dtc) / <alpha-value>)",
         muted: "rgb(var(--muted) / <alpha-value>)",
         tan: "rgb(var(--tan) / <alpha-value>)",
+        // Status tokens — pulled from the same --status-* vars used by JS
+        // components for delta colors, so the entire app stays in lock-step.
+        good: "rgb(var(--status-good) / <alpha-value>)",
+        warn: "rgb(var(--status-warn) / <alpha-value>)",
+        bad:  "rgb(var(--status-bad)  / <alpha-value>)",
       },
       fontFamily: {
         serif: ["'Cormorant Garamond'", "Georgia", "serif"],
@@ -36,6 +42,24 @@ module.exports = {
       },
       minHeight: {
         touch: "44px",
+      },
+      boxShadow: {
+        card: "var(--shadow-card)",
+        "card-hover": "var(--shadow-card-hover)",
+        tile: "var(--shadow-tile)",
+        banner: "var(--shadow-banner)",
+        focus: "var(--shadow-focus)",
+      },
+      transitionTimingFunction: {
+        out: "var(--ease-out)",
+      },
+      transitionDuration: {
+        fast: "var(--dur-fast)",
+        mid: "var(--dur-mid)",
+      },
+      letterSpacing: {
+        eyebrow: "0.18em",
+        chip: "0.14em",
       },
     },
   },

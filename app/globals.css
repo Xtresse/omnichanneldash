@@ -3,12 +3,15 @@
 @tailwind utilities;
 
 /* Self-host Google Fonts via @import (Next 14 will inline) */
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap");
 
-/* Brand palette — split out as space-separated RGB triplets so Tailwind
-   utilities like `bg-paper/50` can apply alpha modifiers. The dark-mode
-   block below flips the values; every component using the brand classes
-   (bg-paper, text-ink, border-rule, bg-card, text-brown, etc.) auto-adapts. */
+/* Brand palette + design tokens.
+   Colors are space-separated RGB triplets so Tailwind utilities like
+   `bg-paper/50` can apply alpha modifiers. The dark-mode block below
+   flips the values; every component using the brand classes
+   (bg-paper, text-ink, border-rule, bg-card, text-brown, etc.) auto-adapts.
+   Shadows / radii / motion tokens are CSS-var-driven so the same kind of
+   token-rewiring trick works for elevation/feel in dark mode. */
 :root {
   --paper: 245 241 234;       /* page background */
   --paper2: 250 247 242;      /* soft cream surfaces — filter bar, subtotals */
@@ -16,6 +19,7 @@
   --ink: 43 26 16;            /* primary text */
   --inksoft: 90 66 50;        /* secondary text */
   --rule: 212 208 200;        /* hairline borders */
+  --rulestrong: 184 174 158;  /* slightly stronger hairline for headers */
   --brown: 92 42 26;          /* primary brand rust */
   --browndeep: 63 28 15;      /* section banners */
   --accent: 122 58 45;        /* rust light */
@@ -23,13 +27,38 @@
   --dtc: 58 122 111;
   --muted: 138 115 89;
   --tan: 168 148 120;
+
+  /* Status palette — referenced from JS components via the
+     --status-* tokens below so we don't hardcode hex twice. */
+  --status-good: 92 138 111;       /* sage */
+  --status-warn: 197 138 45;       /* amber */
+  --status-bad: 92 47 46;          /* maroon */
+  --status-neutral: 154 143 128;   /* muted brown */
+
+  /* Elevation — warm-tinted shadows so cards lift off the paper without
+     looking like a Material clone. Inset hairline gives the "letterpress"
+     edge that reads as expensive on print-inspired UI. */
+  --shadow-card: 0 1px 2px 0 rgba(60, 36, 22, 0.04), 0 1px 1px 0 rgba(60, 36, 22, 0.04);
+  --shadow-card-hover: 0 4px 14px -6px rgba(60, 36, 22, 0.12), 0 2px 4px -2px rgba(60, 36, 22, 0.06);
+  --shadow-tile: 0 1px 2px 0 rgba(60, 36, 22, 0.05), 0 2px 6px -2px rgba(60, 36, 22, 0.06);
+  --shadow-banner: 0 1px 0 0 rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 240, 220, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(92, 42, 26, 0.22);
+
+  /* Subtle background gradient — gives the page a slight "paper grain"
+     warmth without being a literal noise texture. */
+  --page-gradient: radial-gradient(1200px 700px at 0% -10%, rgba(212, 161, 122, 0.10), transparent 60%),
+                   radial-gradient(900px 600px at 100% 10%, rgba(168, 148, 120, 0.08), transparent 55%);
+
+  /* Motion — single token set so transitions feel consistent everywhere. */
+  --ease-out: cubic-bezier(0.2, 0.65, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-mid: 200ms;
 }
 
 /* Dark mode — auto via OS / browser preference. Inverted brand palette:
    warm cream "ink" on a deep coffee/aubergine background. The brand rust
    warms to a golden cream so it still reads as the dominant accent.
-   Status colors (favorable green sage / unfavorable maroon) are left
-   alone in the components themselves so semantics stay obvious. */
+   Shadows reverse to a subtle highlight so cards still appear lifted. */
 @media (prefers-color-scheme: dark) {
   :root {
     --paper: 24 18 16;        /* deep coffee */
@@ -38,6 +67,7 @@
     --ink: 240 230 212;       /* warm cream text */
     --inksoft: 184 168 144;   /* secondary cream */
     --rule: 58 44 32;         /* dim hairline */
+    --rulestrong: 84 64 46;
     --brown: 212 161 122;     /* golden cream — flips rust direction */
     --browndeep: 196 138 100; /* slightly warmer */
     --accent: 196 114 75;
@@ -45,6 +75,20 @@
     --dtc: 90 168 152;        /* sage stays sage, brightened */
     --muted: 158 132 104;
     --tan: 138 118 90;
+
+    --status-good: 122 168 140;
+    --status-warn: 216 160 72;
+    --status-bad: 184 88 84;
+    --status-neutral: 158 132 104;
+
+    --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.35), 0 1px 1px 0 rgba(0, 0, 0, 0.25);
+    --shadow-card-hover: 0 8px 20px -8px rgba(0, 0, 0, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-tile: 0 1px 2px 0 rgba(0, 0, 0, 0.4), 0 4px 12px -4px rgba(0, 0, 0, 0.3);
+    --shadow-banner: 0 1px 0 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 220, 180, 0.04);
+    --shadow-focus: 0 0 0 3px rgba(212, 161, 122, 0.28);
+
+    --page-gradient: radial-gradient(1200px 700px at 0% -10%, rgba(212, 161, 122, 0.08), transparent 60%),
+                     radial-gradient(900px 600px at 100% 10%, rgba(90, 168, 152, 0.06), transparent 55%);
   }
 }
 
@@ -54,10 +98,14 @@ html, body {
   margin: 0;
   padding: 0;
   background: rgb(var(--paper));
+  background-image: var(--page-gradient);
+  background-attachment: fixed;
   color: rgb(var(--ink));
   font-family: "Cormorant Garamond", Georgia, serif;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   /* iOS safe-area handling — pushes content below the notch and above
      the home-indicator bar when the dashboard is launched as a PWA. */
   padding-top: env(safe-area-inset-top);
@@ -66,6 +114,9 @@ html, body {
   padding-right: env(safe-area-inset-right);
   /* Stop horizontal rubber-banding when a chart is wider than the screen. */
   overflow-x: hidden;
+  /* Anchor links breathe — when section IDs are jumped to, leave room
+     for the masthead so the heading doesn't kiss the top of the viewport. */
+  scroll-padding-top: 80px;
 }
 
 /* Inputs / buttons get sans + 16px to prevent iOS auto-zoom on focus.
@@ -82,20 +133,43 @@ button, [role="button"] {
   touch-action: manipulation;
 }
 
+/* Numeric type — always lining + tabular so columns of numbers
+   stay column-aligned in the serif display font too. The `.tabular-nums`
+   utility already applies tabular-nums; this guarantees lining figures
+   on top of it, which the Cormorant set defaults to old-style. */
+.tabular-nums { font-feature-settings: "tnum" 1, "lnum" 1; }
+
+/* Unified focus ring — keyboard-only via :focus-visible so mouse users
+   don't see a ring on click. Brand-tinted halo, never the browser blue. */
+:focus { outline: none; }
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: 4px;
+}
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+
 /* Date inputs styled to match the paper aesthetic. Dark mode picks up
    the var-based palette automatically. */
 input[type="date"] {
   background: rgb(var(--paper2));
   border: 1px solid rgb(var(--rule));
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 6px 10px;
   color: rgb(var(--ink));
   font-size: 14px;
   min-height: 36px;
-  /* Make the date-picker icon visible against either background — Chrome
-     uses a system color, but the calendar glyph defaults to dark which
-     vanishes on dark mode. invert() flips it to a light icon. */
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
 }
+input[type="date"]:hover { border-color: rgb(var(--rulestrong)); }
 @media (prefers-color-scheme: dark) {
   input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(0.85);
@@ -106,6 +180,66 @@ input[type="date"] {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
+/* ─── Component utility classes ─────────────────────────────────────
+   Centralized so cards, banners, and chips don't reinvent the same look. */
+
+@layer components {
+  /* Elevated card — used by KPI tiles, chart cells, B2B tiles. */
+  .card-surface {
+    background: rgb(var(--card));
+    border: 1px solid rgb(var(--rule));
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow var(--dur-mid) var(--ease-out),
+                border-color var(--dur-mid) var(--ease-out),
+                transform var(--dur-mid) var(--ease-out);
+  }
+  .card-surface-hover:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgb(var(--rulestrong));
+  }
+  .card-tile {
+    background: rgb(var(--card));
+    border: 1px solid rgb(var(--rule));
+    border-radius: 12px;
+    box-shadow: var(--shadow-tile);
+  }
+  /* Section banner — refined brown bar with subtle inset highlight. */
+  .section-banner {
+    background: linear-gradient(180deg,
+      rgb(var(--brown)) 0%,
+      rgb(var(--browndeep)) 100%);
+    color: rgb(var(--paper));
+    border-radius: 10px;
+    box-shadow: var(--shadow-banner);
+  }
+  /* Brand pill (used by KPI accent stripes, status chips). */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  /* Eyebrow / overline label — uppercase, tracked-out, muted. The single
+     most-repeated micro-style in the codebase; lifting it into a class
+     keeps every overline identical. */
+  .eyebrow {
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--muted));
+    line-height: 1;
+  }
+}
+
 /* Recharts overrides for paper aesthetic. Dark mode flips the tooltip
    surface and text-color via the var palette so per-chart components
    don't need their own dark-mode overrides. */
@@ -113,10 +247,12 @@ input[type="date"] {
 .recharts-default-tooltip {
   background: rgb(var(--card)) !important;
   border: 1px solid rgb(var(--rule)) !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
   font-family: Inter, system-ui, sans-serif !important;
   font-size: 12px !important;
   color: rgb(var(--ink)) !important;
+  box-shadow: var(--shadow-card-hover) !important;
+  padding: 8px 10px !important;
 }
 .recharts-default-tooltip .recharts-tooltip-label,
 .recharts-default-tooltip .recharts-tooltip-item-name,
@@ -136,4 +272,16 @@ input[type="date"] {
 /* Cartesian grid lines — softer in dark mode so they don't compete with data. */
 .recharts-cartesian-grid line {
   stroke: rgb(var(--rule)) !important;
+  stroke-opacity: 0.6;
+}
+
+/* Respect prefers-reduced-motion — strip transitions that imply movement.
+   Decorative hover/depth transitions are kept (no motion involved). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

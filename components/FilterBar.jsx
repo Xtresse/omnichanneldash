@@ -11,9 +11,7 @@ const addDays = (d, n) => {
   return x;
 };
 const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
-const endOfMonth = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0);
 const startOfYear = (d) => new Date(d.getFullYear(), 0, 1);
-const endOfYear = (d) => new Date(d.getFullYear(), 11, 31);
 const startOfWeek = (d) => {
   // Week starts Monday (matches leadership)
   const x = new Date(d);
@@ -27,46 +25,51 @@ const ALL_TIME_START = "2024-01-01";
 
 // Each preset returns [from, to] (ISO YYYY-MM-DD).
 const PRESETS = [
-  { value: "today", label: "Today", range: () => { const t = todayD(); return [ymd(t), ymd(t)]; } },
-  { value: "this_week", label: "This week", range: () => { const t = todayD(); return [ymd(startOfWeek(t)), ymd(t)]; } },
-  { value: "last_week", label: "Last week", range: () => { const t = todayD(); const ws = startOfWeek(t); return [ymd(addDays(ws, -7)), ymd(addDays(ws, -1))]; } },
-  { value: "mtd", label: "MTD", range: () => { const t = todayD(); return [ymd(startOfMonth(t)), ymd(t)]; } },
+  { value: "today",      label: "Today",      range: () => { const t = todayD(); return [ymd(t), ymd(t)]; } },
+  { value: "this_week",  label: "This week",  range: () => { const t = todayD(); return [ymd(startOfWeek(t)), ymd(t)]; } },
+  { value: "last_week",  label: "Last week",  range: () => { const t = todayD(); const ws = startOfWeek(t); return [ymd(addDays(ws, -7)), ymd(addDays(ws, -1))]; } },
+  { value: "mtd",        label: "MTD",        range: () => { const t = todayD(); return [ymd(startOfMonth(t)), ymd(t)]; } },
   { value: "last_month", label: "Last month", range: () => { const t = todayD(); const sm = startOfMonth(t); const lm = addDays(sm, -1); return [ymd(startOfMonth(lm)), ymd(lm)]; } },
-  { value: "qtd", label: "QTD", range: () => { const t = todayD(); const q = Math.floor(t.getMonth() / 3); return [ymd(new Date(t.getFullYear(), q * 3, 1)), ymd(t)]; } },
-  { value: "ytd", label: "YTD", range: () => { const t = todayD(); return [ymd(startOfYear(t)), ymd(t)]; } },
-  { value: "last_year", label: "Last year", range: () => { const t = todayD(); return [ymd(new Date(t.getFullYear() - 1, 0, 1)), ymd(new Date(t.getFullYear() - 1, 11, 31))]; } },
-  { value: "last_30d", label: "Last 30d", range: () => { const t = todayD(); return [ymd(addDays(t, -29)), ymd(t)]; } },
-  { value: "last_90d", label: "Last 90d", range: () => { const t = todayD(); return [ymd(addDays(t, -89)), ymd(t)]; } },
-  { value: "all_time", label: "All time", range: () => [ALL_TIME_START, today()] },
+  { value: "qtd",        label: "QTD",        range: () => { const t = todayD(); const q = Math.floor(t.getMonth() / 3); return [ymd(new Date(t.getFullYear(), q * 3, 1)), ymd(t)]; } },
+  { value: "ytd",        label: "YTD",        range: () => { const t = todayD(); return [ymd(startOfYear(t)), ymd(t)]; } },
+  { value: "last_year",  label: "Last year",  range: () => { const t = todayD(); return [ymd(new Date(t.getFullYear() - 1, 0, 1)), ymd(new Date(t.getFullYear() - 1, 11, 31))]; } },
+  { value: "last_30d",   label: "Last 30d",   range: () => { const t = todayD(); return [ymd(addDays(t, -29)), ymd(t)]; } },
+  { value: "last_90d",   label: "Last 90d",   range: () => { const t = todayD(); return [ymd(addDays(t, -89)), ymd(t)]; } },
+  { value: "all_time",   label: "All time",   range: () => [ALL_TIME_START, today()] },
 ];
 
 const GRANULARITY_OPTIONS = [
-  { value: "auto", label: "Auto" },
-  { value: "day", label: "Day" },
-  { value: "week", label: "Week" },
+  { value: "auto",   label: "Auto" },
+  { value: "day",    label: "Day" },
+  { value: "week",   label: "Week" },
   { value: "biweek", label: "2 wks" },
-  { value: "month", label: "Month" },
+  { value: "month",  label: "Month" },
 ];
 
+const CHIP_BASE =
+  "shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-medium transition-colors duration-fast ease-out border";
+const CHIP_IDLE =
+  "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan hover:text-ink";
+const CHIP_ACTIVE =
+  "bg-brown text-paper border-brown shadow-card hover:bg-browndeep hover:border-browndeep";
+
 export default function FilterBar({
-  activePreset,        // string preset value, or null when custom dates are active
+  activePreset,
   customFrom,
   customTo,
-  granularity,         // "auto" | "day" | "week" | "biweek" | "month"
-  resolvedGranularity, // what the server actually used (for the Auto badge)
-  onPresetChange,      // (presetValue, from, to) => void
-  onCustomChange,      // ({from, to}) => void
-  onGranularityChange, // (granularity) => void
+  granularity,
+  resolvedGranularity,
+  onPresetChange,
+  onCustomChange,
+  onGranularityChange,
   loading,
 }) {
   return (
-    <div className="bg-paper2 border border-rule rounded-md px-3 py-2.5 md:px-4 md:py-3 space-y-2.5">
+    <div className="card-tile px-3 py-3 md:px-4 md:py-3.5 space-y-3">
       {/* Row 1 — quick presets + custom date inputs */}
-      <div className="space-y-2.5 md:space-y-0 md:flex md:items-center md:gap-4 md:flex-wrap">
-        <div className="flex items-center gap-2 md:gap-3 flex-nowrap overflow-x-auto no-scrollbar -mx-1 px-1">
-          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-muted shrink-0">
-            Quick
-          </span>
+      <div className="space-y-3 md:space-y-0 md:flex md:items-center md:gap-5 md:flex-wrap">
+        <div className="flex items-center gap-2 md:gap-2.5 flex-nowrap overflow-x-auto no-scrollbar -mx-1 px-1">
+          <span className="eyebrow text-muted shrink-0">Quick</span>
           {PRESETS.map((p) => {
             const active = activePreset === p.value;
             return (
@@ -77,11 +80,7 @@ export default function FilterBar({
                   const [from, to] = p.range();
                   onPresetChange(p.value, from, to);
                 }}
-                className={`shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm transition border ${
-                  active
-                    ? "bg-brown text-paper border-brown"
-                    : "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan"
-                }`}
+                className={`${CHIP_BASE} ${active ? CHIP_ACTIVE : CHIP_IDLE}`}
                 aria-pressed={active}
               >
                 {p.label}
@@ -90,10 +89,8 @@ export default function FilterBar({
           })}
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3 flex-wrap md:flex-nowrap md:ml-auto">
-          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-muted shrink-0">
-            Custom
-          </span>
+        <div className="flex items-center gap-2 md:gap-2.5 flex-wrap md:flex-nowrap md:ml-auto">
+          <span className="eyebrow text-muted shrink-0">Custom</span>
           <input
             type="date"
             aria-label="Start date"
@@ -102,9 +99,9 @@ export default function FilterBar({
             onChange={(e) =>
               onCustomChange({ from: e.target.value, to: customTo || "" })
             }
-            className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
+            className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm hover:border-rulestrong transition-colors duration-fast ease-out"
           />
-          <span className="font-sans text-xs text-muted">→</span>
+          <span className="font-sans text-xs text-muted" aria-hidden="true">→</span>
           <input
             type="date"
             aria-label="End date"
@@ -113,13 +110,13 @@ export default function FilterBar({
             onChange={(e) =>
               onCustomChange({ from: customFrom || "", to: e.target.value })
             }
-            className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
+            className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm hover:border-rulestrong transition-colors duration-fast ease-out"
           />
           {(customFrom || customTo) && !activePreset && (
             <button
               type="button"
               onClick={() => onCustomChange({ from: "", to: "" })}
-              className="shrink-0 min-h-touch px-2 md:px-3 rounded-md font-sans text-[11px] text-inksoft border border-rule hover:bg-paper hover:border-tan"
+              className="shrink-0 min-h-touch px-2 md:px-3 rounded-md font-sans text-[11px] text-inksoft border border-rule hover:bg-paper hover:border-tan transition-colors duration-fast ease-out"
               aria-label="Clear custom date range"
             >
               Clear
@@ -127,20 +124,19 @@ export default function FilterBar({
           )}
           {loading && (
             <span
-              className="shrink-0 ml-1 font-sans text-[11px] text-muted animate-pulse"
+              className="shrink-0 ml-1 inline-flex items-center gap-1.5 font-sans text-[11px] text-muted"
               aria-live="polite"
             >
-              loading…
+              <span className="w-1.5 h-1.5 rounded-full bg-brown animate-pulse" aria-hidden="true" />
+              loading
             </span>
           )}
         </div>
       </div>
 
       {/* Row 2 — bucket / chart granularity */}
-      <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-rule/60">
-        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-muted shrink-0">
-          Bucket
-        </span>
+      <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-rule/60">
+        <span className="eyebrow text-muted shrink-0">Bucket</span>
         {GRANULARITY_OPTIONS.map((g) => {
           const active = (granularity || "auto") === g.value;
           return (
@@ -148,11 +144,7 @@ export default function FilterBar({
               key={g.value}
               type="button"
               onClick={() => onGranularityChange(g.value)}
-              className={`shrink-0 min-h-touch px-3 rounded-md font-sans text-xs transition border ${
-                active
-                  ? "bg-brown text-paper border-brown"
-                  : "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan"
-              }`}
+              className={`${CHIP_BASE} ${active ? CHIP_ACTIVE : CHIP_IDLE}`}
               aria-pressed={active}
             >
               {g.label}
