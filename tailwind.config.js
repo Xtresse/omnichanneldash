@@ -23,8 +23,13 @@ module.exports = {
         accent: "rgb(var(--accent) / <alpha-value>)",
         b2b: "rgb(var(--b2b) / <alpha-value>)",
         dtc: "rgb(var(--dtc) / <alpha-value>)",
+        adcs: "rgb(var(--adcs) / <alpha-value>)",
         muted: "rgb(var(--muted) / <alpha-value>)",
         tan: "rgb(var(--tan) / <alpha-value>)",
+        favorable: "rgb(var(--favorable) / <alpha-value>)",
+        partial: "rgb(var(--partial) / <alpha-value>)",
+        unfavorable: "rgb(var(--unfavorable) / <alpha-value>)",
+        neutral: "rgb(var(--neutral) / <alpha-value>)",
       },
       fontFamily: {
         serif: ["'Cormorant Garamond'", "Georgia", "serif"],
