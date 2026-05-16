@@ -113,7 +113,7 @@ export default function OrdersTable({ orders }) {
             setPage(0);
           }}
           placeholder="Search id / customer / email / rep / code"
-          className="flex-1 min-w-[180px] bg-paper text-inksoft border border-rule rounded-md px-3 min-h-touch font-sans text-xs md:text-sm placeholder:text-muted/60"
+          className="w-full sm:w-auto sm:flex-1 sm:min-w-[180px] bg-paper text-inksoft border border-rule rounded-md px-3 min-h-touch font-sans text-xs md:text-sm placeholder:text-muted/60"
         />
         <div className="flex items-center gap-1 flex-wrap">
           {[

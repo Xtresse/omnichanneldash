@@ -199,8 +199,9 @@ export default function AskUI() {
         </div>
       </header>
 
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
-        {/* Sidebar */}
+      <div className="flex-1 flex max-w-7xl w-full mx-auto min-w-0">
+        {/* Sidebar — on mobile takes over the full width when open (main hides);
+            on md+ it sits inline as a 72-wide rail. */}
         <aside
           className={`${
             sidebarOpen ? "block" : "hidden"
@@ -291,14 +292,14 @@ export default function AskUI() {
           </div>
         </aside>
 
-        {/* Main */}
-        <main className="flex-1 flex flex-col md:h-[calc(100vh-57px)] min-w-0">
+        {/* Main — hidden behind sidebar on mobile when the menu is open. */}
+        <main className={`${sidebarOpen ? "hidden md:flex" : "flex"} flex-1 flex-col md:h-[calc(100vh-57px)] min-w-0`}>
           {/* Thread */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto">
             {messages.length === 0 ? (
-              <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+              <div className="max-w-2xl mx-auto px-3 sm:px-4 py-6 sm:py-10 space-y-6">
                 <div>
-                  <h1 className="font-display text-2xl font-semibold mb-2">
+                  <h1 className="font-display text-xl sm:text-2xl font-semibold mb-2 leading-tight">
                     Ask anything about your omnichannel data.
                   </h1>
                   <p className="text-[14px] text-inksoft leading-relaxed">

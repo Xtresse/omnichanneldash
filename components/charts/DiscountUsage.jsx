@@ -26,7 +26,7 @@ export default function DiscountUsage({ data }) {
           dataKey="code"
           tickLine={false}
           axisLine={false}
-          width={110}
+          width={92}
           tick={{ fontSize: 10 }}
         />
         <Tooltip

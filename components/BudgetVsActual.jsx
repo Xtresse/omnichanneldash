@@ -190,13 +190,13 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
 
       {/* Month selector + actuals window */}
       <div className="flex flex-wrap items-center gap-2 md:gap-3">
-        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold">
+        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold shrink-0">
           Goal month
         </span>
         <select
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
-          className="rounded border border-rule bg-paper px-2 py-1 font-sans text-xs md:text-sm text-inksoft"
+          className="min-w-0 rounded border border-rule bg-paper px-2 py-1 font-sans text-xs md:text-sm text-inksoft min-h-touch sm:min-h-0"
         >
           {monthOpts.map((m) => (
             <option key={m} value={m}>{monthLabel(m)}</option>
@@ -205,12 +205,12 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
         <button
           type="button"
           onClick={() => setSelectedMonth(currentMonth())}
-          className="rounded border border-rule bg-paper hover:bg-paper2 px-2 py-1 font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-inksoft"
+          className="shrink-0 rounded border border-rule bg-paper hover:bg-paper2 px-2 py-1 font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-inksoft min-h-touch sm:min-h-0"
           title="Reset to the current calendar month"
         >
           This month
         </button>
-        <span className="font-sans text-[10px] md:text-xs text-muted ml-auto leading-tight">
+        <span className="font-sans text-[10px] md:text-xs text-muted w-full sm:w-auto sm:ml-auto leading-tight">
           Actuals · {periodLabel || "current dashboard window"}
         </span>
       </div>
@@ -418,7 +418,7 @@ function PaceBars({ rows }) {
       <BarChart data={data} layout="vertical" margin={{ top: 5, right: 24, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" horizontal={false} />
         <XAxis type="number" domain={[0, "dataMax + 20"]} tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} />
-        <YAxis type="category" dataKey="product" tickLine={false} axisLine={false} width={72} />
+        <YAxis type="category" dataKey="product" tickLine={false} axisLine={false} width={64} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v) => `${v}%`} />
         <Legend wrapperStyle={{ paddingTop: 4 }} />
         <ReferenceLine x={100} stroke="#5A4F40" strokeDasharray="4 4" label={{ value: "100% target", fill: "#5A4F40", fontSize: 10, position: "right" }} />
@@ -457,28 +457,30 @@ function RepDrillDrawer({ rep, selectedMonth, repGoals, actuals, onClose }) {
               each rep&apos;s per-product target shows here.
             </p>
           ) : (
-            <table className="w-full text-xs font-sans border-collapse">
-              <thead>
-                <tr className="bg-paper2 text-left">
-                  <Th align="left">Rep</Th>
-                  {PRODUCTS.map((p) => <Th key={p} align="right">{p}</Th>)}
-                  <Th align="right">Total</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {repList.map((r) => {
-                  const cells = PRODUCTS.map((p) => Number(repGoals[r]?.[p]?.[selectedMonth] || 0));
-                  const tot = cells.reduce((a, b) => a + b, 0);
-                  return (
-                    <tr key={r} className="border-t border-rule/60">
-                      <Td className="font-medium text-ink">{r}</Td>
-                      {cells.map((v, i) => <Td key={i} align="right">{fmt$(v)}</Td>)}
-                      <Td align="right" className="font-semibold">{fmt$(tot)}</Td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto -mx-1 px-1">
+              <table className="w-full text-xs font-sans border-collapse">
+                <thead>
+                  <tr className="bg-paper2 text-left">
+                    <Th align="left">Rep</Th>
+                    {PRODUCTS.map((p) => <Th key={p} align="right">{p}</Th>)}
+                    <Th align="right">Total</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {repList.map((r) => {
+                    const cells = PRODUCTS.map((p) => Number(repGoals[r]?.[p]?.[selectedMonth] || 0));
+                    const tot = cells.reduce((a, b) => a + b, 0);
+                    return (
+                      <tr key={r} className="border-t border-rule/60">
+                        <Td className="font-medium text-ink">{r}</Td>
+                        {cells.map((v, i) => <Td key={i} align="right">{fmt$(v)}</Td>)}
+                        <Td align="right" className="font-semibold">{fmt$(tot)}</Td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
           <p className="font-sans text-[10px] text-muted leading-snug">
             Per-rep <em>actual</em> contribution is in the &quot;Sales by rep&quot; section above.

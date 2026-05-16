@@ -35,7 +35,7 @@ const ChatPanel = dynamic(() => import("./ChatPanel.jsx"), {
 const OrdersTable = dynamic(() => import("./OrdersTable.jsx"), {
   ssr: false,
   loading: () => (
-    <div className="bg-card border border-rule rounded-xl p-8 text-center text-muted text-sm font-sans">
+    <div className="bg-card border border-rule rounded-xl p-6 md:p-8 text-center text-muted text-sm font-sans">
       Loading orders…
     </div>
   ),
@@ -222,9 +222,9 @@ export default function Dashboard({ initial }) {
 
   if (error && !data) {
     return (
-      <main className="min-h-screen p-4 md:p-8">
-        <div className="max-w-md mx-auto mt-12 rounded-xl border border-rule bg-card p-6">
-          <h2 className="font-display text-2xl font-semibold text-brown mb-2">
+      <main className="min-h-screen p-3 sm:p-4 md:p-8">
+        <div className="max-w-md mx-auto mt-8 sm:mt-12 rounded-xl border border-rule bg-card p-4 sm:p-6">
+          <h2 className="font-display text-xl sm:text-2xl font-semibold text-brown mb-2">
             Couldn&apos;t load data
           </h2>
           <p className="font-sans text-sm text-inksoft">{error}</p>
@@ -263,11 +263,11 @@ export default function Dashboard({ initial }) {
 
   return (
     <main className="min-h-screen pb-12">
-      <div className="max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-7">
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-7">
         {/* Header — title in single brown ink, period strip below */}
         <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4 md:mb-6">
           <div className="min-w-0">
-            <h1 className="font-display text-3xl md:text-5xl font-semibold text-brown leading-none tracking-tight">
+            <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-semibold text-brown leading-tight md:leading-none tracking-tight break-words">
               Xtresse Omni Channel Dashboard
             </h1>
             <p className="font-sans text-xs md:text-sm text-muted mt-2 md:mt-3 leading-snug">
@@ -546,10 +546,10 @@ function Section({ title, detail, children, collapsible = false, defaultCollapse
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   return (
     <section className="mt-5 md:mt-7">
-      <div className="bg-browndeep text-paper rounded-md px-4 py-2.5 md:px-5 md:py-3 mb-3 md:mb-4">
-        <div className="flex items-baseline justify-between gap-3 flex-wrap">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <h2 className="font-display text-lg md:text-2xl font-semibold leading-tight">{title}</h2>
+      <div className="bg-browndeep text-paper rounded-md px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 mb-3 md:mb-4">
+        <div className="flex items-baseline justify-between gap-2 sm:gap-3 flex-wrap">
+          <div className="flex items-baseline gap-2 sm:gap-3 min-w-0">
+            <h2 className="font-display text-base sm:text-lg md:text-2xl font-semibold leading-tight">{title}</h2>
             {collapsible && (
               <button
                 type="button"
@@ -625,13 +625,13 @@ function ChartCell({ title, subtitle, wide, children }) {
     <div
       className={`${
         wide ? "lg:col-span-2" : ""
-      } bg-card border border-rule rounded-xl p-3 md:p-5`}
+      } bg-card border border-rule rounded-xl p-3 sm:p-4 md:p-5 min-w-0`}
     >
       <div className="mb-2 md:mb-3">
         <h3 className="font-display text-base md:text-lg font-semibold leading-tight text-ink">
           {title}
         </h3>
-        {subtitle && <p className="font-sans text-[11px] md:text-xs text-muted mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="font-sans text-[11px] md:text-xs text-muted mt-0.5 leading-snug">{subtitle}</p>}
       </div>
       {children}
     </div>
