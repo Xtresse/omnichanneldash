@@ -1,0 +1,37 @@
+name: Daily digest
+
+on:
+  schedule:
+    # 13:00 UTC = 9 AM EDT / 8 AM EST. Single fire-time; the hour drifts
+    # by one across daylight saving but always lands in the morning.
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Reference date (YYYY-MM-DD). Leave blank to use yesterday ET."
+        required: false
+        type: string
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # No `npm install` — the script only uses Node 20's built-in fetch.
+
+      - name: Run daily digest
+        env:
+          DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "${{ inputs.date }}" ]; then
+            node scripts/daily-digest.mjs --date "${{ inputs.date }}"
+          else
+            node scripts/daily-digest.mjs
+          fi

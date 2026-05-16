@@ -131,6 +131,38 @@ npm run build   # Should compile cleanly, ~107 kB page / ~194 kB First Load JS
 - 5-minute API cache (`revalidate: 300`) on the `/api/dashboard` route
 - DTC SKU exclusions (`X-GN-060CT-001`, `X-FRC-30ML-001`) are intentionally NOT applied here, since this dashboard *compares* both channels. A 60ct gummy bottle sold to DTC IS DTC; the same SKU sold via a B2B rep IS B2B.
 
+## Daily Slack digest
+
+A GitHub Actions cron posts a morning summary of yesterday's numbers + MTD
+to Slack. The agent calls `/api/dashboard` three times (yesterday vs prior
+day, yesterday vs YoY, MTD vs prior MTD) and formats a digest.
+
+### Setup
+
+1. Create a Slack incoming webhook for the target channel
+   (Slack → Apps → Incoming Webhooks → Add to channel). For DM-only
+   testing, create a private channel with only you in it and webhook to that.
+2. In the repo's GitHub settings:
+   - **Secrets** → add `SLACK_WEBHOOK_URL` with the webhook URL.
+   - **Variables** → add `DASHBOARD_URL` set to your deployed dashboard
+     (e.g. `https://omnichanneldash.vercel.app`).
+3. The workflow runs daily at 13:00 UTC (9 AM EDT / 8 AM EST). To test
+   immediately, go to Actions → Daily digest → Run workflow (you can
+   optionally pass a `date` to back-fill a specific day).
+
+### Local testing
+
+```bash
+DASHBOARD_URL=https://omnichanneldash.vercel.app \
+  node scripts/daily-digest.mjs --dry-run
+
+# Specific day
+DASHBOARD_URL=https://omnichanneldash.vercel.app \
+  node scripts/daily-digest.mjs --date 2026-05-15 --dry-run
+```
+
+`--dry-run` prints to stdout instead of posting to Slack.
+
 ## Constraints to be aware of
 
 - **DTC backfill pending**: Windsor only has DTC Shopify data from 3/31/26 forward (~30 days). Long-range DTC trends will be sparse until Windsor support extends the historical range. The dashboard surfaces this as a banner so it's clear what to expect.
