@@ -60,6 +60,15 @@ export async function GET(request) {
       source: "windsor.shopify",
     });
 
+    // Channel breakdowns: same numerator/denominator universe as
+    // omnichanneldash's headline KPIs.
+    metrics.push({ key: "net_sales_b2b",  label: "Net Sales — B2B",  value: numOrNull(k.b2bNetSales),  unit: "USD",   source: "windsor.shopify", note: "rep-attributed B2B (matches leadership)" });
+    metrics.push({ key: "net_sales_dtc",  label: "Net Sales — DTC",  value: numOrNull(k.dtcNetSales),  unit: "USD",   source: "windsor.shopify" });
+    metrics.push({ key: "net_sales_adcs", label: "Net Sales — ADCS", value: numOrNull(k.adcsNetSales), unit: "USD",   source: "windsor.shopify" });
+    metrics.push({ key: "order_count_b2b",  label: "Orders — B2B",   value: numOrNull(k.b2bOrders),   unit: "count", source: "windsor.shopify" });
+    metrics.push({ key: "order_count_dtc",  label: "Orders — DTC",   value: numOrNull(k.dtcOrders),   unit: "count", source: "windsor.shopify" });
+    metrics.push({ key: "order_count_adcs", label: "Orders — ADCS",  value: numOrNull(k.adcsOrders),  unit: "count", source: "windsor.shopify" });
+
     if (!process.env.WINDSOR_API_KEY) warnings.push("WINDSOR_API_KEY not set; numbers may be from stub.");
   } catch (e) {
     errors.push(e?.message || String(e));
