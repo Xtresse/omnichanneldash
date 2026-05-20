@@ -127,7 +127,7 @@ export default function ReconciliationCheck({ reconciliation, kpis, compare }) {
 
         {/* New accounts checks */}
         <CheckSection title="New accounts — Shopify First-Order tag (headline) vs chronological (sanity)">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Stat
               label="First-order gummy accounts"
               value={fmtN(na.firstOrderGummyTotal)}
@@ -273,10 +273,10 @@ function CheckRow({ label, actual, expected, delta, note, allowDelta }) {
   const tone = allowDelta ? "neutral" : passes ? "ok" : "fail";
 
   return (
-    <div className="flex items-start gap-3 py-1.5">
+    <div className="flex items-start gap-2 sm:gap-3 py-1.5">
       <Indicator tone={tone} />
       <div className="flex-1 min-w-0">
-        <div className="font-sans text-xs text-inksoft">{label}</div>
+        <div className="font-sans text-xs text-inksoft leading-snug">{label}</div>
         {note && (
           <div className="font-sans text-[10px] text-muted leading-snug mt-0.5">
             {note}
@@ -284,7 +284,7 @@ function CheckRow({ label, actual, expected, delta, note, allowDelta }) {
         )}
       </div>
       <div className="shrink-0 text-right">
-        <div className="font-sans text-xs tabular-nums text-ink">
+        <div className="font-sans text-[11px] sm:text-xs tabular-nums text-ink whitespace-nowrap">
           {fmt$(actual)} {expected !== undefined && expected !== null && (
             <span className="text-muted"> / {fmt$(expected)}</span>
           )}

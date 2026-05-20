@@ -490,9 +490,9 @@ export default function PresidentsClub({ repPerformance, compare }) {
               ? pctDeltaLabel(r.weighted, prior?.weighted)
               : null;
             return (
-              <div key={r.rep} className="px-4 py-3">
+              <div key={r.rep} className="px-3 sm:px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 text-center tabular-nums">
+                  <div className="w-8 sm:w-10 text-center tabular-nums shrink-0">
                     <div className="text-xl text-inksoft font-semibold leading-none">
                       {r.rank}
                     </div>
@@ -509,11 +509,11 @@ export default function PresidentsClub({ repPerformance, compare }) {
                     <div className="font-sans text-sm text-ink truncate">
                       {r.rep}
                     </div>
-                    <div className="font-sans text-[11px] text-muted">
+                    <div className="font-sans text-[11px] text-muted truncate">
                       {r.region} · {fmt$(r.total)} total
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <div className="font-display text-base font-semibold text-ink tabular-nums">
                       {fmt$(r.weighted)}
                     </div>
@@ -528,12 +528,12 @@ export default function PresidentsClub({ repPerformance, compare }) {
                   </div>
                 </div>
                 {/* Rep totals row */}
-                <div className="grid grid-cols-2 gap-1.5 mt-2 pl-12">
+                <div className="grid grid-cols-2 gap-1.5 mt-2 pl-11 sm:pl-12">
                   <ProductChip label="First-Time" value={r.firstTime} accent />
                   <ProductChip label="Returning" value={r.returning} />
                 </div>
                 {/* Per-product breakdown */}
-                <div className="grid grid-cols-2 gap-1.5 mt-1.5 pl-12">
+                <div className="grid grid-cols-2 gap-1.5 mt-1.5 pl-11 sm:pl-12">
                   {FAMILIES.map((f) => {
                     const fam = r.families?.[f.key];
                     return (

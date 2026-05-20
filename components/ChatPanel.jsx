@@ -97,7 +97,7 @@ export default function ChatPanel({ data }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 bg-brown text-paper rounded-full shadow-lg hover:bg-browndeep transition flex items-center gap-2 px-4 py-3 font-sans text-sm font-semibold"
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 min-h-touch bg-brown text-paper rounded-full shadow-lg hover:bg-browndeep transition flex items-center gap-2 px-4 py-3 font-sans text-sm font-semibold"
           aria-label="Open Ask Claude chat"
         >
           <SparkleIcon />

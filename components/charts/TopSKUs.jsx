@@ -27,7 +27,7 @@ export default function TopSKUs({ data }) {
           dataKey="sku"
           tickLine={false}
           axisLine={false}
-          width={130}
+          width={104}
           tick={{ fontSize: 10 }}
         />
         <Tooltip formatter={(v) => fmtCurrencyFull(v)} />

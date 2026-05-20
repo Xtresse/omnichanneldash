@@ -301,16 +301,16 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
         {rows.map((r) => {
           const prior = priorByRep ? priorByRep[r.rep] : null;
           return (
-            <div key={r.rep} className="px-4 py-3 space-y-2">
+            <div key={r.rep} className="px-3 sm:px-4 py-3 space-y-2">
               <div className="flex items-center gap-3">
-                <div className="w-6 text-right text-[11px] text-muted tabular-nums">{r.rank}</div>
+                <div className="w-6 text-right text-[11px] text-muted tabular-nums shrink-0">{r.rank}</div>
                 <div className="min-w-0 flex-1">
                   <div className="font-sans text-sm text-ink truncate">{r.rep}</div>
-                  <div className="font-sans text-[11px] text-muted">
+                  <div className="font-sans text-[11px] text-muted truncate">
                     {r.region} · {fmtN(r.orders)} ord · {fmtLastOrder(r.lastOrderAt)}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <div className="font-display text-base font-semibold text-ink tabular-nums">
                     {fmt$(r.net)}
                   </div>

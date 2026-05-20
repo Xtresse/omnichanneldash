@@ -173,12 +173,12 @@ export default function B2BStatusBar() {
 
   return (
     <div className="rounded-xl border border-rule bg-paper2/60 p-3 md:p-4">
-      <div className="flex items-baseline justify-between gap-3 mb-2.5 md:mb-3">
+      <div className="flex items-baseline justify-between gap-2 sm:gap-3 mb-2.5 md:mb-3 flex-wrap">
         <h2 className="font-display text-lg md:text-xl font-semibold text-brown leading-tight">
           B2B Month-to-Date
         </h2>
-        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted">
-          Day {completed}/{total} complete · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted leading-snug">
+          Day {completed}/{total} · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
         </span>
       </div>
 
@@ -262,7 +262,7 @@ function ProductCard({
         : "#5C2F2E";
 
   return (
-    <div className="relative bg-card border border-rule rounded-xl px-4 py-3.5 md:px-5 md:py-4 overflow-hidden
+    <div className="relative bg-card border border-rule rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0
                     before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-brown">
       <div className="flex items-baseline justify-between gap-2">
         <div className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.18em] text-muted leading-tight">

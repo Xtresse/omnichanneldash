@@ -102,9 +102,9 @@ export default function FilterBar({
             onChange={(e) =>
               onCustomChange({ from: e.target.value, to: customTo || "" })
             }
-            className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
+            className="min-w-0 bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
           />
-          <span className="font-sans text-xs text-muted">→</span>
+          <span className="font-sans text-xs text-muted shrink-0">→</span>
           <input
             type="date"
             aria-label="End date"
@@ -113,7 +113,7 @@ export default function FilterBar({
             onChange={(e) =>
               onCustomChange({ from: customFrom || "", to: e.target.value })
             }
-            className="bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
+            className="min-w-0 bg-paper text-inksoft border border-rule rounded-md px-2 md:px-3 min-h-touch font-sans text-xs md:text-sm"
           />
           {(customFrom || customTo) && !activePreset && (
             <button
