@@ -32,6 +32,10 @@ const ChatPanel = dynamic(() => import("./ChatPanel.jsx"), {
   ssr: false,
   loading: () => null,
 });
+const ScenarioPreview = dynamic(() => import("./ScenarioPreview.jsx"), {
+  ssr: false,
+  loading: () => null,
+});
 const OrdersTable = dynamic(() => import("./OrdersTable.jsx"), {
   ssr: false,
   loading: () => (
@@ -313,6 +317,15 @@ export default function Dashboard({ initial }) {
               <span className="hidden sm:inline">{isPending ? "Refreshing…" : "Refresh"}</span>
             </button>
             <a
+              href="/scenarios"
+              className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-paper text-brown border border-brown hover:bg-paper2 transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
+              title="Forward-looking pacing + Claude-powered scenario assistant"
+            >
+              <span aria-hidden="true">↗</span>
+              <span className="hidden sm:inline">Scenarios</span>
+              <span className="sm:hidden">Plan</span>
+            </a>
+            <a
               href="/ask"
               className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-brown text-paper hover:bg-browndeep transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
               title="Open the Claude-powered analyst — full-page chat over the data rails"
@@ -374,6 +387,14 @@ export default function Dashboard({ initial }) {
                 so the channel split stays accurate.
               </p>
             </div>
+
+            <Section
+              title="Scenario preview"
+              detail="EOM landing at trailing run rate · Open planner for what-ifs"
+              collapsible
+            >
+              <ScenarioPreview />
+            </Section>
 
             <Section title="Actual vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
               <BudgetVsActual productFamily={data.productFamily} periodLabel={periodLabel} />
