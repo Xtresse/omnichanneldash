@@ -6,6 +6,7 @@ import {
   buildCompareSnapshot,
   computeCompareWindow,
 } from "@/lib/windsor.js";
+export const maxDuration = 60; // ~11s cold Shopify all-time pull, cached after
 
 // 5-minute cache on the API. Browser still gets a fresh response per query
 // (preset/from/to combinations cache independently).
