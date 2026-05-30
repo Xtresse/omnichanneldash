@@ -4,6 +4,7 @@ import {
   buildDashboardData,
 } from "@/lib/windsor.js";
 import Dashboard from "@/components/Dashboard.jsx";
+export const maxDuration = 60; // ~11s cold Shopify all-time pull, cached after
 
 // 5-minute ISR cache on the initial SSR data. Client-side fetches go through
 // /api/dashboard which has its own cache.
