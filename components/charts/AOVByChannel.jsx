@@ -16,7 +16,10 @@ import { ChartShell, COLORS, fmtCurrencyShort, fmtCurrencyFull } from "./_shared
  * Optional `compare` adds dashed prior-period AOV lines on each axis so
  * Sam can spot AOV trend shifts independent of channel mix changes.
  */
-export default function AOVByChannel({ data, compare }) {
+export default function AOVByChannel({ data, compare, metric = "net" }) {
+  const gross = metric === "gross";
+  const b2bKey = gross ? "B2B_AOV_gross" : "B2B_AOV";
+  const dtcKey = gross ? "DTC_AOV_gross" : "DTC_AOV";
   const merged = mergePriorAOV(data, compare);
   const showPrior = compare && compare.monthlySeries && compare.monthlySeries.length > 0;
   const priorLabel = compare && compare.mode === "yoy" ? "last yr" : "prior";
@@ -49,7 +52,7 @@ export default function AOVByChannel({ data, compare }) {
         <Line
           yAxisId="b2b"
           type="monotone"
-          dataKey="B2B_AOV"
+          dataKey={b2bKey}
           name="B2B AOV"
           stroke={COLORS.B2B}
           strokeWidth={2}
@@ -58,7 +61,7 @@ export default function AOVByChannel({ data, compare }) {
         <Line
           yAxisId="dtc"
           type="monotone"
-          dataKey="DTC_AOV"
+          dataKey={dtcKey}
           name="DTC AOV"
           stroke={COLORS.DTC}
           strokeWidth={2}

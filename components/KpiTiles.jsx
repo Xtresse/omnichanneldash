@@ -74,59 +74,62 @@ function CompareLine({ cur, prior, label, dateRange, fmt = fmtCurrency, higherIs
   );
 }
 
-export default function KpiTiles({ kpis, compare }) {
+export default function KpiTiles({ kpis, compare, metric = "net" }) {
   if (!kpis) return null;
+  const gross = metric === "gross";
+  const word = gross ? "gross" : "net";
   const cmp = compare && compare.kpis ? compare.kpis : null;
   const cmpLabel = compare ? labelFor(compare) : null;
   const dateRange = compare ? formatDateRange(compare.from, compare.to) : null;
 
-  // Three MUTUALLY EXCLUSIVE buckets that sum to total net sales.
+  // Three MUTUALLY EXCLUSIVE buckets that sum to the total.
   // B2B excludes ADCS now (per Sam's request). ADCS is its own line.
   const totalOrders =
     (kpis.b2bOrders || 0) + (kpis.adcsOrders || 0) + (kpis.dtcOrders || 0);
   const grossToNet = kpis.totalGrossSales
     ? Math.round((kpis.totalNetSales / kpis.totalGrossSales) * 100)
     : null;
+  // Pick the basis driven by the global Net/Gross toggle.
+  const total = gross ? kpis.totalGrossSales : kpis.totalNetSales;
+  const b2b = gross ? kpis.b2bGrossSales : kpis.b2bNetSales;
+  const adcs = gross ? kpis.adcsGrossSales : kpis.adcsNetSales;
+  const dtc = gross ? kpis.dtcGrossSales : kpis.dtcNetSales;
+  const shareOf = (v) => (total ? v / total : 0);
+  const aov = (v, o) => (o ? v / o : 0);
   const tiles = [
     {
-      label: "Total net sales",
-      value: fmtCurrency(kpis.totalNetSales),
-      sub: `Gross ${fmtCurrency(kpis.totalGrossSales)}${
-        grossToNet != null ? ` → net ${grossToNet}% of gross` : ""
-      } · ${fmtNum(totalOrders)} orders`,
+      label: `Total ${word} sales`,
+      value: fmtCurrency(total),
+      sub: gross
+        ? `Net ${fmtCurrency(kpis.totalNetSales)}${grossToNet != null ? ` (${grossToNet}% of gross)` : ""} · ${fmtNum(totalOrders)} orders`
+        : `Gross ${fmtCurrency(kpis.totalGrossSales)}${grossToNet != null ? ` → net ${grossToNet}% of gross` : ""} · ${fmtNum(totalOrders)} orders`,
       tone: "primary",
-      cur: kpis.totalNetSales,
-      prior: cmp ? cmp.totalNetSales : null,
+      cur: total,
+      prior: cmp ? (gross ? cmp.totalGrossSales : cmp.totalNetSales) : null,
     },
     {
-      label: "B2B net sales",
-      value: fmtCurrency(kpis.b2bNetSales),
-      sub: `${fmtPct(kpis.b2bShare)} of total · ${fmtNum(kpis.b2bOrders)} orders · AOV ${fmtCurrency(
-        kpis.b2bAOV
-      )}`,
+      label: `B2B ${word} sales`,
+      value: fmtCurrency(b2b),
+      sub: `${fmtPct(shareOf(b2b))} of total · ${fmtNum(kpis.b2bOrders)} orders · AOV ${fmtCurrency(aov(b2b, kpis.b2bOrders))}`,
       tone: "accent",
-      cur: kpis.b2bNetSales,
-      prior: cmp ? cmp.b2bNetSales : null,
+      cur: b2b,
+      prior: cmp ? (gross ? cmp.b2bGrossSales : cmp.b2bNetSales) : null,
     },
     {
-      label: "ADCS net sales",
-      value: fmtCurrency(kpis.adcsNetSales),
-      sub: `${fmtPct(kpis.adcsShare)} of total · ${fmtNum(kpis.adcsOrders)} orders · AOV ${fmtCurrency(
-        kpis.adcsAOV
-      )}`,
+      label: `ADCS ${word} sales`,
+      value: fmtCurrency(adcs),
+      sub: `${fmtPct(shareOf(adcs))} of total · ${fmtNum(kpis.adcsOrders)} orders · AOV ${fmtCurrency(aov(adcs, kpis.adcsOrders))}`,
       tone: "accent",
-      cur: kpis.adcsNetSales,
-      prior: cmp ? cmp.adcsNetSales : null,
+      cur: adcs,
+      prior: cmp ? (gross ? cmp.adcsGrossSales : cmp.adcsNetSales) : null,
     },
     {
-      label: "DTC net sales",
-      value: fmtCurrency(kpis.dtcNetSales),
-      sub: `${fmtPct(kpis.dtcShare)} of total · ${fmtNum(kpis.dtcOrders)} orders · AOV ${fmtCurrency(
-        kpis.dtcAOV
-      )}`,
+      label: `DTC ${word} sales`,
+      value: fmtCurrency(dtc),
+      sub: `${fmtPct(shareOf(dtc))} of total · ${fmtNum(kpis.dtcOrders)} orders · AOV ${fmtCurrency(aov(dtc, kpis.dtcOrders))}`,
       tone: "muted",
-      cur: kpis.dtcNetSales,
-      prior: cmp ? cmp.dtcNetSales : null,
+      cur: dtc,
+      prior: cmp ? (gross ? cmp.dtcGrossSales : cmp.dtcNetSales) : null,
     },
   ];
 
