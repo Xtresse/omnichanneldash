@@ -4,6 +4,8 @@ import { ResponsiveContainer } from "recharts";
 
 export const COLORS = {
   B2B: "#e6a403",        // rust — matches leadership
+  B2BW2: "#e6a403",      // W2 reps — brand orange (the bulk of B2B)
+  B2B1099: "#c8860d",    // 1099 reps — deeper gold, distinct but on-brand
   ADCS: "#aa2d2d",       // warm orange-brown — sub-bucket distinct from B2B
   DTC: "#302c29",        // teal
   Total: "#2b1a10",
