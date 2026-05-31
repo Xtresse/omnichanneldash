@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { ChartShell, fmtCurrencyShort, fmtCurrencyFull } from "./_shared.js";
 
-const YEAR_COLORS = ["#bfa988", "#7a3d23", "#3a7a6f", "#2b1a10", "#a55a3a"];
+const YEAR_COLORS = ["#C9B68E", "#7A3D23", "#E6A403", "#302C29", "#AA2D2D"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function CumulativeYTD({ data }) {

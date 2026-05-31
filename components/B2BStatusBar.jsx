@@ -256,10 +256,10 @@ function ProductCard({
   const pctColor = !goal || pctOfGoal == null
     ? "#9A8F80"
     : pctOfGoal >= 1.0
-      ? "#5C8A6F"
+      ? "#C8860D"
       : pctOfGoal >= 0.9
-        ? "#C58A2D"
-        : "#5C2F2E";
+        ? "#E6A403"
+        : "#AA2D2D";
 
   return (
     <div className="relative bg-card border border-rule rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0

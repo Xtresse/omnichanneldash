@@ -7,15 +7,15 @@ import {
 } from "recharts";
 
 // Brand palette (mirrors KpiTiles + RepPerformance for consistency).
-const FAVORABLE = "#5C8A6F";   // sage — ≥100% of target
-const PARTIAL   = "#C58A2D";   // amber — 90–100% of target
-const UNFAVORABLE = "#5C2F2E"; // brand maroon — <90% of target
+const FAVORABLE = "#C8860D";   // sage — ≥100% of target
+const PARTIAL   = "#E6A403";   // amber — 90–100% of target
+const UNFAVORABLE = "#AA2D2D"; // brand maroon — <90% of target
 const NEUTRAL   = "#9A8F80";   // muted brown — no target / unknown
 
 // BRAND_BROWN previously colored the Budget bars/Δs; removed when Sam
 // dropped Budget from the display. Keeping SAGE (Goal) + AMBER (Actual).
-const BRAND_SAGE  = "#5C8A6F";
-const BRAND_AMBER = "#C58A2D";
+const BRAND_SAGE  = "#C8860D";
+const BRAND_AMBER = "#E6A403";
 
 const PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"];
 

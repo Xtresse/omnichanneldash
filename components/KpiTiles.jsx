@@ -12,8 +12,8 @@ const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 
 // Brand-aligned compare colors (also defined in tailwind.config — using
 // inline rgb for resilience in case theme tokens drift).
-const FAVORABLE = "#5C8A6F"; // green sage
-const UNFAVORABLE = "#5C2F2E"; // brand maroon
+const FAVORABLE = "#C8860D"; // green sage
+const UNFAVORABLE = "#AA2D2D"; // brand maroon
 const NEUTRAL = "#9A8F80";
 
 function deltaColor(cur, prior, higherIsBetter = true) {

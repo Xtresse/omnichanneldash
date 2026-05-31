@@ -21,8 +21,8 @@ const TOLERANCE = 1; // dollar deltas under $1 are noise — display as "ties ou
  *   3. Territory rollup — Existing / New / 1099 totals
  */
 // Brand-aligned compare colors — match KpiTiles / RepPerformance.
-const FAVORABLE = "#5C8A6F";
-const UNFAVORABLE = "#5C2F2E";
+const FAVORABLE = "#C8860D";
+const UNFAVORABLE = "#AA2D2D";
 const NEUTRAL = "#9A8F80";
 
 function deltaColor(cur, prior, higherIsBetter = true) {
