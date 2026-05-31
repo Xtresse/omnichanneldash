@@ -28,7 +28,7 @@ const FAMILIES = [
   { key: "Gummies", label: "Gummies" },
   { key: "Serum", label: "Serum" },
   { key: "XVIE", label: "XVIE" },
-  { key: "Sachets", label: "Sachet" },
+  // Sachets lumped into Gummies (2026-05) — no separate column.
 ];
 
 const blankSlot = { newUnits: 0, newDollars: 0, existingUnits: 0, existingDollars: 0, newCusts: 0, existingCusts: 0 };

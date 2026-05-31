@@ -17,7 +17,7 @@ const NEUTRAL   = "#9A8F80";   // muted brown — no target / unknown
 const BRAND_SAGE  = "#C8860D";
 const BRAND_AMBER = "#E6A403";
 
-const PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"];
+const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lumped into Gummies (2026-05)
 
 const fmt$ = (n) => {
   const v = Number(n) || 0;
