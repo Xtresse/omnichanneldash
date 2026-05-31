@@ -31,7 +31,7 @@ const FAMILIES = [
   { key: "Sachets", label: "Sachet" },
 ];
 
-const blankSlot = { newUnits: 0, newDollars: 0, existingUnits: 0, existingDollars: 0 };
+const blankSlot = { newUnits: 0, newDollars: 0, existingUnits: 0, existingDollars: 0, newCusts: 0, existingCusts: 0 };
 
 // Brand-aligned compare colors. Green sage = favorable; brand maroon =
 // unfavorable; muted brown = neutral / no comparison data. Tabular nums
@@ -67,9 +67,11 @@ function arrow(cur, prior) {
  * Rep performance broken into Existing / New / 1099 sections.
  * Each section is a sortable-by-rank table with totals at the bottom.
  *
- * The per-product columns show "Nu · Eu" — units sold to NEW customers
- * (left, in brand maroon) and units to EXISTING customers (right, muted).
- * Hovering the cell reveals the dollar split.
+ * The per-product columns show "N · E" — count of distinct NEW customers
+ * (left, brand color) and EXISTING customers (right, muted) for that
+ * product family. Counts ACCOUNTS, not units (an account buying 2 units
+ * of their first serum is 1 new serum customer). Hovering reveals the
+ * units + dollar split.
  *   - Gummies "new" = order has Shopify Flow's `b2b` + `first order` tags
  *   - Serum / XVIE / Sachets "new" = customer's first-EVER purchase of
  *     that product (across all time) lands inside the loaded window
@@ -156,6 +158,8 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
       totals.productMix[f.key].newDollars += slot.newDollars || 0;
       totals.productMix[f.key].existingUnits += slot.existingUnits || 0;
       totals.productMix[f.key].existingDollars += slot.existingDollars || 0;
+      totals.productMix[f.key].newCusts += slot.newCusts || 0;
+      totals.productMix[f.key].existingCusts += slot.existingCusts || 0;
     }
     if (priorByRep) {
       const p = priorByRep[r.rep];
@@ -168,6 +172,8 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
           priorTotals.productMix[f.key].newDollars += ps.newDollars || 0;
           priorTotals.productMix[f.key].existingUnits += ps.existingUnits || 0;
           priorTotals.productMix[f.key].existingDollars += ps.existingDollars || 0;
+          priorTotals.productMix[f.key].newCusts += ps.newCusts || 0;
+          priorTotals.productMix[f.key].existingCusts += ps.existingCusts || 0;
         }
       }
     }
@@ -180,7 +186,7 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
           {title}
         </h3>
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] opacity-80">
-          {rows.length} reps · {fmt$(totals.net)} net · units shown as <span className="text-paper">N</span> new ·{" "}
+          {rows.length} reps · {fmt$(totals.net)} net · customers shown as <span className="text-paper">N</span> new ·{" "}
           E existing
         </span>
       </div>
@@ -201,8 +207,8 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
                   align="right"
                   title={
                     f.key === "Gummies"
-                      ? "Units in orders Shopify tagged 'first order' (N) vs all other orders (E). Hover the cell for $."
-                      : `Units sold to customers whose first-ever ${f.label} purchase is inside this window (N) vs returning customers (E). Hover the cell for $.`
+                      ? "Distinct accounts with a 'first order'-tagged gummy order (N) vs returning gummy accounts (E). Hover the cell for units + $."
+                      : `Distinct customers whose first-ever ${f.label} purchase is inside this window (N) vs returning ${f.label} customers (E). Hover the cell for units + $.`
                   }
                 >
                   {f.label}
@@ -349,16 +355,17 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
 }
 
 /**
- * Desktop cell: "5N · 28E". N in brand maroon, E in muted color, dot
- * separator. Tooltip shows the dollar split so the user can verify
- * the breakdown without losing the units-first scan.
+ * Desktop cell: "5N · 28E" — distinct NEW vs EXISTING CUSTOMERS (accounts)
+ * for the product family, not units (an account buying 2 units of their
+ * first serum is 1 new serum customer). Units + dollars stay in the
+ * tooltip. N in brand color, E muted.
  */
 function ProductCell({ slot }) {
-  const n = slot.newUnits || 0;
-  const e = slot.existingUnits || 0;
+  const n = slot.newCusts || 0;
+  const e = slot.existingCusts || 0;
   if (n === 0 && e === 0) return <span className="text-muted">—</span>;
-  const tooltip = `New: ${fmtN(n)} units · ${fmt$(slot.newDollars)}
-Existing: ${fmtN(e)} units · ${fmt$(slot.existingDollars)}`;
+  const tooltip = `New customers: ${fmtN(n)} · ${fmtN(slot.newUnits || 0)} units · ${fmt$(slot.newDollars)}
+Existing customers: ${fmtN(e)} · ${fmtN(slot.existingUnits || 0)} units · ${fmt$(slot.existingDollars)}`;
   return (
     <span title={tooltip} className="inline-flex items-baseline gap-1 tabular-nums">
       <span className={n > 0 ? "text-brown font-semibold" : "text-muted"}>
@@ -401,7 +408,7 @@ function DeltaBelow({ cur, prior, fmt, compareLabel }) {
   );
 }
 
-/** Delta subtext for product cells — compares total units (N + E). */
+/** Delta subtext for product cells — compares total customers (N + E). */
 function ProductDeltaBelow({ cur, prior, compareLabel }) {
   if (!prior) {
     return (
@@ -413,37 +420,37 @@ function ProductDeltaBelow({ cur, prior, compareLabel }) {
       </div>
     );
   }
-  const curT = (cur.newUnits || 0) + (cur.existingUnits || 0);
-  const priorT = (prior.newUnits || 0) + (prior.existingUnits || 0);
+  const curT = (cur.newCusts || 0) + (cur.existingCusts || 0);
+  const priorT = (prior.newCusts || 0) + (prior.existingCusts || 0);
   const color = deltaColor(curT, priorT, true);
   const ar = arrow(curT, priorT);
   const tooltip = compareLabel
-    ? `vs ${compareLabel}: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorT} units)`
-    : `Prior: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorT} units)`;
+    ? `vs ${compareLabel}: ${prior.newCusts || 0}N · ${prior.existingCusts || 0}E (${priorT} customers)`
+    : `Prior: ${prior.newCusts || 0}N · ${prior.existingCusts || 0}E (${priorT} customers)`;
   return (
     <div
       className="font-sans text-[9.5px] tabular-nums leading-tight mt-0.5"
       style={{ color }}
       title={tooltip}
     >
-      {priorT}u {ar} {deltaPctText(curT, priorT)}
+      {priorT}c {ar} {deltaPctText(curT, priorT)}
     </div>
   );
 }
 
 /** Mobile chip — same N/E split, label visible. Adds delta when compare is on. */
 function ProductChip({ label, slot, prior, compareLabel }) {
-  const n = slot.newUnits || 0;
-  const e = slot.existingUnits || 0;
+  const n = slot.newCusts || 0;
+  const e = slot.existingCusts || 0;
   const total = n + e;
   const showDelta = prior !== undefined;
-  const priorTotal = prior ? (prior.newUnits || 0) + (prior.existingUnits || 0) : 0;
+  const priorTotal = prior ? (prior.newCusts || 0) + (prior.existingCusts || 0) : 0;
   const tooltip = !showDelta
     ? null
     : prior
       ? compareLabel
-        ? `vs ${compareLabel}: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorTotal} units)`
-        : `Prior: ${prior.newUnits || 0}N · ${prior.existingUnits || 0}E (${priorTotal} units)`
+        ? `vs ${compareLabel}: ${prior.newCusts || 0}N · ${prior.existingCusts || 0}E (${priorTotal} customers)`
+        : `Prior: ${prior.newCusts || 0}N · ${prior.existingCusts || 0}E (${priorTotal} customers)`
       : compareLabel
         ? `No data for ${compareLabel}`
         : "No prior-period data";
