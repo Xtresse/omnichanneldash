@@ -110,6 +110,8 @@ export default function Dashboard({ initial }) {
   // preserve the user's last selection. Initial value is "off" (SSR-safe),
   // and the mount effect below reads ?compare= on the client and reconciles.
   const [compareMode, setCompareMode] = useState("off");
+  // Net/Gross toggle for the channel revenue chart (Top-Line Performance).
+  const [revMetric, setRevMetric] = useState("net");
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
 
@@ -400,8 +402,12 @@ export default function Dashboard({ initial }) {
 
             <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
               <ChartGrid>
-                <ChartCell title="Net Sales By Channel" subtitle={`${G}, B2B vs DTC`}>
-                  <RevenueByChannel data={data.monthlySeries} compare={data.compare} />
+                <ChartCell
+                  title={`${revMetric === "gross" ? "Gross" : "Net"} Sales By Channel`}
+                  subtitle={`${G}, B2B vs DTC`}
+                  action={<MetricToggle value={revMetric} onChange={setRevMetric} />}
+                >
+                  <RevenueByChannel data={data.monthlySeries} compare={data.compare} metric={revMetric} />
                 </ChartCell>
                 <ChartCell title="Order Count By Channel" subtitle={G}>
                   <OrdersByChannel data={data.monthlySeries} compare={data.compare} />
@@ -640,20 +646,47 @@ function CompareToggle({ value, onChange, disabled }) {
   );
 }
 
-function ChartCell({ title, subtitle, wide, children }) {
+function ChartCell({ title, subtitle, wide, action, children }) {
   return (
     <div
       className={`${
         wide ? "lg:col-span-2" : ""
       } bg-card border border-rule rounded-xl p-3 sm:p-4 md:p-5 min-w-0`}
     >
-      <div className="mb-2 md:mb-3">
-        <h3 className="font-display text-base md:text-lg font-semibold leading-tight text-ink">
-          {title}
-        </h3>
-        {subtitle && <p className="font-sans text-[11px] md:text-xs text-muted mt-0.5 leading-snug">{subtitle}</p>}
+      <div className="mb-2 md:mb-3 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="font-display text-base md:text-lg font-semibold leading-tight text-ink">
+            {title}
+          </h3>
+          {subtitle && <p className="font-sans text-[11px] md:text-xs text-muted mt-0.5 leading-snug">{subtitle}</p>}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// Compact Net/Gross segmented toggle for the channel revenue chart.
+function MetricToggle({ value, onChange }) {
+  const opts = [
+    { k: "net", label: "Net" },
+    { k: "gross", label: "Gross" },
+  ];
+  return (
+    <div className="inline-flex rounded-md border border-rule overflow-hidden">
+      {opts.map((o) => (
+        <button
+          key={o.k}
+          type="button"
+          onClick={() => onChange(o.k)}
+          className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
+            value === o.k ? "bg-brown text-paper font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }

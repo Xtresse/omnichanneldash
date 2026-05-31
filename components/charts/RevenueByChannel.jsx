@@ -22,8 +22,11 @@ import { ChartShell, COLORS, fmtCurrencyShort, fmtCurrencyFull } from "./_shared
  * total (B2B + ADCS + DTC) so Sam can scan whether the channel mix is
  * shifting independently of the headline number.
  */
-export default function RevenueByChannel({ data, compare }) {
-  const merged = mergePriorSeries(data, compare);
+export default function RevenueByChannel({ data, compare, metric = "net" }) {
+  const gross = metric === "gross";
+  const b2bKey = gross ? "B2B_gross" : "B2B";
+  const dtcKey = gross ? "DTC_gross" : "DTC";
+  const merged = mergePriorSeries(data, compare, gross);
   const showPrior = compare && compare.monthlySeries && compare.monthlySeries.length > 0;
 
   return (
@@ -50,7 +53,8 @@ export default function RevenueByChannel({ data, compare }) {
         <Legend wrapperStyle={{ paddingTop: 8 }} />
         <Area
           type="monotone"
-          dataKey="B2B"
+          dataKey={b2bKey}
+          name="B2B"
           stackId="1"
           stroke={COLORS.B2B}
           fill="url(#b2bGrad)"
@@ -58,7 +62,8 @@ export default function RevenueByChannel({ data, compare }) {
         />
         <Area
           type="monotone"
-          dataKey="DTC"
+          dataKey={dtcKey}
+          name="DTC"
           stackId="1"
           stroke={COLORS.DTC}
           fill="url(#dtcGrad)"
@@ -88,13 +93,15 @@ export default function RevenueByChannel({ data, compare }) {
  * (e.g. the prior window is shorter, or the current bucket has no prior
  * counterpart) get null so the dashed line gracefully cuts off.
  */
-function mergePriorSeries(current, compare) {
+function mergePriorSeries(current, compare, gross = false) {
   if (!current || current.length === 0) return current || [];
   if (!compare || !compare.monthlySeries || compare.monthlySeries.length === 0) {
     return current;
   }
-  const priorTotals = compare.monthlySeries.map(
-    (b) => (b.B2B || 0) + (b.ADCS || 0) + (b.DTC || 0)
+  const priorTotals = compare.monthlySeries.map((b) =>
+    gross
+      ? (b.B2B_gross || 0) + (b.ADCS_gross || 0) + (b.DTC_gross || 0)
+      : (b.B2B || 0) + (b.ADCS || 0) + (b.DTC || 0)
   );
   return current.map((bucket, i) => ({
     ...bucket,

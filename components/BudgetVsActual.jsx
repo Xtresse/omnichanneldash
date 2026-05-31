@@ -199,6 +199,39 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
         </span>
       </div>
 
+      {/* Combined TOTAL vs Goal + made-budget indicator */}
+      {(() => {
+        const noGoal = !(totals.goal > 0);
+        const made = !noGoal && totals.actual >= totals.goal;
+        const short = totals.goal - totals.actual;
+        const tone = noGoal ? NEUTRAL : made ? FAVORABLE : UNFAVORABLE;
+        return (
+          <div className="rounded-xl border border-rule bg-card px-4 py-3 md:px-5 md:py-4 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
+                Total · Actual vs Goal · {monthLabel(selectedMonth)}
+              </div>
+              <div className="flex items-baseline gap-2 md:gap-3 mt-0.5">
+                <span className="font-display text-2xl md:text-3xl font-semibold text-ink tabular-nums">{fmt$(totals.actual)}</span>
+                <span className="font-sans text-xs md:text-sm text-muted tabular-nums">/ goal {fmt$(totals.goal)}</span>
+              </div>
+            </div>
+            <div
+              className="flex items-center gap-2 rounded-lg px-3 py-2 font-sans font-semibold"
+              style={{ color: tone, backgroundColor: tone + "1A" }}
+            >
+              {noGoal ? (
+                <span className="text-sm">No goal set</span>
+              ) : made ? (
+                <span className="text-sm md:text-base">{"✔"} Budget met · {fmtPct(totals.pctGoal)}</span>
+              ) : (
+                <span className="text-sm md:text-base">{fmtPct(totals.pctGoal)} to goal · {fmt$(Math.abs(short))} short</span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Per-product table */}
       <div className="bg-card border border-rule rounded-xl overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
