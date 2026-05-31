@@ -48,6 +48,15 @@ const fmtMoney = (n) =>
     maximumFractionDigits: 0,
   }).format(n || 0);
 
+// Compact format for the executive headline — $1.0M / 850K (per dashboard
+// design best-practice: round hard, no decimals in the hero number).
+const fmtCompact = (n) => {
+  const v = n || 0, a = Math.abs(v);
+  if (a >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `$${Math.round(v / 1e3)}K`;
+  return `$${Math.round(v)}`;
+};
+
 // Relative time string for the "Refreshed N ago" label.
 // Falls back to a date string for anything older than ~24h.
 const fmtTimeAgo = (iso) => {
@@ -349,6 +358,41 @@ export default function Dashboard({ initial }) {
 
         {data && (
           <>
+            {/* Executive summary — the 5-second headline read */}
+            <div className="mb-4 md:mb-6 rounded-xl border border-rule bg-card px-4 py-4 md:px-6 md:py-5">
+              <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted mb-1.5">
+                Executive summary · {periodLabel}
+              </div>
+              <div className="flex items-end gap-x-4 gap-y-2 flex-wrap">
+                <div className="font-display text-4xl md:text-5xl font-semibold text-ink leading-none tabular-nums">
+                  {fmtCompact(data.kpis.totalNetSales)}
+                </div>
+                {(() => {
+                  const cur = data.kpis.totalNetSales;
+                  const prior = data.compare?.kpis?.totalNetSales;
+                  if (prior == null || prior <= 0) return null;
+                  const x = (cur - prior) / prior;
+                  const up = x >= 0;
+                  return (
+                    <div className="font-sans text-sm md:text-base font-semibold" style={{ color: up ? "#C8860D" : "#AA2D2D" }}>
+                      {up ? "\u25B2" : "\u25BC"} {Math.abs(x * 100).toFixed(1)}%{" "}
+                      <span className="text-muted font-normal">vs prior</span>
+                    </div>
+                  );
+                })()}
+                <div className="font-sans text-xs md:text-sm text-inksoft ml-auto max-w-xl leading-snug">
+                  Net sales, {periodLabel}.{" "}
+                  B2B <strong className="text-ink">{fmtCompact(data.kpis.b2bNetSales)}</strong>
+                  {data.kpis.b2bShare != null ? ` (${Math.round(data.kpis.b2bShare * 100)}% of net)` : ""}
+                  {" \u00B7 "}DTC <strong className="text-ink">{fmtCompact(data.kpis.dtcNetSales)}</strong>
+                  {data.kpis.adcsNetSales ? <>{" \u00B7 "}ADCS <strong className="text-ink">{fmtCompact(data.kpis.adcsNetSales)}</strong></> : null}.
+                </div>
+              </div>
+              <div className="font-sans text-[11px] text-muted mt-2">
+                Full breakdown below — tap “Show” on any section to drill in.
+              </div>
+            </div>
+
             <div className="mb-4 md:mb-6">
               <KpiTiles kpis={data.kpis} compare={data.compare} />
             </div>
@@ -399,7 +443,7 @@ export default function Dashboard({ initial }) {
               </ChartGrid>
             </Section>
 
-            <Section title="Customer dynamics" detail="Tier 2 / 4 charts" collapsible>
+            <Section title="Customer dynamics" detail="Tier 2 / 4 charts" collapsible defaultCollapsed>
               <ChartGrid>
                 <ChartCell title="New vs returning — B2B (gummies only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
                   <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="B2B" />
@@ -416,7 +460,7 @@ export default function Dashboard({ initial }) {
               </ChartGrid>
             </Section>
 
-            <Section title="Operational & geographic" detail="Tier 3 / 3 charts" collapsible>
+            <Section title="Operational & geographic" detail="Tier 3 / 3 charts" collapsible defaultCollapsed>
               <ChartGrid>
                 <ChartCell title="Top 15 states by net sales" subtitle="Channel split" wide>
                   <RevenueByState data={data.revenueByState} />
@@ -434,6 +478,7 @@ export default function Dashboard({ initial }) {
               title="Sales by rep"
               detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
               collapsible
+              defaultCollapsed
             >
               <ChartGrid>
                 <ChartCell title="Net sales by rep" subtitle={`${G} trend · click chips to toggle`}>
