@@ -11,6 +11,7 @@ import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
 import BudgetVsActual from "./BudgetVsActual.jsx";
+import AccountAging from "./AccountAging.jsx";
 import RevenueByChannel from "./charts/RevenueByChannel.jsx";
 import OrdersByChannel from "./charts/OrdersByChannel.jsx";
 import AOVByChannel from "./charts/AOVByChannel.jsx";
@@ -518,6 +519,15 @@ export default function Dashboard({ initial }) {
                 kpis={data.kpis}
                 compare={data.compare}
               />
+            </Section>
+
+            <Section
+              title="Account Aging & Order History"
+              detail="Recency by account + product · all-history · click a bucket to drill in"
+              collapsible
+              defaultCollapsed
+            >
+              <AccountAging />
             </Section>
 
             <Section
