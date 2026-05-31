@@ -196,7 +196,7 @@ export default function B2BStatusBar() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {PRODUCTS.map((p) => {
           const actual = mtd ? Number(mtd[p.family] || 0) : null;
           // Pace is based on COMPLETED full days only — today's partial day
@@ -236,12 +236,54 @@ export default function B2BStatusBar() {
             />
           );
         })}
+        {(() => {
+          const fmt = (n) =>
+            n == null
+              ? "—"
+              : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+          const tActual = mtd ? PRODUCTS.reduce((s, p) => s + Number(mtd[p.family] || 0), 0) : null;
+          const tPace = tActual != null && completed > 0 ? (tActual / completed) * total : null;
+          const tGoal =
+            PRODUCTS.reduce((s, p) => {
+              const g = goals[`${p.family}|${ym}`];
+              return s + (g ? Number(g.goal) : 0);
+            }, 0) || null;
+          const tPct = tGoal && tActual != null ? tActual / tGoal : null;
+          const ok = tPct != null && tPct >= 1;
+          return (
+            <div className="relative bg-card border-2 border-brown rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0">
+              <div className="flex items-baseline justify-between">
+                <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted">Total B2B</span>
+                <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted">MTD</span>
+              </div>
+              <div className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold text-ink leading-none mt-1.5 tabular-nums">
+                {fmt(tActual)}
+              </div>
+              <div className="font-sans text-[11px] md:text-xs text-inksoft mt-1">Pace {fmt(tPace)} (linear)</div>
+              <div className="font-sans text-[11px] md:text-xs text-inksoft mt-2 pt-2 border-t border-rule">
+                Goal {fmt(tGoal)}
+                {tPct != null ? (
+                  <>
+                    {" · "}
+                    <strong style={{ color: ok ? "#C8860D" : "#AA2D2D" }}>{Math.round(tPct * 100)}%</strong> to goal
+                  </>
+                ) : null}
+              </div>
+              <div className="mt-2 h-1.5 rounded-full bg-rule overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${tPct != null ? Math.max(0, Math.min(1, tPct)) * 100 : 0}%`,
+                    background: ok ? "#C8860D" : "#E6A403",
+                  }}
+                />
+              </div>
+              <div className="font-sans text-[10px] text-muted mt-2 truncate">Gummies + Xvié + Serum case SKUs</div>
+            </div>
+          );
+        })()}
       </div>
 
-      <p className="font-sans text-[10px] text-muted leading-snug mt-2.5 md:mt-3">
-        B2B case-SKU net sales (gross − discounts − refunds) through end of yesterday. Serum and Gummies count only the dedicated B2B case SKU; Xvié counts all XVIE SKUs (no separate B2B case). Pace = MTD ÷ completed-full-days × days-in-month.
-        Goal is set once per product per month and persists in Vercel KV (or <code className="bg-paper px-1 rounded">data/b2b-goals.json</code> locally).
-      </p>
     </div>
   );
 }
@@ -256,10 +298,10 @@ function ProductCard({
   const pctColor = !goal || pctOfGoal == null
     ? "#9A8F80"
     : pctOfGoal >= 1.0
-      ? "#5C8A6F"
+      ? "#C8860D"
       : pctOfGoal >= 0.9
-        ? "#C58A2D"
-        : "#5C2F2E";
+        ? "#E6A403"
+        : "#AA2D2D";
 
   return (
     <div className="relative bg-card border border-rule rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0

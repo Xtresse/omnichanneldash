@@ -12,7 +12,14 @@ import {
 import { ChartShell, COLORS, fmtCurrencyShort, fmtCurrencyFull } from "./_shared.js";
 
 export default function DiscountUsage({ data }) {
+  const total = (data || []).reduce((s, d) => s + (d.Total || 0), 0);
   return (
+    <div>
+      <div className="font-sans text-xs text-inksoft mb-2">
+        Total discount-coded net:{" "}
+        <strong className="text-ink">{fmtCurrencyFull(total)}</strong>{" "}
+        across {(data || []).length} codes · sorted by $ volume
+      </div>
     <ChartShell height="h-80 md:h-[420px]">
       <BarChart
         data={data}
@@ -37,5 +44,6 @@ export default function DiscountUsage({ data }) {
         <Bar dataKey="DTC" stackId="a" fill={COLORS.DTC} />
       </BarChart>
     </ChartShell>
+    </div>
   );
 }

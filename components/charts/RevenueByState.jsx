@@ -32,7 +32,8 @@ export default function RevenueByState({ data }) {
         />
         <Tooltip formatter={(v) => fmtCurrencyFull(v)} />
         <Legend wrapperStyle={{ paddingTop: 8 }} />
-        <Bar dataKey="B2B" stackId="a" fill={COLORS.B2B} />
+        <Bar dataKey="B2BW2" name="B2B · W2" stackId="a" fill={COLORS.B2BW2} />
+        <Bar dataKey="B2B1099" name="B2B · 1099" stackId="a" fill={COLORS.B2B1099} />
         <Bar dataKey="DTC" stackId="a" fill={COLORS.DTC} />
       </BarChart>
     </ChartShell>

@@ -14,9 +14,9 @@ import {
 
 // Pre-picked palette — distinct enough that 6-8 lines stay readable.
 const PALETTE = [
-  "#5C2A1A", "#3a7a6f", "#A85F28", "#1A4F8B", "#7A3D23",
-  "#5d8742", "#a44a8b", "#d4a017", "#2b1a10", "#9C6F4A",
-  "#557fac", "#a96b3c",
+  "#E6A403", "#AA2D2D", "#302C29", "#C8860D", "#9C6F4A",
+  "#7A3D23", "#D9731E", "#8A3324", "#C9B68E", "#5A4730",
+  "#B8902A", "#6E4B2A",
 ];
 
 const fmt$short = (n) => {

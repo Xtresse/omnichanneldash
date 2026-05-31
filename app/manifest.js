@@ -10,7 +10,7 @@ export default function manifest() {
     display: "standalone",
     orientation: "portrait",
     background_color: "#f5f1ea",
-    theme_color: "#5c2a1a",
+    theme_color: "#e6a403",
     icons: [
       // Single SVG icon — Next.js App Router serves app/icon.svg at /icon.
       {

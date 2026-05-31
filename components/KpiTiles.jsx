@@ -12,8 +12,8 @@ const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 
 // Brand-aligned compare colors (also defined in tailwind.config — using
 // inline rgb for resilience in case theme tokens drift).
-const FAVORABLE = "#5C8A6F"; // green sage
-const UNFAVORABLE = "#5C2F2E"; // brand maroon
+const FAVORABLE = "#C8860D"; // green sage
+const UNFAVORABLE = "#AA2D2D"; // brand maroon
 const NEUTRAL = "#9A8F80";
 
 function deltaColor(cur, prior, higherIsBetter = true) {
@@ -82,14 +82,29 @@ export default function KpiTiles({ kpis, compare }) {
 
   // Three MUTUALLY EXCLUSIVE buckets that sum to total net sales.
   // B2B excludes ADCS now (per Sam's request). ADCS is its own line.
+  const totalOrders =
+    (kpis.b2bOrders || 0) + (kpis.adcsOrders || 0) + (kpis.dtcOrders || 0);
+  const grossToNet = kpis.totalGrossSales
+    ? Math.round((kpis.totalNetSales / kpis.totalGrossSales) * 100)
+    : null;
   const tiles = [
+    {
+      label: "Total net sales",
+      value: fmtCurrency(kpis.totalNetSales),
+      sub: `Gross ${fmtCurrency(kpis.totalGrossSales)}${
+        grossToNet != null ? ` → net ${grossToNet}% of gross` : ""
+      } · ${fmtNum(totalOrders)} orders`,
+      tone: "primary",
+      cur: kpis.totalNetSales,
+      prior: cmp ? cmp.totalNetSales : null,
+    },
     {
       label: "B2B net sales",
       value: fmtCurrency(kpis.b2bNetSales),
       sub: `${fmtPct(kpis.b2bShare)} of total · ${fmtNum(kpis.b2bOrders)} orders · AOV ${fmtCurrency(
         kpis.b2bAOV
       )}`,
-      tone: "primary",
+      tone: "accent",
       cur: kpis.b2bNetSales,
       prior: cmp ? cmp.b2bNetSales : null,
     },
@@ -116,7 +131,7 @@ export default function KpiTiles({ kpis, compare }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
       {tiles.map((t) => (
         <Tile
           key={t.label}

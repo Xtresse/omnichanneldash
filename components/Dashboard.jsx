@@ -48,6 +48,15 @@ const fmtMoney = (n) =>
     maximumFractionDigits: 0,
   }).format(n || 0);
 
+// Compact format for the executive headline — $1.0M / 850K (per dashboard
+// design best-practice: round hard, no decimals in the hero number).
+const fmtCompact = (n) => {
+  const v = n || 0, a = Math.abs(v);
+  if (a >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `$${Math.round(v / 1e3)}K`;
+  return `$${Math.round(v)}`;
+};
+
 // Relative time string for the "Refreshed N ago" label.
 // Falls back to a date string for anything older than ~24h.
 const fmtTimeAgo = (iso) => {
@@ -101,6 +110,8 @@ export default function Dashboard({ initial }) {
   // preserve the user's last selection. Initial value is "off" (SSR-safe),
   // and the mount effect below reads ?compare= on the client and reconciles.
   const [compareMode, setCompareMode] = useState("off");
+  // Net/Gross toggle for the channel revenue chart (Top-Line Performance).
+  const [revMetric, setRevMetric] = useState("net");
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
 
@@ -270,17 +281,6 @@ export default function Dashboard({ initial }) {
             <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-semibold text-brown leading-tight md:leading-none tracking-tight break-words">
               Xtresse Omni Channel Dashboard
             </h1>
-            <p className="font-sans text-xs md:text-sm text-muted mt-2 md:mt-3 leading-snug">
-              Net sales from Shopify via Windsor.ai · B2B / ADCS / DTC are mutually exclusive
-              {data && (
-                <>
-                  {" / "}
-                  <strong className="text-inksoft">{periodLabel}</strong>
-                  {" / "}
-                  {data.orderCount.toLocaleString()} orders
-                </>
-              )}
-            </p>
           </div>
           {/* On mobile this row sits below the title and wraps cleanly so
               the compare toggle, refresh, and export button all fit
@@ -325,14 +325,6 @@ export default function Dashboard({ initial }) {
           </div>
         </header>
 
-        {/* B2B MTD status bar — always shows current month, independent of
-            the FilterBar date selection below. Pulls product-family MTD
-            B2B net sales for Serum / Xvié / Gummies with linear pacing
-            and user-entered monthly goals. */}
-        <div className="mb-4 md:mb-6">
-          <B2BStatusBar />
-        </div>
-
         <div className="mb-4 md:mb-6">
           <FilterBar
             activePreset={activePreset}
@@ -347,96 +339,130 @@ export default function Dashboard({ initial }) {
           />
         </div>
 
+        <div className="mb-4 md:mb-6">
+          <B2BStatusBar />
+        </div>
+
         {data && (
           <>
+            {/* Executive summary — the 5-second headline read */}
+            <div className="mb-4 md:mb-6 rounded-xl border border-rule bg-card px-4 py-4 md:px-6 md:py-5">
+              <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted mb-1.5">
+                Executive summary · {periodLabel}
+              </div>
+              <div className="flex items-end gap-x-4 gap-y-2 flex-wrap">
+                <div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross Sales</div>
+                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                    {fmtMoney(data.kpis.totalGrossSales)}
+                  </div>
+                </div>
+                <div className="font-display text-2xl text-muted pb-1 leading-none">→</div>
+                <div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Net Sales</div>
+                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                    {fmtMoney(data.kpis.totalNetSales)}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross → Net</div>
+                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                    {data.kpis.totalGrossSales ? `${Math.round((data.kpis.totalNetSales / data.kpis.totalGrossSales) * 100)}%` : "—"}
+                  </div>
+                </div>
+                {(() => {
+                  const cur = data.kpis.totalNetSales;
+                  const prior = data.compare?.kpis?.totalNetSales;
+                  if (prior == null || prior <= 0) return null;
+                  const x = (cur - prior) / prior;
+                  const up = x >= 0;
+                  return (
+                    <div className="font-sans text-sm md:text-base font-semibold" style={{ color: up ? "#C8860D" : "#AA2D2D" }}>
+                      {up ? "\u25B2" : "\u25BC"} {Math.abs(x * 100).toFixed(1)}%{" "}
+                      <span className="text-muted font-normal">vs prior</span>
+                    </div>
+                  );
+                })()}
+                <div className="font-sans text-xs md:text-sm text-inksoft ml-auto max-w-xl leading-snug">
+                  B2B <strong className="text-ink">{fmtCompact(data.kpis.b2bNetSales)}</strong>
+                  {data.kpis.b2bShare != null ? ` (${Math.round(data.kpis.b2bShare * 100)}% of net)` : ""}
+                  {" \u00B7 "}DTC <strong className="text-ink">{fmtCompact(data.kpis.dtcNetSales)}</strong>
+                  {data.kpis.adcsNetSales ? <>{" \u00B7 "}ADCS <strong className="text-ink">{fmtCompact(data.kpis.adcsNetSales)}</strong></> : null}.
+                </div>
+              </div>
+            </div>
+
             <div className="mb-4 md:mb-6">
               <KpiTiles kpis={data.kpis} compare={data.compare} />
             </div>
 
-            {/* Net-sales reconciliation note */}
-            <div className="mb-5 md:mb-7 rounded-xl border border-rule bg-card px-3 py-2.5 md:px-4 md:py-3">
-              <p className="font-sans text-[11px] md:text-xs leading-snug text-inksoft">
-                <span className="font-semibold text-ink">Net sales reconciliation</span>
-                {" — "}
-                Gross {fmtMoney(data.kpis.totalGrossSales)} − discounts{" "}
-                {fmtMoney(data.kpis.totalDiscounts)} − returns{" "}
-                {fmtMoney(Math.abs(data.kpis.totalReturns))} = net{" "}
-                <strong className="text-ink">{fmtMoney(data.kpis.totalNetSales)}</strong>. Test &
-                cancelled orders excluded by Windsor.
-              </p>
-            </div>
-
-            <div className="mb-5 md:mb-7 rounded-xl border border-rule bg-card px-3 py-2.5 md:px-4 md:py-3">
-              <p className="font-sans text-[11px] md:text-xs leading-snug text-inksoft">
-                <span className="font-semibold text-ink">DTC data starts 4/1/2026</span>
-                {" — "}Windsor's DTC feed didn't exist before that date, so periods covering earlier
-                history will show $0 DTC. Untagged orders before 4/1/2026 are treated as B2B (not DTC)
-                so the channel split stays accurate.
-              </p>
-            </div>
-
-            <Section title="Actual vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
-              <BudgetVsActual productFamily={data.productFamily} periodLabel={periodLabel} />
+            <Section title="Actual Vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
+              <BudgetVsActual productFamily={data.productFamily} totalNetSales={data.kpis.totalNetSales} periodLabel={periodLabel} />
             </Section>
 
-            <Section title="Top-line performance" detail="Tier 1 / 5 charts" collapsible>
+            <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
               <ChartGrid>
-                <ChartCell title="Net sales by channel" subtitle={`${G}, B2B vs DTC`}>
-                  <RevenueByChannel data={data.monthlySeries} compare={data.compare} />
+                <ChartCell
+                  title={`${revMetric === "gross" ? "Gross" : "Net"} Sales By Channel`}
+                  subtitle={`${G}, B2B vs DTC`}
+                  action={<MetricToggle value={revMetric} onChange={setRevMetric} />}
+                >
+                  <RevenueByChannel data={data.monthlySeries} compare={data.compare} metric={revMetric} />
                 </ChartCell>
-                <ChartCell title="Order count by channel" subtitle={G}>
+                <ChartCell title="Order Count By Channel" subtitle={G}>
                   <OrdersByChannel data={data.monthlySeries} compare={data.compare} />
                 </ChartCell>
-                <ChartCell title="Average order value" subtitle="Net basis, dual axis">
+                <ChartCell title="Average Order Value" subtitle="Net basis, dual axis">
                   <AOVByChannel data={data.monthlySeries} compare={data.compare} />
                 </ChartCell>
-                <ChartCell title="Cumulative net YTD" subtitle="By calendar year">
+                <ChartCell title="Cumulative Net YTD" subtitle="By calendar year">
                   <CumulativeYTD data={data.cumulativeYTD} />
                 </ChartCell>
-                <ChartCell title="Net sales by product family" subtitle="Gummies · Serum · XVIE · Sachets">
+                <ChartCell title="Net Sales By Product Family" subtitle="Gummies · Serum · XVIE · Sachets">
                   <ProductFamily data={data.productFamily} compare={data.compare} />
                 </ChartCell>
               </ChartGrid>
             </Section>
 
-            <Section title="Customer dynamics" detail="Tier 2 / 4 charts" collapsible>
+            <Section title="Customer Dynamics" detail="Tier 2 / 4 charts" collapsible defaultCollapsed>
               <ChartGrid>
-                <ChartCell title="New vs returning — B2B (gummies only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
+                <ChartCell title="New Vs Returning — B2B (Gummies Only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
                   <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="B2B" />
                 </ChartCell>
-                <ChartCell title="New vs returning — DTC" subtitle={`${G} stacked · all DTC orders`}>
+                <ChartCell title="New Vs Returning — DTC" subtitle={`${G} stacked · all DTC orders`}>
                   <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="DTC" />
                 </ChartCell>
-                <ChartCell title="Repeat purchase rate" subtitle={`% returning, ${G.toLowerCase()}`}>
+                <ChartCell title="Repeat Purchase Rate" subtitle={`% returning, ${G.toLowerCase()}`}>
                   <RepeatRate data={data.repeatRate} compare={data.compare} />
                 </ChartCell>
-                <ChartCell title="DTC subscription vs one-time" subtitle={`Net sales mix, ${G.toLowerCase()}`}>
+                <ChartCell title="DTC Subscription Vs One-Time" subtitle={`Net sales mix, ${G.toLowerCase()}`}>
                   <SubVsOneTime data={data.subVsOneTime} />
                 </ChartCell>
               </ChartGrid>
             </Section>
 
-            <Section title="Operational & geographic" detail="Tier 3 / 3 charts" collapsible>
+            <Section title="Operational & Geographic" detail="Tier 3 / 3 charts" collapsible defaultCollapsed>
               <ChartGrid>
-                <ChartCell title="Top 15 states by net sales" subtitle="Channel split" wide>
+                <ChartCell title="Top 15 States By Net Sales" subtitle="Channel split" wide>
                   <RevenueByState data={data.revenueByState} />
                 </ChartCell>
-                <ChartCell title="Discount code usage" subtitle="Top 12 by frequency">
+                <ChartCell title="Discount Code Usage" subtitle="Top 12 By $ Volume">
                   <DiscountUsage data={data.discountUsage} />
                 </ChartCell>
-                <ChartCell title="3PL fulfillment split" subtitle="Order count by location">
+                <ChartCell title="3PL Fulfillment Split" subtitle="Order count by location">
                   <FulfillmentSplit data={data.fulfillmentSplit} />
                 </ChartCell>
               </ChartGrid>
             </Section>
 
             <Section
-              title="Sales by rep"
+              title="Sales By Rep"
               detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
               collapsible
+              defaultCollapsed
             >
               <ChartGrid>
-                <ChartCell title="Net sales by rep" subtitle={`${G} trend · click chips to toggle`}>
+                <ChartCell title="Net Sales By Rep" subtitle={`${G} trend · click chips to toggle`}>
                   <RepTrendChart
                     data={data.repSalesMonthly || []}
                     reps={data.repsList || []}
@@ -445,7 +471,7 @@ export default function Dashboard({ initial }) {
                     priorKey="repSalesMonthly"
                   />
                 </ChartCell>
-                <ChartCell title="New gummy accounts by rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
+                <ChartCell title="New Gummy Accounts By Rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
                   <RepTrendChart
                     data={data.repNewAccountsMonthly || []}
                     reps={data.repsList || []}
@@ -489,7 +515,7 @@ export default function Dashboard({ initial }) {
             </Section>
 
             <Section
-              title="Orders audit trail"
+              title="Orders Audit Trail"
               detail={`${(data.orders?.length || 0).toLocaleString()} orders in period`}
               collapsible
               defaultCollapsed
@@ -497,7 +523,7 @@ export default function Dashboard({ initial }) {
               <OrdersTable orders={data.orders || []} />
             </Section>
 
-            <Section title="Marketing performance" detail="Tier 4 / pending connectors" collapsible defaultCollapsed>
+            <Section title="Marketing Performance" detail="Tier 4 / pending connectors" collapsible defaultCollapsed>
               <ChartGrid>
                 <ChartCell title="Blended ROAS" subtitle="DTC ad spend → all channel revenue">
                   <MarketingPlaceholder label="Blended ROAS" />
@@ -620,20 +646,47 @@ function CompareToggle({ value, onChange, disabled }) {
   );
 }
 
-function ChartCell({ title, subtitle, wide, children }) {
+function ChartCell({ title, subtitle, wide, action, children }) {
   return (
     <div
       className={`${
         wide ? "lg:col-span-2" : ""
       } bg-card border border-rule rounded-xl p-3 sm:p-4 md:p-5 min-w-0`}
     >
-      <div className="mb-2 md:mb-3">
-        <h3 className="font-display text-base md:text-lg font-semibold leading-tight text-ink">
-          {title}
-        </h3>
-        {subtitle && <p className="font-sans text-[11px] md:text-xs text-muted mt-0.5 leading-snug">{subtitle}</p>}
+      <div className="mb-2 md:mb-3 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="font-display text-base md:text-lg font-semibold leading-tight text-ink">
+            {title}
+          </h3>
+          {subtitle && <p className="font-sans text-[11px] md:text-xs text-muted mt-0.5 leading-snug">{subtitle}</p>}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// Compact Net/Gross segmented toggle for the channel revenue chart.
+function MetricToggle({ value, onChange }) {
+  const opts = [
+    { k: "net", label: "Net" },
+    { k: "gross", label: "Gross" },
+  ];
+  return (
+    <div className="inline-flex rounded-md border border-rule overflow-hidden">
+      {opts.map((o) => (
+        <button
+          key={o.k}
+          type="button"
+          onClick={() => onChange(o.k)}
+          className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
+            value === o.k ? "bg-brown text-paper font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }

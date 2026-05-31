@@ -7,15 +7,15 @@ import {
 } from "recharts";
 
 // Brand palette (mirrors KpiTiles + RepPerformance for consistency).
-const FAVORABLE = "#5C8A6F";   // sage — ≥100% of target
-const PARTIAL   = "#C58A2D";   // amber — 90–100% of target
-const UNFAVORABLE = "#5C2F2E"; // brand maroon — <90% of target
+const FAVORABLE = "#C8860D";   // sage — ≥100% of target
+const PARTIAL   = "#E6A403";   // amber — 90–100% of target
+const UNFAVORABLE = "#AA2D2D"; // brand maroon — <90% of target
 const NEUTRAL   = "#9A8F80";   // muted brown — no target / unknown
 
 // BRAND_BROWN previously colored the Budget bars/Δs; removed when Sam
 // dropped Budget from the display. Keeping SAGE (Goal) + AMBER (Actual).
-const BRAND_SAGE  = "#5C8A6F";
-const BRAND_AMBER = "#C58A2D";
+const BRAND_SAGE  = "#C8860D";
+const BRAND_AMBER = "#E6A403";
 
 const PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"];
 
@@ -106,7 +106,7 @@ function actualsFromProductFamily(productFamily) {
  * total to the dashboard's currently-loaded actuals. Recharts
  * visualizations sit below the table.
  */
-export default function BudgetVsActual({ productFamily, periodLabel }) {
+export default function BudgetVsActual({ productFamily, totalNetSales, periodLabel }) {
   const [budgetData, setBudgetData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
@@ -152,36 +152,31 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
       }),
       { budget: 0, goal: 0, actual: 0 }
     );
+    // The four product families don't cover every SKU (apparel / shipping /
+    // uncategorized roll up to "Other"), so summing them lands short of the
+    // dashboard's headline net sales. Reconcile to the canonical total so
+    // the Total row TIES to the number up top; the gap is surfaced as an
+    // "Other (unbudgeted)" line below.
+    const trackedActual = t.actual;
+    const grandActual = totalNetSales != null ? totalNetSales : trackedActual;
+    const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     return {
       ...t,
-      dBudget: t.actual - t.budget,
-      dGoal: t.actual - t.goal,
-      pctBudget: t.budget > 0 ? t.actual / t.budget : null,
-      pctGoal: t.goal > 0 ? t.actual / t.goal : null,
+      trackedActual,
+      otherActual,
+      actual: grandActual,
+      dBudget: grandActual - t.budget,
+      dGoal: grandActual - t.goal,
+      pctBudget: t.budget > 0 ? grandActual / t.budget : null,
+      pctGoal: t.goal > 0 ? grandActual / t.goal : null,
     };
-  }, [rows]);
+  }, [rows, totalNetSales]);
 
   const monthOpts = useMemo(() => monthOffsets(selectedMonth, 3, 3), [selectedMonth]);
   const isStub = budgetData?.mode === "stub";
 
   return (
     <div className="space-y-3 md:space-y-4">
-      {/* Stub-mode banner */}
-      {budgetData && isStub && (
-        <div className="rounded-md border border-amber-300/60 bg-amber-50/60 px-3 py-2 md:px-4 md:py-2.5 font-sans text-[11px] md:text-xs text-amber-900 leading-snug">
-          <strong>Showing $0 placeholder goals.</strong> The Sheet
-          {" "}<a
-            href="https://docs.google.com/spreadsheets/d/1_GRiHlLup8Ls7bFcagYD7MlPYLciakNz5qAK0JmFaP8/edit"
-            target="_blank" rel="noreferrer"
-            className="underline hover:no-underline"
-          >Xtresse Net Revenue Budget &amp; Rep Goals 2026</a>{" "}
-          is connected but env vars are not wired yet. Set <code className="bg-amber-100 px-1 rounded">BUDGET_CSV_URL_BUDGET</code>
-          {" "}+ <code className="bg-amber-100 px-1 rounded">BUDGET_CSV_URL_GOALS</code> on Vercel
-          (or the <code className="bg-amber-100 px-1 rounded">GOOGLE_SHEETS_SA_*</code> pair) to flip to live data —
-          see <code className="bg-amber-100 px-1 rounded">lib/budgetSheet.js</code> for setup.
-        </div>
-      )}
-
       {loadErr && (
         <div className="rounded-md border border-red-300/60 bg-red-50/60 px-3 py-2 font-sans text-[11px] text-red-900">
           Couldn&apos;t load /api/budget: {loadErr}
@@ -215,6 +210,39 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
         </span>
       </div>
 
+      {/* Combined TOTAL vs Goal + made-budget indicator */}
+      {(() => {
+        const noGoal = !(totals.goal > 0);
+        const made = !noGoal && totals.actual >= totals.goal;
+        const short = totals.goal - totals.actual;
+        const tone = noGoal ? NEUTRAL : made ? FAVORABLE : UNFAVORABLE;
+        return (
+          <div className="rounded-xl border border-rule bg-card px-4 py-3 md:px-5 md:py-4 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
+                Total · Actual vs Goal · {monthLabel(selectedMonth)}
+              </div>
+              <div className="flex items-baseline gap-2 md:gap-3 mt-0.5">
+                <span className="font-display text-2xl md:text-3xl font-semibold text-ink tabular-nums">{fmt$(totals.actual)}</span>
+                <span className="font-sans text-xs md:text-sm text-muted tabular-nums">/ goal {fmt$(totals.goal)}</span>
+              </div>
+            </div>
+            <div
+              className="flex items-center gap-2 rounded-lg px-3 py-2 font-sans font-semibold"
+              style={{ color: tone, backgroundColor: tone + "1A" }}
+            >
+              {noGoal ? (
+                <span className="text-sm">No goal set</span>
+              ) : made ? (
+                <span className="text-sm md:text-base">{"✔"} Budget met · {fmtPct(totals.pctGoal)}</span>
+              ) : (
+                <span className="text-sm md:text-base">{fmtPct(totals.pctGoal)} to goal · {fmt$(Math.abs(short))} short</span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Per-product table */}
       <div className="bg-card border border-rule rounded-xl overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
@@ -242,6 +270,15 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
                   </Td>
                 </tr>
               ))}
+              {totals.otherActual > 0 && (
+                <tr className="border-t border-rule/60">
+                  <Td className="italic text-muted">Other (unbudgeted)</Td>
+                  <Td align="right" className="text-muted">—</Td>
+                  <Td align="right" className="text-muted">{fmt$(totals.otherActual)}</Td>
+                  <Td align="right" className="text-muted">—</Td>
+                  <Td align="right" className="text-muted">—</Td>
+                </tr>
+              )}
             </tbody>
             <tfoot>
               <tr className="bg-paper2 font-semibold border-t border-rule/60">
@@ -280,6 +317,15 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
               </div>
             </button>
           ))}
+          {totals.otherActual > 0 && (
+            <div className="px-4 py-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-sans text-sm font-semibold text-muted italic">Other (unbudgeted)</span>
+                <span className="font-display text-base font-semibold text-muted tabular-nums">{fmt$(totals.otherActual)}</span>
+              </div>
+              <div className="font-sans text-[11px] text-muted tabular-nums mt-1">No goal</div>
+            </div>
+          )}
         </div>
       </div>
 
