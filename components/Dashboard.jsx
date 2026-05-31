@@ -350,18 +350,22 @@ export default function Dashboard({ initial }) {
               </div>
               <div className="flex items-end gap-x-4 gap-y-2 flex-wrap">
                 <div>
-                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross</div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross Sales</div>
                   <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
-                    {fmtCompact(data.kpis.totalGrossSales)}
+                    {fmtMoney(data.kpis.totalGrossSales)}
                   </div>
                 </div>
                 <div className="font-display text-2xl text-muted pb-1 leading-none">→</div>
                 <div>
-                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">
-                    Net{data.kpis.totalGrossSales ? ` · ${Math.round((data.kpis.totalNetSales / data.kpis.totalGrossSales) * 100)}% of gross` : ""}
-                  </div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Net Sales</div>
                   <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
-                    {fmtCompact(data.kpis.totalNetSales)}
+                    {fmtMoney(data.kpis.totalNetSales)}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross → Net</div>
+                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                    {data.kpis.totalGrossSales ? `${Math.round((data.kpis.totalNetSales / data.kpis.totalGrossSales) * 100)}%` : "—"}
                   </div>
                 </div>
                 {(() => {
@@ -388,19 +392,6 @@ export default function Dashboard({ initial }) {
 
             <div className="mb-4 md:mb-6">
               <KpiTiles kpis={data.kpis} compare={data.compare} />
-            </div>
-
-            {/* Net-sales reconciliation note */}
-            <div className="mb-5 md:mb-7 rounded-xl border border-rule bg-card px-3 py-2.5 md:px-4 md:py-3">
-              <p className="font-sans text-[11px] md:text-xs leading-snug text-inksoft">
-                <span className="font-semibold text-ink">Net sales reconciliation</span>
-                {" — "}
-                Gross {fmtMoney(data.kpis.totalGrossSales)} − discounts{" "}
-                {fmtMoney(data.kpis.totalDiscounts)} − returns{" "}
-                {fmtMoney(Math.abs(data.kpis.totalReturns))} = net{" "}
-                <strong className="text-ink">{fmtMoney(data.kpis.totalNetSales)}</strong>. Test &
-                cancelled orders excluded by Windsor.
-              </p>
             </div>
 
             <Section title="Actual Vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
