@@ -20,7 +20,10 @@ import { ChartShell, COLORS, fmtCurrencyShort, fmtCurrencyFull } from "./_shared
  * fast. The compare strip in the reconciliation panel covers the
  * channel-level deltas — this is family-level context.
  */
-export default function ProductFamily({ data, compare }) {
+export default function ProductFamily({ data, compare, metric = "net" }) {
+  const gross = metric === "gross";
+  const b2bKey = gross ? "B2B_gross" : "B2B";
+  const dtcKey = gross ? "DTC_gross" : "DTC";
   const merged = mergePrior(data, compare);
   const showPrior = compare && compare.productFamily && compare.productFamily.length > 0;
   const priorLabel = compare && compare.mode === "yoy" ? "last year" : "prior period";
@@ -36,8 +39,8 @@ export default function ProductFamily({ data, compare }) {
           formatter={(v) => fmtCurrencyFull(v)}
         />
         <Legend wrapperStyle={{ paddingTop: 8 }} />
-        <Bar dataKey="B2B" fill={COLORS.B2B} radius={[2, 2, 0, 0]} />
-        <Bar dataKey="DTC" fill={COLORS.DTC} radius={[2, 2, 0, 0]} />
+        <Bar dataKey={b2bKey} name="B2B" fill={COLORS.B2B} radius={[2, 2, 0, 0]} />
+        <Bar dataKey={dtcKey} name="DTC" fill={COLORS.DTC} radius={[2, 2, 0, 0]} />
       </BarChart>
     </ChartShell>
   );

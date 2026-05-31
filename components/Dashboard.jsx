@@ -254,6 +254,9 @@ export default function Dashboard({ initial }) {
     ? `${customFrom} → ${customTo}`
     : "Selected period";
 
+  // Global Net/Gross basis label for titles (driven by the top toggle).
+  const M = revMetric === "gross" ? "Gross" : "Net";
+
   // Chart subtitle copy matches the bucket the server actually used.
   const G = (
     {
@@ -347,8 +350,14 @@ export default function Dashboard({ initial }) {
           <>
             {/* Executive summary — the 5-second headline read */}
             <div className="mb-4 md:mb-6 rounded-xl border border-rule bg-card px-4 py-4 md:px-6 md:py-5">
-              <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted mb-1.5">
-                Executive summary · {periodLabel}
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted">
+                  Executive summary · {periodLabel}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted hidden sm:inline">Showing</span>
+                  <MetricToggle value={revMetric} onChange={setRevMetric} />
+                </div>
               </div>
               <div className="flex items-end gap-x-4 gap-y-2 flex-wrap">
                 <div>
@@ -393,7 +402,7 @@ export default function Dashboard({ initial }) {
             </div>
 
             <div className="mb-4 md:mb-6">
-              <KpiTiles kpis={data.kpis} compare={data.compare} />
+              <KpiTiles kpis={data.kpis} compare={data.compare} metric={revMetric} />
             </div>
 
             <Section title="Actual Vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
@@ -402,24 +411,20 @@ export default function Dashboard({ initial }) {
 
             <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
               <ChartGrid>
-                <ChartCell
-                  title={`${revMetric === "gross" ? "Gross" : "Net"} Sales By Channel`}
-                  subtitle={`${G}, B2B vs DTC`}
-                  action={<MetricToggle value={revMetric} onChange={setRevMetric} />}
-                >
+                <ChartCell title={`${M} Sales By Channel`} subtitle={`${G}, B2B vs DTC`}>
                   <RevenueByChannel data={data.monthlySeries} compare={data.compare} metric={revMetric} />
                 </ChartCell>
                 <ChartCell title="Order Count By Channel" subtitle={G}>
                   <OrdersByChannel data={data.monthlySeries} compare={data.compare} />
                 </ChartCell>
-                <ChartCell title="Average Order Value" subtitle="Net basis, dual axis">
-                  <AOVByChannel data={data.monthlySeries} compare={data.compare} />
+                <ChartCell title="Average Order Value" subtitle={`${M} basis, dual axis`}>
+                  <AOVByChannel data={data.monthlySeries} compare={data.compare} metric={revMetric} />
                 </ChartCell>
-                <ChartCell title="Cumulative Net YTD" subtitle="By calendar year">
-                  <CumulativeYTD data={data.cumulativeYTD} />
+                <ChartCell title={`Cumulative ${M} YTD`} subtitle="By calendar year">
+                  <CumulativeYTD data={data.cumulativeYTD} metric={revMetric} />
                 </ChartCell>
-                <ChartCell title="Net Sales By Product Family" subtitle="Gummies · Serum · XVIE · Sachets">
-                  <ProductFamily data={data.productFamily} compare={data.compare} />
+                <ChartCell title={`${M} Sales By Product Family`} subtitle="Gummies · Serum · XVIE · Sachets">
+                  <ProductFamily data={data.productFamily} compare={data.compare} metric={revMetric} />
                 </ChartCell>
               </ChartGrid>
             </Section>
@@ -443,8 +448,8 @@ export default function Dashboard({ initial }) {
 
             <Section title="Operational & Geographic" detail="Tier 3 / 3 charts" collapsible defaultCollapsed>
               <ChartGrid>
-                <ChartCell title="Top 15 States By Net Sales" subtitle="Channel split" wide>
-                  <RevenueByState data={data.revenueByState} />
+                <ChartCell title={`Top 15 States By ${M} Sales`} subtitle="Channel split" wide>
+                  <RevenueByState data={data.revenueByState} metric={revMetric} />
                 </ChartCell>
                 <ChartCell title="Discount Code Usage" subtitle="Top 12 By $ Volume">
                   <DiscountUsage data={data.discountUsage} />
@@ -485,6 +490,7 @@ export default function Dashboard({ initial }) {
                 <RepPerformance
                   repPerformance={data.repPerformance || []}
                   compare={data.compare}
+                  metric={revMetric}
                 />
               </div>
             </Section>

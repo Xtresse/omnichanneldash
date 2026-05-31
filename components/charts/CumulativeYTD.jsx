@@ -22,8 +22,9 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 // Jan 1 of last year → today, giving a current-year line plus a prior-
 // year line for YoY pace. Falls back to the prop-passed series while
 // loading / on error.
-export default function CumulativeYTD({ data }) {
+export default function CumulativeYTD({ data, metric = "net" }) {
   const [series, setSeries] = useState(data || []);
+  const gross = metric === "gross";
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +52,7 @@ export default function CumulativeYTD({ data }) {
     const row = { month: i + 1, label };
     series.forEach(({ year, points }) => {
       const point = points.find((p) => p.month === i + 1);
-      row[year] = point ? point.Total : null;
+      row[year] = point ? (gross ? (point.Total_gross ?? point.Total) : point.Total) : null;
     });
     return row;
   });
