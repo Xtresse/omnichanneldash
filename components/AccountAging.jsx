@@ -28,8 +28,6 @@ function buildBuckets() {
 }
 const yearOf = (a) => (a.lastOrder ? Number(String(a.lastOrder).slice(0, 4)) : 0);
 
-const STORE_START = "2024-01-01"; // store history begins mid-2024; pull all of it
-
 export default function AccountAging() {
   const [data, setData] = useState(null); // accountAging[]
   const [err, setErr] = useState(null);
@@ -38,9 +36,11 @@ export default function AccountAging() {
 
   useEffect(() => {
     let cancelled = false;
-    const now = new Date();
-    const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    const qs = new URLSearchParams({ from: STORE_START, to, granularity: "month" });
+    // accountAging is built server-side from the ALL-TIME pull (sharded,
+    // cached) regardless of the requested window, so we ask for the
+    // smallest/cheapest window here — the response is fast and the aging
+    // payload is still full-history with true lifetime $.
+    const qs = new URLSearchParams({ preset: "last_7d", granularity: "month" });
     fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
@@ -73,7 +73,7 @@ export default function AccountAging() {
   }, [data, buckets]);
 
   if (err) return <div className="rounded-xl border border-rule bg-card p-4 font-sans text-sm text-unfavorable">Couldn’t load aging: {err}</div>;
-  if (!summary) return <div className="rounded-xl border border-rule bg-card p-8 text-center font-sans text-sm text-muted">Loading account aging (all-history pull)…</div>;
+  if (!summary) return <div className="rounded-xl border border-rule bg-card p-8 text-center font-sans text-sm text-muted">Loading account aging…</div>;
 
   return (
     <div className="space-y-4">
