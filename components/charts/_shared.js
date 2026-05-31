@@ -3,14 +3,14 @@
 import { ResponsiveContainer } from "recharts";
 
 export const COLORS = {
-  B2B: "#d89a1c",        // rust — matches leadership
-  ADCS: "#9a4a28",       // warm orange-brown — sub-bucket distinct from B2B
-  DTC: "#2e7d6b",        // teal
+  B2B: "#e6a403",        // rust — matches leadership
+  ADCS: "#aa2d2d",       // warm orange-brown — sub-bucket distinct from B2B
+  DTC: "#302c29",        // teal
   Total: "#2b1a10",
-  Subscription: "#d89a1c",
+  Subscription: "#e6a403",
   OneTime: "#c9b68e",
-  newCust: "#2e7d6b",
-  retCust: "#d89a1c",
+  newCust: "#302c29",
+  retCust: "#e6a403",
   Other: "#bfa988",
 };
 
