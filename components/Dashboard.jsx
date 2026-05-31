@@ -349,8 +349,20 @@ export default function Dashboard({ initial }) {
                 Executive summary · {periodLabel}
               </div>
               <div className="flex items-end gap-x-4 gap-y-2 flex-wrap">
-                <div className="font-display text-4xl md:text-5xl font-semibold text-ink leading-none tabular-nums">
-                  {fmtCompact(data.kpis.totalNetSales)}
+                <div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross</div>
+                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                    {fmtCompact(data.kpis.totalGrossSales)}
+                  </div>
+                </div>
+                <div className="font-display text-2xl text-muted pb-1 leading-none">→</div>
+                <div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">
+                    Net{data.kpis.totalGrossSales ? ` · ${Math.round((data.kpis.totalNetSales / data.kpis.totalGrossSales) * 100)}% of gross` : ""}
+                  </div>
+                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                    {fmtCompact(data.kpis.totalNetSales)}
+                  </div>
                 </div>
                 {(() => {
                   const cur = data.kpis.totalNetSales;
@@ -366,8 +378,6 @@ export default function Dashboard({ initial }) {
                   );
                 })()}
                 <div className="font-sans text-xs md:text-sm text-inksoft ml-auto max-w-xl leading-snug">
-                  Gross <strong className="text-ink">{fmtCompact(data.kpis.totalGrossSales)}</strong>
-                  {data.kpis.totalGrossSales ? ` \u2192 net ${Math.round((data.kpis.totalNetSales / data.kpis.totalGrossSales) * 100)}% of gross` : ""}.{" "}
                   B2B <strong className="text-ink">{fmtCompact(data.kpis.b2bNetSales)}</strong>
                   {data.kpis.b2bShare != null ? ` (${Math.round(data.kpis.b2bShare * 100)}% of net)` : ""}
                   {" \u00B7 "}DTC <strong className="text-ink">{fmtCompact(data.kpis.dtcNetSales)}</strong>
@@ -390,15 +400,6 @@ export default function Dashboard({ initial }) {
                 {fmtMoney(Math.abs(data.kpis.totalReturns))} = net{" "}
                 <strong className="text-ink">{fmtMoney(data.kpis.totalNetSales)}</strong>. Test &
                 cancelled orders excluded by Windsor.
-              </p>
-            </div>
-
-            <div className="mb-5 md:mb-7 rounded-xl border border-rule bg-card px-3 py-2.5 md:px-4 md:py-3">
-              <p className="font-sans text-[11px] md:text-xs leading-snug text-inksoft">
-                <span className="font-semibold text-ink">DTC data starts 4/1/2026</span>
-                {" — "}Windsor's DTC feed didn't exist before that date, so periods covering earlier
-                history will show $0 DTC. Untagged orders before 4/1/2026 are treated as B2B (not DTC)
-                so the channel split stays accurate.
               </p>
             </div>
 

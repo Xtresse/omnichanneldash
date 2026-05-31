@@ -284,10 +284,6 @@ export default function B2BStatusBar() {
         })()}
       </div>
 
-      <p className="font-sans text-[10px] text-muted leading-snug mt-2.5 md:mt-3">
-        B2B case-SKU net sales (gross − discounts − refunds) through end of yesterday. Serum and Gummies count only the dedicated B2B case SKU; Xvié counts all XVIE SKUs (no separate B2B case). Pace = MTD ÷ completed-full-days × days-in-month.
-        Goal is set once per product per month and persists in Vercel KV (or <code className="bg-paper px-1 rounded">data/b2b-goals.json</code> locally).
-      </p>
     </div>
   );
 }

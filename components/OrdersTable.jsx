@@ -164,7 +164,7 @@ export default function OrdersTable({ orders }) {
               </th>
               <th className="py-2 pr-3">Order</th>
               <th className="py-2 pr-3">Channel</th>
-              <th className="py-2 pr-3">Customer / Rep</th>
+              <th className="py-2 pr-3">Email / Rep</th>
               <th className="py-2 pr-3">State</th>
               <th className="py-2 pr-3">Codes</th>
               <th className="py-2 pr-3 text-right">Gross</th>
@@ -209,8 +209,8 @@ export default function OrdersTable({ orders }) {
                     // DTC: show email; rep is null so nothing to stack.
                     // Falls back gracefully when customer name isn't set
                     // (some legacy B2B orders may only have rep).
-                    const primary = o.customer || o.email || o.rep || "—";
-                    const secondary = o.customer && o.rep ? o.rep : null;
+                    const primary = o.email || o.customer || o.rep || "—";
+                    const secondary = o.rep || null;
                     const titleAttr = [o.customer, o.email, o.rep].filter(Boolean).join(" · ") || "";
                     return (
                       <div title={titleAttr}>
@@ -279,16 +279,16 @@ export default function OrdersTable({ orders }) {
               </div>
             </div>
             <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] font-sans">
-              {o.customer && (
+              {o.email && (
                 <>
-                  <div className="text-muted">Customer</div>
-                  <div className="text-inksoft truncate">{o.customer}</div>
+                  <div className="text-muted">Email</div>
+                  <div className="text-inksoft truncate">{o.email}</div>
                 </>
               )}
-              {(o.rep || o.email) && (
+              {o.rep && (
                 <>
-                  <div className="text-muted">{o.rep ? "Rep" : "Email"}</div>
-                  <div className="text-inksoft truncate">{o.rep || o.email || "—"}</div>
+                  <div className="text-muted">Rep</div>
+                  <div className="text-inksoft truncate">{o.rep}</div>
                 </>
               )}
               <div className="text-muted">State</div>
