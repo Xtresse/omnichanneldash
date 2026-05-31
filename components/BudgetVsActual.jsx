@@ -166,22 +166,6 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
 
   return (
     <div className="space-y-3 md:space-y-4">
-      {/* Stub-mode banner */}
-      {budgetData && isStub && (
-        <div className="rounded-md border border-amber-300/60 bg-amber-50/60 px-3 py-2 md:px-4 md:py-2.5 font-sans text-[11px] md:text-xs text-amber-900 leading-snug">
-          <strong>Showing $0 placeholder goals.</strong> The Sheet
-          {" "}<a
-            href="https://docs.google.com/spreadsheets/d/1_GRiHlLup8Ls7bFcagYD7MlPYLciakNz5qAK0JmFaP8/edit"
-            target="_blank" rel="noreferrer"
-            className="underline hover:no-underline"
-          >Xtresse Net Revenue Budget &amp; Rep Goals 2026</a>{" "}
-          is connected but env vars are not wired yet. Set <code className="bg-amber-100 px-1 rounded">BUDGET_CSV_URL_BUDGET</code>
-          {" "}+ <code className="bg-amber-100 px-1 rounded">BUDGET_CSV_URL_GOALS</code> on Vercel
-          (or the <code className="bg-amber-100 px-1 rounded">GOOGLE_SHEETS_SA_*</code> pair) to flip to live data —
-          see <code className="bg-amber-100 px-1 rounded">lib/budgetSheet.js</code> for setup.
-        </div>
-      )}
-
       {loadErr && (
         <div className="rounded-md border border-red-300/60 bg-red-50/60 px-3 py-2 font-sans text-[11px] text-red-900">
           Couldn&apos;t load /api/budget: {loadErr}

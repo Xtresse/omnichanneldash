@@ -279,17 +279,6 @@ export default function Dashboard({ initial }) {
             <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-semibold text-brown leading-tight md:leading-none tracking-tight break-words">
               Xtresse Omni Channel Dashboard
             </h1>
-            <p className="font-sans text-xs md:text-sm text-muted mt-2 md:mt-3 leading-snug">
-              Net sales from Shopify via Windsor.ai · B2B / ADCS / DTC are mutually exclusive
-              {data && (
-                <>
-                  {" / "}
-                  <strong className="text-inksoft">{periodLabel}</strong>
-                  {" / "}
-                  {data.orderCount.toLocaleString()} orders
-                </>
-              )}
-            </p>
           </div>
           {/* On mobile this row sits below the title and wraps cleanly so
               the compare toggle, refresh, and export button all fit
@@ -334,14 +323,6 @@ export default function Dashboard({ initial }) {
           </div>
         </header>
 
-        {/* B2B MTD status bar — always shows current month, independent of
-            the FilterBar date selection below. Pulls product-family MTD
-            B2B net sales for Serum / Xvié / Gummies with linear pacing
-            and user-entered monthly goals. */}
-        <div className="mb-4 md:mb-6">
-          <B2BStatusBar />
-        </div>
-
         <div className="mb-4 md:mb-6">
           <FilterBar
             activePreset={activePreset}
@@ -354,6 +335,10 @@ export default function Dashboard({ initial }) {
             onGranularityChange={changeGranularity}
             loading={isPending}
           />
+        </div>
+
+        <div className="mb-4 md:mb-6">
+          <B2BStatusBar />
         </div>
 
         {data && (
@@ -381,15 +366,13 @@ export default function Dashboard({ initial }) {
                   );
                 })()}
                 <div className="font-sans text-xs md:text-sm text-inksoft ml-auto max-w-xl leading-snug">
-                  Net sales, {periodLabel}.{" "}
+                  Gross <strong className="text-ink">{fmtCompact(data.kpis.totalGrossSales)}</strong>
+                  {data.kpis.totalGrossSales ? ` \u2192 net ${Math.round((data.kpis.totalNetSales / data.kpis.totalGrossSales) * 100)}% of gross` : ""}.{" "}
                   B2B <strong className="text-ink">{fmtCompact(data.kpis.b2bNetSales)}</strong>
                   {data.kpis.b2bShare != null ? ` (${Math.round(data.kpis.b2bShare * 100)}% of net)` : ""}
                   {" \u00B7 "}DTC <strong className="text-ink">{fmtCompact(data.kpis.dtcNetSales)}</strong>
                   {data.kpis.adcsNetSales ? <>{" \u00B7 "}ADCS <strong className="text-ink">{fmtCompact(data.kpis.adcsNetSales)}</strong></> : null}.
                 </div>
-              </div>
-              <div className="font-sans text-[11px] text-muted mt-2">
-                Full breakdown below — tap “Show” on any section to drill in.
               </div>
             </div>
 
@@ -419,69 +402,69 @@ export default function Dashboard({ initial }) {
               </p>
             </div>
 
-            <Section title="Actual vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
+            <Section title="Actual Vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
               <BudgetVsActual productFamily={data.productFamily} periodLabel={periodLabel} />
             </Section>
 
-            <Section title="Top-line performance" detail="Tier 1 / 5 charts" collapsible>
+            <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
               <ChartGrid>
-                <ChartCell title="Net sales by channel" subtitle={`${G}, B2B vs DTC`}>
+                <ChartCell title="Net Sales By Channel" subtitle={`${G}, B2B vs DTC`}>
                   <RevenueByChannel data={data.monthlySeries} compare={data.compare} />
                 </ChartCell>
-                <ChartCell title="Order count by channel" subtitle={G}>
+                <ChartCell title="Order Count By Channel" subtitle={G}>
                   <OrdersByChannel data={data.monthlySeries} compare={data.compare} />
                 </ChartCell>
-                <ChartCell title="Average order value" subtitle="Net basis, dual axis">
+                <ChartCell title="Average Order Value" subtitle="Net basis, dual axis">
                   <AOVByChannel data={data.monthlySeries} compare={data.compare} />
                 </ChartCell>
-                <ChartCell title="Cumulative net YTD" subtitle="By calendar year">
+                <ChartCell title="Cumulative Net YTD" subtitle="By calendar year">
                   <CumulativeYTD data={data.cumulativeYTD} />
                 </ChartCell>
-                <ChartCell title="Net sales by product family" subtitle="Gummies · Serum · XVIE · Sachets">
+                <ChartCell title="Net Sales By Product Family" subtitle="Gummies · Serum · XVIE · Sachets">
                   <ProductFamily data={data.productFamily} compare={data.compare} />
                 </ChartCell>
               </ChartGrid>
             </Section>
 
-            <Section title="Customer dynamics" detail="Tier 2 / 4 charts" collapsible defaultCollapsed>
+            <Section title="Customer Dynamics" detail="Tier 2 / 4 charts" collapsible defaultCollapsed>
               <ChartGrid>
-                <ChartCell title="New vs returning — B2B (gummies only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
+                <ChartCell title="New Vs Returning — B2B (Gummies Only)" subtitle={`${G} stacked · gummy buyers, hero SKU`}>
                   <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="B2B" />
                 </ChartCell>
-                <ChartCell title="New vs returning — DTC" subtitle={`${G} stacked · all DTC orders`}>
+                <ChartCell title="New Vs Returning — DTC" subtitle={`${G} stacked · all DTC orders`}>
                   <NewVsReturning data={data.customerDynamics} compare={data.compare} channel="DTC" />
                 </ChartCell>
-                <ChartCell title="Repeat purchase rate" subtitle={`% returning, ${G.toLowerCase()}`}>
+                <ChartCell title="Repeat Purchase Rate" subtitle={`% returning, ${G.toLowerCase()}`}>
                   <RepeatRate data={data.repeatRate} compare={data.compare} />
                 </ChartCell>
-                <ChartCell title="DTC subscription vs one-time" subtitle={`Net sales mix, ${G.toLowerCase()}`}>
+                <ChartCell title="DTC Subscription Vs One-Time" subtitle={`Net sales mix, ${G.toLowerCase()}`}>
                   <SubVsOneTime data={data.subVsOneTime} />
                 </ChartCell>
               </ChartGrid>
             </Section>
 
-            <Section title="Operational & geographic" detail="Tier 3 / 3 charts" collapsible defaultCollapsed>
+            <Section title="Operational & Geographic" detail="Tier 3 / 3 charts" collapsible defaultCollapsed>
               <ChartGrid>
-                <ChartCell title="Top 15 states by net sales" subtitle="Channel split" wide>
+                <ChartCell title="Top 15 States By Net Sales" subtitle="Channel split" wide>
                   <RevenueByState data={data.revenueByState} />
                 </ChartCell>
-                <ChartCell title="Discount code usage" subtitle="Top 12 by frequency">
+                <ChartCell title="Discount Code Usage" subtitle="Top 12 By $ Volume">
                   <DiscountUsage data={data.discountUsage} />
                 </ChartCell>
-                <ChartCell title="3PL fulfillment split" subtitle="Order count by location">
+                <ChartCell title="3PL Fulfillment Split" subtitle="Order count by location">
                   <FulfillmentSplit data={data.fulfillmentSplit} />
                 </ChartCell>
               </ChartGrid>
             </Section>
 
             <Section
-              title="Sales by rep"
+              title="Sales By Rep"
               detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
               collapsible
               defaultCollapsed
             >
               <ChartGrid>
-                <ChartCell title="Net sales by rep" subtitle={`${G} trend · click chips to toggle`}>
+                <ChartCell title="Net Sales By Rep" subtitle={`${G} trend · click chips to toggle`}>
                   <RepTrendChart
                     data={data.repSalesMonthly || []}
                     reps={data.repsList || []}
@@ -490,7 +473,7 @@ export default function Dashboard({ initial }) {
                     priorKey="repSalesMonthly"
                   />
                 </ChartCell>
-                <ChartCell title="New gummy accounts by rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
+                <ChartCell title="New Gummy Accounts By Rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
                   <RepTrendChart
                     data={data.repNewAccountsMonthly || []}
                     reps={data.repsList || []}
@@ -534,7 +517,7 @@ export default function Dashboard({ initial }) {
             </Section>
 
             <Section
-              title="Orders audit trail"
+              title="Orders Audit Trail"
               detail={`${(data.orders?.length || 0).toLocaleString()} orders in period`}
               collapsible
               defaultCollapsed
@@ -542,7 +525,7 @@ export default function Dashboard({ initial }) {
               <OrdersTable orders={data.orders || []} />
             </Section>
 
-            <Section title="Marketing performance" detail="Tier 4 / pending connectors" collapsible defaultCollapsed>
+            <Section title="Marketing Performance" detail="Tier 4 / pending connectors" collapsible defaultCollapsed>
               <ChartGrid>
                 <ChartCell title="Blended ROAS" subtitle="DTC ad spend → all channel revenue">
                   <MarketingPlaceholder label="Blended ROAS" />
