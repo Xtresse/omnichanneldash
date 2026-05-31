@@ -14,50 +14,50 @@
      (xtresse-design-system/project/colors_and_type.css). This dashboard
      is the reference implementation — all other Xtresse surfaces follow
      these values. */
-  --paper: 252 251 247;       /* #F5F1EA page background */
-  --paper2: 255 247 228;      /* #FAF7F2 soft cream surfaces */
+  --paper: 243 236 219;       /* #F5F1EA page background */
+  --paper2: 250 244 232;      /* #FAF7F2 soft cream surfaces */
   --card: 255 255 255;        /* #FFFFFF white card */
-  --ink: 27 20 14;            /* #2B1A10 primary text */
-  --inksoft: 74 63 54;        /* #5A4232 secondary text */
-  --muted: 154 140 126;        /* #8A7359 eyebrows, meta */
-  --tan: 212 196 174;         /* #A89478 disabled, hairline accent */
-  --rule: 240 234 224;        /* #D4D0C8 hairline borders */
-  --brown: 245 175 22;          /* #5C2A1A primary brand rust + B2B */
-  --browndeep: 229 154 0;      /* #3F1C0F section banners, hover deepen */
-  --accent: 230 78 43;        /* #7A3A2D lighter rust */
+  --ink: 33 22 6;            /* #2B1A10 primary text */
+  --inksoft: 90 71 48;        /* #5A4232 secondary text */
+  --muted: 154 134 95;        /* #8A7359 eyebrows, meta */
+  --tan: 201 182 142;         /* #A89478 disabled, hairline accent */
+  --rule: 227 216 194;        /* #D4D0C8 hairline borders */
+  --brown: 216 154 28;          /* #5C2A1A primary brand rust + B2B */
+  --browndeep: 176 126 16;      /* #3F1C0F section banners, hover deepen */
+  --accent: 168 71 42;        /* #7A3A2D lighter rust */
   /* Channel data colors — closed three-channel set */
-  --b2b: 245 175 22;            /* #5C2A1A */
-  --dtc: 47 138 111;          /* #3A7A6F teal-sage */
-  --adcs: 232 133 42;          /* #A85F28 warm orange-brown */
+  --b2b: 216 154 28;            /* #5C2A1A */
+  --dtc: 46 125 107;          /* #3A7A6F teal-sage */
+  --adcs: 154 74 40;          /* #A85F28 warm orange-brown */
   /* Status ramp — sage / amber / maroon / taupe */
-  --favorable: 31 157 107;    /* #5C8A6F */
-  --partial: 196 154 79;      /* #C58A2D */
-  --unfavorable: 214 64 50;    /* #5C2F2E */
+  --favorable: 46 139 94;    /* #5C8A6F */
+  --partial: 200 149 30;      /* #C58A2D */
+  --unfavorable: 190 59 42;    /* #5C2F2E */
   --neutral: 154 143 128;     /* #9A8F80 */
   /* Recharts grid (softer than UI rule) */
-  --grid: 240 234 224;        /* #D8CAB2 */
+  --grid: 227 216 194;        /* #D8CAB2 */
 
   /* Canonical xt-* aliases (preferred in new code; identical values to
      the rgb-triplet tokens above). */
-  --xt-paper:      #fcfbf7;
-  --xt-paper-2:    #fff7e4;
+  --xt-paper:      #f3ecdb;
+  --xt-paper-2:    #faf4e8;
   --xt-card:       #ffffff;
-  --xt-ink:        #1b140e;
-  --xt-ink-soft:   #4a3f36;
-  --xt-muted:      #9a8c7e;
-  --xt-tan:        #d4c4ae;
-  --xt-rule:       #f0eae0;
-  --xt-brown:      #f5af16;
-  --xt-brown-deep: #e59a00;
-  --xt-accent:     #e64e2b;
-  --xt-b2b:        #f5af16;
-  --xt-dtc:        #2f8a6f;
-  --xt-adcs:       #e8852a;
-  --xt-favorable:  #1f9d6b;
-  --xt-partial:    #c49a4f;
-  --xt-unfavorable:#d64032;
+  --xt-ink:        #211606;
+  --xt-ink-soft:   #5a4730;
+  --xt-muted:      #9a865f;
+  --xt-tan:        #c9b68e;
+  --xt-rule:       #e3d8c2;
+  --xt-brown:      #d89a1c;
+  --xt-brown-deep: #b07e10;
+  --xt-accent:     #a8472a;
+  --xt-b2b:        #d89a1c;
+  --xt-dtc:        #2e7d6b;
+  --xt-adcs:       #9a4a28;
+  --xt-favorable:  #2e8b5e;
+  --xt-partial:    #c8951e;
+  --xt-unfavorable:#be3b2a;
   --xt-neutral:    #9a8f80;
-  --xt-grid:       #f0eae0;
+  --xt-grid:       #e3d8c2;
 }
 
 /* Dark mode — auto via OS / browser preference. Inverted brand palette:
