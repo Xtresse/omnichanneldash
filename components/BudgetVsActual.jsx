@@ -106,7 +106,7 @@ function actualsFromProductFamily(productFamily) {
  * total to the dashboard's currently-loaded actuals. Recharts
  * visualizations sit below the table.
  */
-export default function BudgetVsActual({ productFamily, periodLabel }) {
+export default function BudgetVsActual({ productFamily, totalNetSales, periodLabel }) {
   const [budgetData, setBudgetData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
@@ -152,14 +152,25 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
       }),
       { budget: 0, goal: 0, actual: 0 }
     );
+    // The four product families don't cover every SKU (apparel / shipping /
+    // uncategorized roll up to "Other"), so summing them lands short of the
+    // dashboard's headline net sales. Reconcile to the canonical total so
+    // the Total row TIES to the number up top; the gap is surfaced as an
+    // "Other (unbudgeted)" line below.
+    const trackedActual = t.actual;
+    const grandActual = totalNetSales != null ? totalNetSales : trackedActual;
+    const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     return {
       ...t,
-      dBudget: t.actual - t.budget,
-      dGoal: t.actual - t.goal,
-      pctBudget: t.budget > 0 ? t.actual / t.budget : null,
-      pctGoal: t.goal > 0 ? t.actual / t.goal : null,
+      trackedActual,
+      otherActual,
+      actual: grandActual,
+      dBudget: grandActual - t.budget,
+      dGoal: grandActual - t.goal,
+      pctBudget: t.budget > 0 ? grandActual / t.budget : null,
+      pctGoal: t.goal > 0 ? grandActual / t.goal : null,
     };
-  }, [rows]);
+  }, [rows, totalNetSales]);
 
   const monthOpts = useMemo(() => monthOffsets(selectedMonth, 3, 3), [selectedMonth]);
   const isStub = budgetData?.mode === "stub";
@@ -259,6 +270,15 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
                   </Td>
                 </tr>
               ))}
+              {totals.otherActual > 0 && (
+                <tr className="border-t border-rule/60">
+                  <Td className="italic text-muted">Other (unbudgeted)</Td>
+                  <Td align="right" className="text-muted">—</Td>
+                  <Td align="right" className="text-muted">{fmt$(totals.otherActual)}</Td>
+                  <Td align="right" className="text-muted">—</Td>
+                  <Td align="right" className="text-muted">—</Td>
+                </tr>
+              )}
             </tbody>
             <tfoot>
               <tr className="bg-paper2 font-semibold border-t border-rule/60">
@@ -297,6 +317,15 @@ export default function BudgetVsActual({ productFamily, periodLabel }) {
               </div>
             </button>
           ))}
+          {totals.otherActual > 0 && (
+            <div className="px-4 py-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-sans text-sm font-semibold text-muted italic">Other (unbudgeted)</span>
+                <span className="font-display text-base font-semibold text-muted tabular-nums">{fmt$(totals.otherActual)}</span>
+              </div>
+              <div className="font-sans text-[11px] text-muted tabular-nums mt-1">No goal</div>
+            </div>
+          )}
         </div>
       </div>
 

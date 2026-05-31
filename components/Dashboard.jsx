@@ -397,7 +397,7 @@ export default function Dashboard({ initial }) {
             </div>
 
             <Section title="Actual Vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
-              <BudgetVsActual productFamily={data.productFamily} periodLabel={periodLabel} />
+              <BudgetVsActual productFamily={data.productFamily} totalNetSales={data.kpis.totalNetSales} periodLabel={periodLabel} />
             </Section>
 
             <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
