@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 // but a small "edit" affordance allows corrections.
 
 const PRODUCTS = [
-  { label: "Gummies", family: "Gummies", skuNote: "860011740100 · B2B Hair Growth Gummy Case" },
+  { label: "Gummies", family: "Gummies", skuNote: "Gummy Case (860011740100) + Sachets" },
   { label: "Xvié",    family: "XVIE",    skuNote: "X-XVIE-* family" },
   { label: "Serum",   family: "Serum",   skuNote: "X-FRC-30ML-CASE · B2B Concentrate Case" },
 ];
@@ -38,31 +38,24 @@ function currentYearMonth() {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-// Returns {completed, total} — *completed* full days so far this month
-// (i.e. day-of-month minus 1, since today is only partial) and total days
-// in the current month. Pacing uses completed-day count as the divisor
-// so a half-finished today doesn't get treated as a full day of run-rate.
-// On the 1st of the month, completed = 0 and pacing is hidden.
+// Returns {completed, total} — days elapsed INCLUDING today, and total
+// days in the current month. 2026-05: Sam wants today's sales reflected
+// live (on the last day of the month the old "completed = day-1" basis
+// left the widget stuck at 30/31 and missing the final day). Today counts
+// as elapsed; pace divides by elapsed days (today partial nudges pace down
+// slightly, acceptable for a live read).
 function dayProgress() {
   const now = new Date();
-  const dayOfMonth = now.getDate();
-  const completed = Math.max(0, dayOfMonth - 1);
+  const completed = now.getDate(); // include today
   const total = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   return { completed, total };
 }
 
-// First-of-month → end of *yesterday* in YYYY-MM-DD. We deliberately stop
-// at the last completed full day so MTD and pace stay internally
-// consistent — pacing already excludes today as a partial day, and the
-// headline MTD number now matches that basis. Returns null on the 1st of
-// the month (no completed days yet).
+// First-of-month → end of TODAY in YYYY-MM-DD — includes today's sales so
+// the MTD number is live (was end-of-yesterday, which went stale / stuck
+// at day N-1/N on the last day of the month).
 function mtdRange() {
   const now = new Date();
-  // Yesterday in local time.
-  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  // If today is the 1st, yesterday is in the previous month — no completed
-  // days in *this* month yet, so signal "no data" with null.
-  if (yesterday.getMonth() !== now.getMonth()) return null;
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
   const ymd = (d) => {
     const y = d.getFullYear();
@@ -70,7 +63,7 @@ function mtdRange() {
     const dd = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${dd}`;
   };
-  return { from: ymd(start), to: ymd(yesterday) };
+  return { from: ymd(start), to: ymd(now) };
 }
 
 export default function B2BStatusBar() {
