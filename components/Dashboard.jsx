@@ -12,6 +12,7 @@ import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
 import BudgetVsActual from "./BudgetVsActual.jsx";
 import AccountAging from "./AccountAging.jsx";
+import AmbassadorProgram from "./AmbassadorProgram.jsx";
 import RevenueByChannel from "./charts/RevenueByChannel.jsx";
 import OrdersByChannel from "./charts/OrdersByChannel.jsx";
 import AOVByChannel from "./charts/AOVByChannel.jsx";
@@ -528,6 +529,15 @@ export default function Dashboard({ initial }) {
               defaultCollapsed
             >
               <AccountAging />
+            </Section>
+
+            <Section
+              title="Ambassador Program (XVIE50)"
+              detail="Xvie 50%-off ambassadors by rep · who reordered Xvie full-price after entry · all-history"
+              collapsible
+              defaultCollapsed
+            >
+              <AmbassadorProgram />
             </Section>
 
             <Section
