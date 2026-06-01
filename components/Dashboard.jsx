@@ -523,7 +523,7 @@ export default function Dashboard({ initial }) {
 
             <Section
               title="Account Aging & Order History"
-              detail="Recency by account + product · all-history · click a bucket to drill in"
+              detail="Rep-attributed B2B accounts · recency by account + product · all-history · click a bucket to drill in"
               collapsible
               defaultCollapsed
             >

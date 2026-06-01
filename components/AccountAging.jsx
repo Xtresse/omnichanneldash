@@ -139,8 +139,8 @@ export default function AccountAging() {
       </div>
 
       <div className="font-sans text-[10px] text-muted leading-snug">
-        Recency aging — every account bucketed by days since its last order (all-history, ADCS excluded; ties to the
-        same account/rep/revenue logic as the other tabs). Click a bucket to list its accounts, then an account for its order history.
+        Recency aging — every rep-attributed B2B account bucketed by days since its last order (all-history; DTC &amp; ADCS
+        excluded; ties to the same account/rep/revenue logic as the other tabs). Click a bucket to list its accounts, then an account for its order history.
       </div>
 
       {/* Account order-history drawer */}
