@@ -12,10 +12,10 @@ const PARTIAL   = "#C58A2D";   // amber — 90–100% of target
 const UNFAVORABLE = "#5C2F2E"; // brand maroon — <90% of target
 const NEUTRAL   = "#9A8F80";   // muted brown — no target / unknown
 
-// BRAND_BROWN previously colored the Budget bars/Δs; removed when Sam
-// dropped Budget from the display. Keeping SAGE (Goal) + AMBER (Actual).
-const BRAND_SAGE  = "#5C8A6F";
-const BRAND_AMBER = "#C58A2D";
+// Goal vs Actual grouped bars: black reference (Goal) + brand orange (Actual).
+// No green / muddy gold per CEO. (Names kept for minimal churn downstream.)
+const BRAND_SAGE  = "#2B1A10"; // Goal — black reference
+const BRAND_AMBER = "#F0922E"; // Actual — brand orange
 
 const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lumped into Gummies (2026-05)
 
