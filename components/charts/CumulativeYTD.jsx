@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { ChartShell, fmtCurrencyShort, fmtCurrencyFull } from "./_shared.js";
 
-const YEAR_COLORS = ["#C9B68E", "#7A3D23", "#F0922E", "#3A7A6F", "#5C2F2E"];
+const YEAR_COLORS = ["#C9B68E", "#7A3D23", "#F0922E", "#2B1A10", "#5C2F2E"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // Cumulative Net YTD is inherently a full-calendar-year view, so it must

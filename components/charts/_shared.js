@@ -7,11 +7,11 @@ export const COLORS = {
   B2BW2: "#f0922e",      // W2 reps — brand orange (the bulk of B2B)
   B2B1099: "#5c2f2e",    // 1099 reps — maroon, clearly distinct from W2 orange
   ADCS: "#a85f28",       // clay — sub-bucket distinct from B2B
-  DTC: "#3a7a6f",        // teal-sage
+  DTC: "#2b1a10",        // black (no green per CEO)
   Total: "#2b1a10",      // brand ink
   Subscription: "#f0922e", // orange
   OneTime: "#c9b68e",    // taupe
-  newCust: "#3a7a6f",    // teal
+  newCust: "#2b1a10",    // black (New)
   retCust: "#f0922e",    // orange
   Other: "#bfa988",
 };

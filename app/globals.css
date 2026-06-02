@@ -27,7 +27,7 @@
   --accent: 216 118 27;       /* #D8761B deeper orange — accent text on cream */
   /* Channel data colors — closed three-channel set */
   --b2b: 240 146 46;          /* #F0922E orange */
-  --dtc: 58 122 111;          /* #3A7A6F teal-sage */
+  --dtc: 43 26 16;            /* #2B1A10 black — DTC (no green per CEO) */
   --adcs: 168 95 40;          /* #A85F28 warm orange-brown */
   /* Status ramp — sage / amber / maroon / taupe */
   --favorable: 92 138 111;    /* #5C8A6F sage */
@@ -51,7 +51,7 @@
   --xt-brown-deep: #241712;
   --xt-accent:     #d8761b;
   --xt-b2b:        #f0922e;
-  --xt-dtc:        #3a7a6f;
+  --xt-dtc:        #2b1a10;
   --xt-adcs:       #a85f28;
   --xt-favorable:  #5c8a6f;
   --xt-partial:    #c58a2d;
@@ -77,7 +77,7 @@
     --browndeep: 48 34 26;    /* deep espresso — section banners on dark */
     --accent: 232 146 64;
     --b2b: 240 165 92;
-    --dtc: 90 168 152;        /* sage stays sage, brightened */
+    --dtc: 224 214 196;       /* warm cream — DTC on dark (no green) */
     --adcs: 196 138 100;      /* warm orange-brown lifted */
     --muted: 158 132 104;
     --tan: 138 118 90;

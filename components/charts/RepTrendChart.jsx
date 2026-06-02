@@ -14,7 +14,7 @@ import {
 
 // Pre-picked palette — distinct enough that 6-8 lines stay readable.
 const PALETTE = [
-  "#F0922E", "#5C2F2E", "#3A7A6F", "#5C8A6F", "#9C6F4A",
+  "#F0922E", "#5C2F2E", "#2B1A10", "#5C8A6F", "#9C6F4A",
   "#7A3D23", "#D9731E", "#8A3324", "#C9B68E", "#5A4730",
   "#B8902A", "#6E4B2A",
 ];
