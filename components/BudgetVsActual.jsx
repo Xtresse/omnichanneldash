@@ -7,15 +7,15 @@ import {
 } from "recharts";
 
 // Brand palette (mirrors KpiTiles + RepPerformance for consistency).
-const FAVORABLE = "#C8860D";   // sage — ≥100% of target
-const PARTIAL   = "#E6A403";   // amber — 90–100% of target
-const UNFAVORABLE = "#AA2D2D"; // brand maroon — <90% of target
+const FAVORABLE = "#5C8A6F";   // sage — ≥100% of target
+const PARTIAL   = "#C58A2D";   // amber — 90–100% of target
+const UNFAVORABLE = "#5C2F2E"; // brand maroon — <90% of target
 const NEUTRAL   = "#9A8F80";   // muted brown — no target / unknown
 
 // BRAND_BROWN previously colored the Budget bars/Δs; removed when Sam
 // dropped Budget from the display. Keeping SAGE (Goal) + AMBER (Actual).
-const BRAND_SAGE  = "#C8860D";
-const BRAND_AMBER = "#E6A403";
+const BRAND_SAGE  = "#5C8A6F";
+const BRAND_AMBER = "#C58A2D";
 
 const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lumped into Gummies (2026-05)
 
@@ -284,7 +284,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
               <tr className="bg-paper2 font-semibold border-t border-rule/60">
                 <Td className="italic text-inksoft">Total</Td>
                 <Td align="right">{fmt$(totals.goal)}</Td>
-                <Td align="right" className="text-brown">{fmt$(totals.actual)}</Td>
+                <Td align="right" className="text-ink">{fmt$(totals.actual)}</Td>
                 <Td align="right" style={{ color: colorForPct(totals.pctGoal) }}>
                   {(totals.dGoal >= 0 ? "+" : "") + fmt$(totals.dGoal)}
                 </Td>

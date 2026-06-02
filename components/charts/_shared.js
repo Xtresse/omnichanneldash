@@ -3,16 +3,16 @@
 import { ResponsiveContainer } from "recharts";
 
 export const COLORS = {
-  B2B: "#e6a403",        // rust — matches leadership
-  B2BW2: "#e6a403",      // W2 reps — brand orange (the bulk of B2B)
-  B2B1099: "#aa2d2d",    // 1099 reps — brand red, clearly distinct from W2 gold
-  ADCS: "#aa2d2d",       // warm orange-brown — sub-bucket distinct from B2B
-  DTC: "#302c29",        // teal
-  Total: "#2b1a10",
-  Subscription: "#e6a403",
-  OneTime: "#c9b68e",
-  newCust: "#302c29",
-  retCust: "#e6a403",
+  B2B: "#f0922e",        // brand orange — primary channel
+  B2BW2: "#f0922e",      // W2 reps — brand orange (the bulk of B2B)
+  B2B1099: "#5c2f2e",    // 1099 reps — maroon, clearly distinct from W2 orange
+  ADCS: "#a85f28",       // clay — sub-bucket distinct from B2B
+  DTC: "#3a7a6f",        // teal-sage
+  Total: "#2b1a10",      // brand ink
+  Subscription: "#f0922e", // orange
+  OneTime: "#c9b68e",    // taupe
+  newCust: "#3a7a6f",    // teal
+  retCust: "#f0922e",    // orange
   Other: "#bfa988",
 };
 

@@ -30,8 +30,8 @@ const fmt$ = (n) => {
 };
 
 // Brand-aligned compare colors (mirrors RepPerformance.jsx).
-const FAVORABLE = "#C8860D";
-const UNFAVORABLE = "#AA2D2D";
+const FAVORABLE = "#5C8A6F";
+const UNFAVORABLE = "#5C2F2E";
 const NEUTRAL = "#9A8F80";
 
 const FIRST_TIME_WEIGHT = 0.6;
@@ -231,7 +231,7 @@ export default function PresidentsClub({ repPerformance, compare }) {
         </p>
         <p className="font-sans text-[10px] md:text-[11px] leading-snug text-muted mt-1.5">
           Product columns show{" "}
-          <span className="text-brown font-semibold">first-time $</span> on top,{" "}
+          <span className="text-ink font-semibold">first-time $</span> on top,{" "}
           <span className="text-inksoft">returning $</span> below. First-time
           definition matches the Sales-by-rep table above: Gummies = order
           tagged <code className="bg-paper2 px-1 rounded">first order</code>;
@@ -358,7 +358,7 @@ export default function PresidentsClub({ repPerformance, compare }) {
                     })}
                     <Td
                       align="right"
-                      className="text-brown font-semibold border-l border-rule"
+                      className="text-ink font-semibold border-l border-rule"
                     >
                       {fmt$(r.firstTime)}
                     </Td>
@@ -460,7 +460,7 @@ export default function PresidentsClub({ repPerformance, compare }) {
                     </Td>
                   );
                 })}
-                <Td align="right" className="text-brown border-l border-rule">
+                <Td align="right" className="text-ink border-l border-rule">
                   {fmt$(totals.firstTime)}
                 </Td>
                 <Td align="right" className="text-inksoft">
@@ -469,7 +469,7 @@ export default function PresidentsClub({ repPerformance, compare }) {
                 <Td align="right">{fmt$(totals.total)}</Td>
                 <Td
                   align="right"
-                  className="text-brown border-l border-rule bg-paper"
+                  className="text-ink border-l border-rule bg-paper"
                 >
                   {fmt$(totals.weighted)}
                 </Td>
@@ -592,7 +592,7 @@ function ProductDollarCell({ fam }) {
       title={tooltip}
       className="flex flex-col items-end tabular-nums leading-tight"
     >
-      <span className={first > 0 ? "text-brown font-semibold" : "text-muted/60"}>
+      <span className={first > 0 ? "text-ink font-semibold" : "text-muted/60"}>
         {first ? fmt$(first) : "—"}
       </span>
       <span className={ret > 0 ? "text-inksoft text-[10px]" : "text-muted/60 text-[10px]"}>
@@ -627,7 +627,7 @@ function ProductMobileCell({ label, fam }) {
         {label}
       </span>
       <span className="tabular-nums text-right leading-tight">
-        <span className={first > 0 ? "text-brown font-semibold" : "text-muted/60"}>
+        <span className={first > 0 ? "text-ink font-semibold" : "text-muted/60"}>
           {first ? fmt$(first) : "—"}
         </span>
         <span className="text-muted/60 mx-1">·</span>
@@ -651,7 +651,7 @@ function ProductChip({ label, value, accent }) {
       </span>
       <span
         className={`tabular-nums ${
-          accent && value > 0 ? "text-brown font-semibold" : "text-inksoft"
+          accent && value > 0 ? "text-ink font-semibold" : "text-inksoft"
         }`}
       >
         {fmt$(value)}

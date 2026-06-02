@@ -167,7 +167,7 @@ export default function B2BStatusBar() {
   return (
     <div className="rounded-xl border border-rule bg-paper2/60 p-3 md:p-4">
       <div className="flex items-baseline justify-between gap-2 sm:gap-3 mb-2.5 md:mb-3 flex-wrap">
-        <h2 className="font-display text-lg md:text-xl font-semibold text-brown leading-tight">
+        <h2 className="font-display text-lg md:text-xl font-semibold text-ink leading-tight">
           B2B Month-to-Date
         </h2>
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted leading-snug">
@@ -258,7 +258,7 @@ export default function B2BStatusBar() {
                 {tPct != null ? (
                   <>
                     {" · "}
-                    <strong style={{ color: ok ? "#C8860D" : "#AA2D2D" }}>{Math.round(tPct * 100)}%</strong> to goal
+                    <strong style={{ color: ok ? "#5C8A6F" : "#5C2F2E" }}>{Math.round(tPct * 100)}%</strong> to goal
                   </>
                 ) : null}
               </div>
@@ -267,7 +267,7 @@ export default function B2BStatusBar() {
                   className="h-full rounded-full"
                   style={{
                     width: `${tPct != null ? Math.max(0, Math.min(1, tPct)) * 100 : 0}%`,
-                    background: ok ? "#C8860D" : "#E6A403",
+                    background: ok ? "#5C8A6F" : "#C58A2D",
                   }}
                 />
               </div>
@@ -291,10 +291,10 @@ function ProductCard({
   const pctColor = !goal || pctOfGoal == null
     ? "#9A8F80"
     : pctOfGoal >= 1.0
-      ? "#C8860D"
+      ? "#5C8A6F"
       : pctOfGoal >= 0.9
-        ? "#E6A403"
-        : "#AA2D2D";
+        ? "#C58A2D"
+        : "#5C2F2E";
 
   return (
     <div className="relative bg-card border border-rule rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0
@@ -338,7 +338,7 @@ function ProductCard({
             <button
               type="submit"
               disabled={saving || !draft}
-              className="shrink-0 rounded border border-brown bg-brown text-paper px-2 py-1 font-sans text-[11px] font-semibold uppercase tracking-[0.08em] disabled:opacity-50"
+              className="shrink-0 rounded border border-brown bg-brown text-ink px-2 py-1 font-sans text-[11px] font-semibold uppercase tracking-[0.08em] disabled:opacity-50"
             >
               {saving ? "…" : "Save"}
             </button>
@@ -371,7 +371,7 @@ function ProductCard({
             <button
               type="button"
               onClick={onStartEdit}
-              className="shrink-0 font-sans text-[10px] uppercase tracking-[0.12em] text-brown hover:underline"
+              className="shrink-0 font-sans text-[10px] uppercase tracking-[0.12em] text-ink hover:underline"
               title={goal != null ? "Override saved goal (locked once entered)" : "Set monthly goal"}
             >
               {goal != null ? "Edit" : "Set goal"}

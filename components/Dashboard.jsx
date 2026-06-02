@@ -237,7 +237,7 @@ export default function Dashboard({ initial }) {
     return (
       <main className="min-h-screen p-3 sm:p-4 md:p-8">
         <div className="max-w-md mx-auto mt-8 sm:mt-12 rounded-xl border border-rule bg-card p-4 sm:p-6">
-          <h2 className="font-display text-xl sm:text-2xl font-semibold text-brown mb-2">
+          <h2 className="font-display text-xl sm:text-2xl font-semibold text-ink mb-2">
             Couldn&apos;t load data
           </h2>
           <p className="font-sans text-sm text-inksoft">{error}</p>
@@ -283,7 +283,7 @@ export default function Dashboard({ initial }) {
         {/* Header — title in single brown ink, period strip below */}
         <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4 md:mb-6">
           <div className="min-w-0">
-            <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-semibold text-brown leading-tight md:leading-none tracking-tight break-words">
+            <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-semibold text-ink leading-tight md:leading-none tracking-tight break-words">
               Xtresse Omni Channel Dashboard
             </h1>
           </div>
@@ -309,7 +309,7 @@ export default function Dashboard({ initial }) {
               type="button"
               onClick={refresh}
               disabled={isPending || !data}
-              className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-paper text-brown border border-brown hover:bg-paper2 disabled:opacity-50 disabled:cursor-not-allowed transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
+              className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-paper text-ink border border-brown hover:bg-paper2 disabled:opacity-50 disabled:cursor-not-allowed transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
               aria-label="Refresh dashboard data"
               title="Re-fetch the current window from Windsor"
             >
@@ -319,7 +319,7 @@ export default function Dashboard({ initial }) {
             </button>
             <a
               href="/ask"
-              className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-brown text-paper hover:bg-browndeep transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
+              className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-brown text-ink hover:bg-browndeep transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
               title="Open the Claude-powered analyst — full-page chat over the data rails"
             >
               <span aria-hidden="true">✦</span>
@@ -388,7 +388,7 @@ export default function Dashboard({ initial }) {
                   const x = (cur - prior) / prior;
                   const up = x >= 0;
                   return (
-                    <div className="font-sans text-sm md:text-base font-semibold" style={{ color: up ? "#C8860D" : "#AA2D2D" }}>
+                    <div className="font-sans text-sm md:text-base font-semibold" style={{ color: up ? "#5C8A6F" : "#5C2F2E" }}>
                       {up ? "\u25B2" : "\u25BC"} {Math.abs(x * 100).toFixed(1)}%{" "}
                       <span className="text-muted font-normal">vs prior</span>
                     </div>
@@ -601,7 +601,7 @@ function Section({ title, detail, children, collapsible = false, defaultCollapse
       <div className="bg-browndeep text-paper rounded-md px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 mb-3 md:mb-4">
         <div className="flex items-baseline justify-between gap-2 sm:gap-3 flex-wrap">
           <div className="flex items-baseline gap-2 sm:gap-3 min-w-0">
-            <h2 className="font-display text-base sm:text-lg md:text-2xl font-semibold leading-tight">{title}</h2>
+            <h2 className="font-display text-base sm:text-lg md:text-2xl font-semibold leading-tight text-brown">{title}</h2>
             {collapsible && (
               <button
                 type="button"
@@ -660,7 +660,7 @@ function CompareToggle({ value, onChange, disabled }) {
             aria-pressed={active}
             className={`min-h-touch px-2.5 md:px-3 font-sans text-[11px] md:text-xs font-semibold tracking-[0.02em] transition disabled:opacity-50 disabled:cursor-not-allowed ${
               active
-                ? "bg-brown text-paper"
+                ? "bg-brown text-ink"
                 : "text-inksoft hover:bg-paper2"
             }`}
           >
@@ -707,7 +707,7 @@ function MetricToggle({ value, onChange }) {
           type="button"
           onClick={() => onChange(o.k)}
           className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
-            value === o.k ? "bg-brown text-paper font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+            value === o.k ? "bg-brown text-ink font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
           }`}
         >
           {o.label}

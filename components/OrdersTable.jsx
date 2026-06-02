@@ -135,7 +135,7 @@ export default function OrdersTable({ orders }) {
                 }}
                 className={`shrink-0 min-h-touch px-3 rounded-md font-sans text-xs md:text-sm border transition ${
                   active
-                    ? "bg-brown text-paper border-brown"
+                    ? "bg-brown text-ink border-brown"
                     : "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan"
                 }`}
                 aria-pressed={active}
@@ -196,7 +196,7 @@ export default function OrdersTable({ orders }) {
                     href={shopifyUrl(o.id)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-brown underline-offset-2 hover:underline"
+                    className="text-ink underline-offset-2 hover:underline"
                     title={`Open ${o.name || o.id} in Shopify Admin`}
                   >
                     {o.name || `#${o.id.slice(-8)}`}
@@ -273,7 +273,7 @@ export default function OrdersTable({ orders }) {
                   href={shopifyUrl(o.id)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-sans text-sm text-brown underline-offset-2 hover:underline"
+                  className="font-sans text-sm text-ink underline-offset-2 hover:underline"
                 >
                   {o.name || `#${o.id.slice(-8)}`}
                 </a>
@@ -396,7 +396,7 @@ function SortHeader({ active, dir, onClick, align = "left", children }) {
       className={`inline-flex items-center gap-1 ${
         align === "right" ? "justify-end w-full" : ""
       } font-sans text-[10px] uppercase tracking-[0.16em] ${
-        active ? "text-brown" : "text-muted hover:text-inksoft"
+        active ? "text-ink" : "text-muted hover:text-inksoft"
       }`}
     >
       {children}
@@ -413,7 +413,7 @@ function ChannelBadge({ channel, adcs, sub }) {
   if (channel === "B2B") {
     return (
       <span className="inline-flex items-center gap-1">
-        <span className={`${base} bg-brown text-paper`}>B2B</span>
+        <span className={`${base} bg-brown text-ink`}>B2B</span>
         {adcs && (
           <span className={`${base} bg-accent text-paper`}>ADCS</span>
         )}
