@@ -211,7 +211,7 @@ export default function AskUI() {
             <button
               type="button"
               onClick={newConversation}
-              className="w-full bg-brown text-paper rounded-md px-3 py-2 font-sans text-sm font-semibold hover:bg-browndeep transition"
+              className="w-full bg-brown text-ink rounded-md px-3 py-2 font-sans text-sm font-semibold hover:bg-browndeep transition"
             >
               + New conversation
             </button>
@@ -248,7 +248,7 @@ export default function AskUI() {
                               deleteConversation(c.id, ev);
                             }
                           }}
-                          className="opacity-0 group-hover:opacity-100 text-muted hover:text-brown text-[14px] leading-none"
+                          className="opacity-0 group-hover:opacity-100 text-muted hover:text-ink text-[14px] leading-none"
                           aria-label="Delete conversation"
                         >
                           ×
@@ -279,7 +279,7 @@ export default function AskUI() {
                       <button
                         type="button"
                         onClick={() => deleteFact(f.id)}
-                        className="opacity-0 group-hover:opacity-100 text-muted hover:text-brown text-[14px] leading-none"
+                        className="opacity-0 group-hover:opacity-100 text-muted hover:text-ink text-[14px] leading-none"
                         aria-label="Forget this fact"
                       >
                         ×
@@ -364,7 +364,7 @@ export default function AskUI() {
                   type="button"
                   onClick={() => send()}
                   disabled={!input.trim() || loading}
-                  className="shrink-0 min-h-touch px-4 rounded-md font-sans text-sm font-semibold bg-brown text-paper hover:bg-browndeep transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="shrink-0 min-h-touch px-4 rounded-md font-sans text-sm font-semibold bg-brown text-ink hover:bg-browndeep transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Send
                 </button>

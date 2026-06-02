@@ -14,50 +14,50 @@
      (xtresse-design-system/project/colors_and_type.css). This dashboard
      is the reference implementation — all other Xtresse surfaces follow
      these values. */
-  --paper: 247 245 240;       /* #F5F1EA page background */
-  --paper2: 244 238 218;      /* #FAF7F2 soft cream surfaces */
+  --paper: 245 241 234;       /* #F5F1EA page background */
+  --paper2: 250 247 242;      /* #FAF7F2 soft cream surfaces */
   --card: 255 255 255;        /* #FFFFFF white card */
-  --ink: 48 44 41;            /* #2B1A10 primary text */
-  --inksoft: 106 95 84;        /* #5A4232 secondary text */
-  --muted: 138 128 118;        /* #8A7359 eyebrows, meta */
-  --tan: 201 182 142;         /* #A89478 disabled, hairline accent */
-  --rule: 224 222 219;        /* #D4D0C8 hairline borders */
-  --brown: 230 164 3;          /* #5C2A1A primary brand rust + B2B */
-  --browndeep: 200 134 13;      /* #3F1C0F section banners, hover deepen */
-  --accent: 170 45 45;        /* #7A3A2D lighter rust */
+  --ink: 43 26 16;            /* #2B1A10 primary text — near-black warm */
+  --inksoft: 90 66 50;        /* #5A4232 secondary text */
+  --muted: 138 115 89;        /* #8A7359 eyebrows, meta */
+  --tan: 168 148 120;         /* #A89478 disabled, hairline accent */
+  --rule: 212 208 200;        /* #D4D0C8 hairline borders */
+  --brown: 240 146 46;        /* #F0922E brand orange — interactive accent + B2B */
+  --browndeep: 36 23 18;      /* #241712 espresso — section banners + button hover */
+  --accent: 216 118 27;       /* #D8761B deeper orange — accent text on cream */
   /* Channel data colors — closed three-channel set */
-  --b2b: 230 164 3;            /* #5C2A1A */
-  --dtc: 48 44 41;          /* #3A7A6F teal-sage */
-  --adcs: 170 45 45;          /* #A85F28 warm orange-brown */
+  --b2b: 240 146 46;          /* #F0922E orange */
+  --dtc: 43 26 16;            /* #2B1A10 black — DTC (no green per CEO) */
+  --adcs: 168 95 40;          /* #A85F28 warm orange-brown */
   /* Status ramp — sage / amber / maroon / taupe */
-  --favorable: 200 134 13;    /* #5C8A6F */
-  --partial: 230 164 3;      /* #C58A2D */
-  --unfavorable: 170 45 45;    /* #5C2F2E */
+  --favorable: 92 138 111;    /* #5C8A6F sage */
+  --partial: 197 138 45;      /* #C58A2D amber */
+  --unfavorable: 92 47 46;    /* #5C2F2E maroon */
   --neutral: 154 143 128;     /* #9A8F80 */
   /* Recharts grid (softer than UI rule) */
-  --grid: 224 222 219;        /* #D8CAB2 */
+  --grid: 216 202 178;        /* #D8CAB2 */
 
   /* Canonical xt-* aliases (preferred in new code; identical values to
      the rgb-triplet tokens above). */
-  --xt-paper:      #f7f5f0;
-  --xt-paper-2:    #f4eeda;
+  --xt-paper:      #f5f1ea;
+  --xt-paper-2:    #faf7f2;
   --xt-card:       #ffffff;
-  --xt-ink:        #302c29;
-  --xt-ink-soft:   #6a5f54;
-  --xt-muted:      #8a8076;
-  --xt-tan:        #c9b68e;
-  --xt-rule:       #e0dedb;
-  --xt-brown:      #e6a403;
-  --xt-brown-deep: #c8860d;
-  --xt-accent:     #aa2d2d;
-  --xt-b2b:        #e6a403;
-  --xt-dtc:        #302c29;
-  --xt-adcs:       #aa2d2d;
-  --xt-favorable:  #c8860d;
-  --xt-partial:    #e6a403;
-  --xt-unfavorable:#aa2d2d;
+  --xt-ink:        #2b1a10;
+  --xt-ink-soft:   #5a4232;
+  --xt-muted:      #8a7359;
+  --xt-tan:        #a89478;
+  --xt-rule:       #d4d0c8;
+  --xt-brown:      #f0922e;
+  --xt-brown-deep: #241712;
+  --xt-accent:     #d8761b;
+  --xt-b2b:        #f0922e;
+  --xt-dtc:        #2b1a10;
+  --xt-adcs:       #a85f28;
+  --xt-favorable:  #5c8a6f;
+  --xt-partial:    #c58a2d;
+  --xt-unfavorable:#5c2f2e;
   --xt-neutral:    #9a8f80;
-  --xt-grid:       #e0dedb;
+  --xt-grid:       #d8cab2;
 }
 
 /* Dark mode — auto via OS / browser preference. Inverted brand palette:
@@ -73,11 +73,11 @@
     --ink: 240 230 212;       /* warm cream text */
     --inksoft: 184 168 144;   /* secondary cream */
     --rule: 58 44 32;         /* dim hairline */
-    --brown: 212 161 122;     /* golden cream — flips rust direction */
-    --browndeep: 196 138 100; /* slightly warmer */
-    --accent: 196 114 75;
-    --b2b: 212 161 122;
-    --dtc: 90 168 152;        /* sage stays sage, brightened */
+    --brown: 240 165 92;      /* #F0A55C lighter orange for dark surfaces */
+    --browndeep: 48 34 26;    /* deep espresso — section banners on dark */
+    --accent: 232 146 64;
+    --b2b: 240 165 92;
+    --dtc: 224 214 196;       /* warm cream — DTC on dark (no green) */
     --adcs: 196 138 100;      /* warm orange-brown lifted */
     --muted: 158 132 104;
     --tan: 138 118 90;

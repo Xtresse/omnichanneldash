@@ -36,8 +36,8 @@ const blankSlot = { newUnits: 0, newDollars: 0, existingUnits: 0, existingDollar
 // Brand-aligned compare colors. Green sage = favorable; brand maroon =
 // unfavorable; muted brown = neutral / no comparison data. Tabular nums
 // keep delta percentages aligned across rows.
-const FAVORABLE = "#C8860D";
-const UNFAVORABLE = "#AA2D2D";
+const FAVORABLE = "#F0922E";
+const UNFAVORABLE = "#5C2F2E";
 const NEUTRAL = "#9A8F80";
 
 function deltaColor(cur, prior, higherIsBetter = true) {
@@ -291,7 +291,7 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
                   )}
                 </Td>
               ))}
-              <Td align="right" className="text-brown border-l border-rule">
+              <Td align="right" className="text-ink border-l border-rule">
                 {fmt$(totals.net)}
                 {priorTotals && (
                   <DeltaBelow cur={totals.net} prior={priorTotals.net} fmt={fmt$} compareLabel={compareLabel} />
@@ -368,7 +368,7 @@ function ProductCell({ slot }) {
 Existing customers: ${fmtN(e)} · ${fmtN(slot.existingUnits || 0)} units · ${fmt$(slot.existingDollars)}`;
   return (
     <span title={tooltip} className="inline-flex items-baseline gap-1 tabular-nums">
-      <span className={n > 0 ? "text-brown font-semibold" : "text-muted"}>
+      <span className={n > 0 ? "text-ink font-semibold" : "text-muted"}>
         {fmtN(n)}N
       </span>
       <span className="text-muted/60">·</span>
@@ -466,7 +466,7 @@ function ProductChip({ label, slot, prior, compareLabel }) {
           {label}
         </span>
         <span className="tabular-nums">
-          <span className={n > 0 ? "text-brown font-semibold" : "text-muted"}>
+          <span className={n > 0 ? "text-ink font-semibold" : "text-muted"}>
             {fmtN(n)}N
           </span>
           <span className="text-muted/60 mx-0.5">·</span>

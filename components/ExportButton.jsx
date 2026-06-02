@@ -148,7 +148,7 @@ export default function ExportButton({ data, periodLabel }) {
     <button
       type="button"
       onClick={exportAll}
-      className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-brown text-paper border border-brown hover:bg-browndeep transition tracking-[0.04em]"
+      className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-brown text-ink border border-brown hover:bg-browndeep transition tracking-[0.04em]"
       title="Download CSVs for KPIs, rep performance, and the full order audit"
     >
       Export CSV

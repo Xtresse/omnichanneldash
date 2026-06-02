@@ -2,9 +2,25 @@
 
 // Date helpers — kept identical to xtresse-leadershipdash so omni and
 // leadership compute the same windows for matching presets.
-const today = () => new Date().toISOString().slice(0, 10);
+//
+// "Today" must resolve in Eastern Time. The business runs on EST/EDT, but
+// toISOString() converts to UTC — so after ~8pm ET the old code rolled the
+// date forward a day (e.g. "Today" showed tomorrow). Anchor on America/New_York.
+const ET_TZ = "America/New_York";
+const today = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: ET_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 const todayD = () => new Date(today() + "T00:00:00");
-const ymd = (d) => d.toISOString().slice(0, 10);
+// Format a Date's calendar day from its local parts — avoids the UTC shift
+// that toISOString() would re-introduce.
+const ymd = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
 const addDays = (d, n) => {
   const x = new Date(d);
   x.setDate(x.getDate() + n);
@@ -79,7 +95,7 @@ export default function FilterBar({
                 }}
                 className={`shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm transition border ${
                   active
-                    ? "bg-brown text-paper border-brown"
+                    ? "bg-brown text-ink border-brown"
                     : "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan"
                 }`}
                 aria-pressed={active}
@@ -150,7 +166,7 @@ export default function FilterBar({
               onClick={() => onGranularityChange(g.value)}
               className={`shrink-0 min-h-touch px-3 rounded-md font-sans text-xs transition border ${
                 active
-                  ? "bg-brown text-paper border-brown"
+                  ? "bg-brown text-ink border-brown"
                   : "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan"
               }`}
               aria-pressed={active}

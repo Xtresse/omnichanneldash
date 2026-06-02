@@ -21,8 +21,8 @@ const TOLERANCE = 1; // dollar deltas under $1 are noise — display as "ties ou
  *   3. Territory rollup — Existing / New / 1099 totals
  */
 // Brand-aligned compare colors — match KpiTiles / RepPerformance.
-const FAVORABLE = "#C8860D";
-const UNFAVORABLE = "#AA2D2D";
+const FAVORABLE = "#F0922E";
+const UNFAVORABLE = "#5C2F2E";
 const NEUTRAL = "#9A8F80";
 
 function deltaColor(cur, prior, higherIsBetter = true) {
@@ -178,7 +178,7 @@ export default function ReconciliationCheck({ reconciliation, kpis, compare }) {
                   <TdSm className="italic text-inksoft">Total</TdSm>
                   <TdSm align="right">{fmtN(territory.reduce((a, t) => a + t.reps, 0))}</TdSm>
                   <TdSm align="right">{fmtN(territory.reduce((a, t) => a + t.orders, 0))}</TdSm>
-                  <TdSm align="right" className="text-brown">
+                  <TdSm align="right" className="text-ink">
                     {fmt$(territory.reduce((a, t) => a + t.net, 0))}
                   </TdSm>
                   <TdSm align="right">{fmtN(territory.reduce((a, t) => a + t.firstOrderGummy, 0))}</TdSm>
@@ -305,7 +305,7 @@ function CheckRow({ label, actual, expected, delta, note, allowDelta }) {
 
 function Stat({ label, value, hint, tone = "neutral" }) {
   const valueColor =
-    tone === "ok" ? "text-brown" : "text-ink";
+    tone === "ok" ? "text-ink" : "text-ink";
   return (
     <div className="rounded-md border border-rule bg-paper2/50 px-3 py-2">
       <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">

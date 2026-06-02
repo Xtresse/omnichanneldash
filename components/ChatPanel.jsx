@@ -97,7 +97,7 @@ export default function ChatPanel({ data }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 min-h-touch bg-brown text-paper rounded-full shadow-lg hover:bg-browndeep transition flex items-center gap-2 px-4 py-3 font-sans text-sm font-semibold"
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 min-h-touch bg-brown text-ink rounded-full shadow-lg hover:bg-browndeep transition flex items-center gap-2 px-4 py-3 font-sans text-sm font-semibold"
           aria-label="Open Ask Claude chat"
         >
           <SparkleIcon />
@@ -194,7 +194,7 @@ export default function ChatPanel({ data }) {
                 type="button"
                 onClick={() => send()}
                 disabled={!input.trim() || loading}
-                className="shrink-0 min-h-touch px-4 rounded-md font-sans text-sm font-semibold bg-brown text-paper hover:bg-browndeep transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="shrink-0 min-h-touch px-4 rounded-md font-sans text-sm font-semibold bg-brown text-ink hover:bg-browndeep transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Send
               </button>
@@ -217,7 +217,7 @@ function Bubble({ role, content, pulsing }) {
       <div
         className={`max-w-[88%] rounded-xl px-3 py-2 font-sans text-[13px] leading-relaxed whitespace-pre-wrap ${
           isUser
-            ? "bg-brown text-paper"
+            ? "bg-brown text-ink"
             : "bg-card text-ink border border-rule"
         } ${pulsing ? "animate-pulse" : ""}`}
       >
