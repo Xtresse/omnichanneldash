@@ -36,7 +36,7 @@ const blankSlot = { newUnits: 0, newDollars: 0, existingUnits: 0, existingDollar
 // Brand-aligned compare colors. Green sage = favorable; brand maroon =
 // unfavorable; muted brown = neutral / no comparison data. Tabular nums
 // keep delta percentages aligned across rows.
-const FAVORABLE = "#5C8A6F";
+const FAVORABLE = "#F0922E";
 const UNFAVORABLE = "#5C2F2E";
 const NEUTRAL = "#9A8F80";
 

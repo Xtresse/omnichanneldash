@@ -75,7 +75,7 @@ function FamilyTooltip({ active, payload, label, priorLabel }) {
     prTotal && prTotal !== 0 ? ((curTotal - prTotal) / prTotal) * 100 : null;
   const arrow = prTotal == null ? "" : curTotal > prTotal ? "▲" : curTotal < prTotal ? "▼" : "·";
   const color =
-    prTotal == null ? "#9A8F80" : curTotal >= prTotal ? "#5C8A6F" : "#5C2F2E";
+    prTotal == null ? "#9A8F80" : curTotal >= prTotal ? "#F0922E" : "#5C2F2E";
   return (
     <div className="rounded-md border border-rule bg-card px-3 py-2 shadow-md font-sans text-xs leading-snug min-w-[180px]">
       <div className="font-semibold text-ink mb-1">{label}</div>

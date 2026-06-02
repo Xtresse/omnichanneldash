@@ -17,12 +17,12 @@ const fmtDate = (iso) => {
 function buildBuckets() {
   const thisYear = new Date().getFullYear();
   return [
-    { key: "0-30", label: "0–30 days", tone: "#5C8A6F", test: (a) => a.daysSince <= 30 },
-    { key: "31-60", label: "31–60 days", tone: "#C58A2D", test: (a) => a.daysSince <= 60 },
-    { key: "61-90", label: "61–90 days", tone: "#E0782A", test: (a) => a.daysSince <= 90 },
-    { key: "90+", label: "90+ days (this year)", tone: "#9C6F4A", test: (a) => yearOf(a) >= thisYear },
+    { key: "0-30", label: "0–30 days", tone: "#F0922E", test: (a) => a.daysSince <= 30 },
+    { key: "31-60", label: "31–60 days", tone: "#D9731E", test: (a) => a.daysSince <= 60 },
+    { key: "61-90", label: "61–90 days", tone: "#A85F28", test: (a) => a.daysSince <= 90 },
+    { key: "90+", label: "90+ days (this year)", tone: "#7A3D23", test: (a) => yearOf(a) >= thisYear },
     { key: "since-prev", label: `No order since ${thisYear - 1}`, tone: "#5C2F2E", test: (a) => yearOf(a) === thisYear - 1 },
-    { key: "since-prev2", label: `No order since ${thisYear - 2}`, tone: "#7A3D23", test: (a) => yearOf(a) === thisYear - 2 },
+    { key: "since-prev2", label: `No order since ${thisYear - 2}`, tone: "#43201E", test: (a) => yearOf(a) === thisYear - 2 },
     { key: "older", label: "Older / dormant", tone: "#2B1A10", test: () => true },
   ];
 }

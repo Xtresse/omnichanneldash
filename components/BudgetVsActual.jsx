@@ -7,10 +7,10 @@ import {
 } from "recharts";
 
 // Brand palette (mirrors KpiTiles + RepPerformance for consistency).
-const FAVORABLE = "#5C8A6F";   // sage — ≥100% of target
-const PARTIAL   = "#C58A2D";   // amber — 90–100% of target
+const FAVORABLE = "#F0922E";   // orange — ≥100% of target (on/over goal)
+const PARTIAL   = "#9A8F80";   // gray — 90–100% of target (almost)
 const UNFAVORABLE = "#5C2F2E"; // brand maroon — <90% of target
-const NEUTRAL   = "#9A8F80";   // muted brown — no target / unknown
+const NEUTRAL   = "#9A8F80";   // gray — no target / unknown
 
 // Goal vs Actual grouped bars: black reference (Goal) + brand orange (Actual).
 // No green / muddy gold per CEO. (Names kept for minimal churn downstream.)

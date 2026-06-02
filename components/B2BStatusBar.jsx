@@ -258,7 +258,7 @@ export default function B2BStatusBar() {
                 {tPct != null ? (
                   <>
                     {" · "}
-                    <strong style={{ color: ok ? "#5C8A6F" : "#5C2F2E" }}>{Math.round(tPct * 100)}%</strong> to goal
+                    <strong style={{ color: ok ? "#F0922E" : "#5C2F2E" }}>{Math.round(tPct * 100)}%</strong> to goal
                   </>
                 ) : null}
               </div>
@@ -267,7 +267,7 @@ export default function B2BStatusBar() {
                   className="h-full rounded-full"
                   style={{
                     width: `${tPct != null ? Math.max(0, Math.min(1, tPct)) * 100 : 0}%`,
-                    background: ok ? "#5C8A6F" : "#C58A2D",
+                    background: ok ? "#F0922E" : "#9A8F80",
                   }}
                 />
               </div>
@@ -291,9 +291,9 @@ function ProductCard({
   const pctColor = !goal || pctOfGoal == null
     ? "#9A8F80"
     : pctOfGoal >= 1.0
-      ? "#5C8A6F"
+      ? "#F0922E"
       : pctOfGoal >= 0.9
-        ? "#C58A2D"
+        ? "#9A8F80"
         : "#5C2F2E";
 
   return (

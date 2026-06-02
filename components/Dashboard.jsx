@@ -388,7 +388,7 @@ export default function Dashboard({ initial }) {
                   const x = (cur - prior) / prior;
                   const up = x >= 0;
                   return (
-                    <div className="font-sans text-sm md:text-base font-semibold" style={{ color: up ? "#5C8A6F" : "#5C2F2E" }}>
+                    <div className="font-sans text-sm md:text-base font-semibold" style={{ color: up ? "#F0922E" : "#5C2F2E" }}>
                       {up ? "\u25B2" : "\u25BC"} {Math.abs(x * 100).toFixed(1)}%{" "}
                       <span className="text-muted font-normal">vs prior</span>
                     </div>
