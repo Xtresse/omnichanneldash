@@ -475,11 +475,13 @@ export default function Dashboard({ initial }) {
 
             <Section
               title="ZIP Heat Map"
-              detail="Order density by ZIP · color by rep or metric · click / “Jump to” a state for city-level whitespace"
+              detail="B2B only · Sales density or Opportunity (open + thin markets) · click / “Jump to” a state"
               collapsible
               defaultCollapsed
             >
-              <ZipHeatMap orders={(data.orders || []).filter((o) => !o.adcs)} />
+              {/* B2B only — exclude DTC consumer orders AND ADCS, so the map (and
+                  its rep/whitespace signal) is purely the rep-sold business. */}
+              <ZipHeatMap orders={(data.orders || []).filter((o) => o.channel === "B2B")} />
             </Section>
 
             <Section
