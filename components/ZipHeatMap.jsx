@@ -30,6 +30,10 @@ const COLOR_MODES = [
   { k: "new", label: "New accounts" },
 ];
 
+// A B2B "market" (ZIP) with this many orders or fewer counts as nascent / thin
+// — somewhere we've barely landed and could grow. Tunable one-liner.
+const MINIMAL_ORDERS = 3;
+
 // FIPS (2-digit state code carried on the us-atlas geographies) → USPS abbrev.
 // Lets a clicked state polygon be matched back to the ship-state on orders so
 // the zoom view can filter ZIPs / cities to that state.
@@ -85,29 +89,39 @@ for (const f of STATE_FEATURES) {
 }
 const STATE_OPTIONS = [...STATE_GEO.keys()].sort();
 
+// Opportunity-view colors, drawn from the CEO orange/black palette
+// (good/target = orange, covered/neutral = gray). No gold/amber.
+const OPEN_FILL = heatRamp[1];      // light orange — a state with NO sales
+const COVERED_FILL = "#ECE6DB";     // muted cream-gray — a state already covered
+
 /**
- * ZIP-level heat map with two upgrades over a plain dot map:
+ * ZIP-level B2B heat map with two views:
  *
- *  1. DENSITY GLOW (default). Each ZIP is drawn as a soft radial-gradient blob
- *     run through a Gaussian blur, so overlapping orders bloom into a true heat
- *     cloud. Coloring by rep gives every rep their OWN hue — the cloud reads as
- *     "whose territory is hot where", and density deepens that rep's color. The
- *     metric modes (net / orders / new) shade the glow along the brand heat ramp.
+ *  SALES (default) — density-glow heat cloud of where B2B sales ARE. Each ZIP is
+ *    a soft radial-gradient blob through a Gaussian blur; "Owning rep" gives each
+ *    rep their own hue, the metric modes shade along the brand heat ramp. A
+ *    Density/Points toggle switches render styles.
  *
- *  2. ZOOM TO CITIES. Pick a state from "Jump to", click its polygon, or click a
- *     heat blob to fly in: the map zooms to the state, overlays county outlines,
- *     labels the cities you sell into, and drops gray dots on every major
- *     (pop ≥ 50k) city with NO sales — the whitespace for placing a new rep.
- *     ADCS is already excluded upstream by the caller.
+ *  OPPORTUNITY — the inverse: where to expand. States with NO B2B sales light up
+ *    orange (covered states fade to gray); every major city (pop ≥ 50k) with no
+ *    sales drops an orange whitespace dot; and existing markets are filtered down
+ *    to the THIN ones (≤ MINIMAL_ORDERS orders) so the eye lands on nascent
+ *    territory instead of where we already win.
+ *
+ *  Either way, drill into a state via the "Jump to" dropdown, a polygon click, or
+ *  a blob click. ADCS + DTC are excluded upstream — this map is B2B only.
  */
 function ZipHeatMapInner({ orders }) {
   const [colorBy, setColorBy] = useState("rep");
   const [style, setStyle] = useState("heat");
+  const [view, setView] = useState("sales"); // "sales" | "opportunity"
   const [hover, setHover] = useState(null);
   const [position, setPosition] = useState(NATIONAL_VIEW);
   const [focus, setFocus] = useState(null);
   const [countiesTopo, setCountiesTopo] = useState(null);
   const [cities, setCities] = useState(null);
+
+  const opportunity = view === "opportunity";
 
   const { zips, offMap } = useMemo(() => {
     const m = new Map();
@@ -144,6 +158,13 @@ function ZipHeatMapInner({ orders }) {
     const list = all.filter((zp) => projectsOnMap(zp.lng, zp.lat));
     return { zips: list, offMap: all.length - list.length };
   }, [orders]);
+
+  // States we have ANY B2B sales in — drives the Opportunity state shading.
+  const statesWithSales = useMemo(() => {
+    const s = new Set();
+    for (const z of zips) if (z.state) s.add(z.state);
+    return s;
+  }, [zips]);
 
   // Stable categorical color per rep (sorted for determinism).
   const repColors = useMemo(() => {
@@ -193,6 +214,14 @@ function ZipHeatMapInner({ orders }) {
 
   // Render larger markers first so small ones sit on top (clickable).
   const sorted = useMemo(() => [...zips].sort((a, b) => b.orderCount - a.orderCount), [zips]);
+
+  // The markets actually drawn: everything in Sales view, only the thin/nascent
+  // ones (≤ MINIMAL_ORDERS) in Opportunity view.
+  const visibleMarkets = useMemo(
+    () => (opportunity ? sorted.filter((a) => a.orderCount <= MINIMAL_ORDERS) : sorted),
+    [opportunity, sorted],
+  );
+
   const repsPresent = useMemo(
     () => [...repColors.keys()].sort((a, b) => repName(a).localeCompare(repName(b))),
     [repColors],
@@ -217,25 +246,41 @@ function ZipHeatMapInner({ orders }) {
     return out.sort((x, y) => y.netSales - x.netSales).slice(0, 12);
   }, [focus, zips]);
 
-  // City names where we DO have orders in the focused state — used to subtract
-  // them from the whitespace layer so we don't double-label a city.
-  const salesCityNames = useMemo(() => {
+  // city|ST set of everywhere we already have B2B sales — subtracted from the
+  // whitespace layers so we never label a city we sell into as "open".
+  const soldCityKeys = useMemo(() => {
     const s = new Set();
-    for (const a of zips) if (focus && a.state === focus.abbr && a.city) s.add(a.city.toLowerCase());
+    for (const a of zips) if (a.city) s.add(`${a.city.toLowerCase()}|${a.state}`);
     return s;
-  }, [zips, focus]);
+  }, [zips]);
 
-  // Every major (pop ≥ 50k) city in the focused state we DON'T yet sell into —
-  // the whitespace for deciding where to drop in a new rep. Drawn as plain gray
-  // dots (no heat glow). Capped + projection-guarded so dense states (CA has
-  // ~175) stay readable and an off-map point can never crash the marker layer.
+  // Whitespace inside the focused state — every major (pop ≥ 50k) city we DON'T
+  // yet sell into. Capped + projection-guarded so dense states stay readable.
   const whitespaceCities = useMemo(() => {
     if (!focus || !cities) return [];
     return cities
-      .filter((c) => c.s === focus.abbr && !salesCityNames.has(c.c.toLowerCase()) && projectsOnMap(c.lng, c.lat))
+      .filter((c) => c.s === focus.abbr && !soldCityKeys.has(`${c.c.toLowerCase()}|${c.s}`) && projectsOnMap(c.lng, c.lat))
       .sort((a, b) => b.p - a.p)
       .slice(0, 40);
-  }, [focus, cities, salesCityNames]);
+  }, [focus, cities, soldCityKeys]);
+
+  // National whitespace (Opportunity view, no state focused): the biggest US
+  // cities with NO B2B sales anywhere — the headline "open markets" list.
+  const nationalWhitespace = useMemo(() => {
+    if (!opportunity || focus || !cities) return [];
+    return cities
+      .filter((c) => !soldCityKeys.has(`${c.c.toLowerCase()}|${c.s}`) && projectsOnMap(c.lng, c.lat))
+      .sort((a, b) => b.p - a.p)
+      .slice(0, 24);
+  }, [opportunity, focus, cities, soldCityKeys]);
+
+  // Lazy-load the cities file the moment Opportunity (or a zoom) needs it.
+  const loadCities = useCallback(() => {
+    if (!cities) import("@/data/us-cities-major.json").then((m) => setCities(m.default ?? m));
+  }, [cities]);
+
+  const showSales = useCallback(() => setView("sales"), []);
+  const showOpportunity = useCallback(() => { setView("opportunity"); loadCities(); }, [loadCities]);
 
   // Zoom by state abbreviation — the single path used by the dropdown, a
   // polygon click, and a click on a heat blob. Looks the state's geometry up
@@ -253,8 +298,8 @@ function ZipHeatMapInner({ orders }) {
     // Counties are ~840KB and the cities list ~50KB — only pull them in once
     // the user actually zooms into a state.
     if (!countiesTopo) import("us-atlas/counties-10m.json").then((m) => setCountiesTopo(m.default ?? m));
-    if (!cities) import("@/data/us-cities-major.json").then((m) => setCities(m.default ?? m));
-  }, [countiesTopo, cities]);
+    loadCities();
+  }, [countiesTopo, loadCities]);
 
   const zoomToState = useCallback((geo) => {
     const abbr = FIPS_TO_STATE[String(geo.id).padStart(2, "0")];
@@ -270,42 +315,64 @@ function ZipHeatMapInner({ orders }) {
     setPosition((p) => ({ ...p, zoom: Math.max(1, Math.min(12, p.zoom * factor)) }));
 
   const located = orders.filter((o) => o.shipLat != null).length;
+  const openCount = focus ? whitespaceCities.length : nationalWhitespace.length;
 
   return (
     <div className="space-y-3">
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">Color by</span>
+        <span className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">View</span>
         <div className="inline-flex rounded-md border border-rule overflow-hidden">
-          {COLOR_MODES.map((o) => (
-            <button
-              key={o.k}
-              type="button"
-              onClick={() => setColorBy(o.k)}
-              className={`font-sans text-[11px] px-2.5 py-1 ${
-                colorBy === o.k ? "bg-brown text-paper font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
-              }`}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-
-        <span className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold ml-1">Style</span>
-        <div className="inline-flex rounded-md border border-rule overflow-hidden">
-          {[["heat", "Density"], ["points", "Points"]].map(([k, label]) => (
+          {[["sales", "Sales"], ["opportunity", "Opportunity"]].map(([k, label]) => (
             <button
               key={k}
               type="button"
-              onClick={() => setStyle(k)}
+              onClick={k === "opportunity" ? showOpportunity : showSales}
               className={`font-sans text-[11px] px-2.5 py-1 ${
-                style === k ? "bg-brown text-paper font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+                view === k ? "bg-brown text-paper font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
               }`}
             >
               {label}
             </button>
           ))}
         </div>
+
+        {/* Color-by + Style only steer the Sales heat cloud. */}
+        {!opportunity && (
+          <>
+            <span className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold ml-1">Color by</span>
+            <div className="inline-flex rounded-md border border-rule overflow-hidden">
+              {COLOR_MODES.map((o) => (
+                <button
+                  key={o.k}
+                  type="button"
+                  onClick={() => setColorBy(o.k)}
+                  className={`font-sans text-[11px] px-2.5 py-1 ${
+                    colorBy === o.k ? "bg-brown text-paper font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
+            <span className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold ml-1">Style</span>
+            <div className="inline-flex rounded-md border border-rule overflow-hidden">
+              {[["heat", "Density"], ["points", "Points"]].map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setStyle(k)}
+                  className={`font-sans text-[11px] px-2.5 py-1 ${
+                    style === k ? "bg-brown text-paper font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <span className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold ml-1">Jump to</span>
         <select
@@ -321,8 +388,9 @@ function ZipHeatMapInner({ orders }) {
         </select>
 
         <span className="font-sans text-[10px] text-muted ml-auto">
-          {fmtNum(zips.length)} ZIPs · {fmtNum(located)} located orders
-          {offMap > 0 ? ` · ${fmtNum(offMap)} off-map hidden` : ""}
+          {opportunity
+            ? `${fmtNum(openCount)} open ${focus ? "cities" : "big cities"} · ${fmtNum(visibleMarkets.length)} thin markets (≤${MINIMAL_ORDERS})`
+            : `${fmtNum(zips.length)} ZIPs · ${fmtNum(located)} B2B orders located${offMap > 0 ? ` · ${fmtNum(offMap)} off-map hidden` : ""}`}
         </span>
       </div>
 
@@ -374,18 +442,25 @@ function ZipHeatMapInner({ orders }) {
             <Geographies geography={statesTopo}>
               {({ geographies }) =>
                 geographies.map((geo) => {
-                  const isFocus = focus?.fips === String(geo.id).padStart(2, "0");
+                  const fips = String(geo.id).padStart(2, "0");
+                  const abbr = FIPS_TO_STATE[fips];
+                  const isFocus = focus?.fips === fips;
+                  // Opportunity view: light orange = no B2B sales (open), gray =
+                  // already covered. Sales view: the usual cream basemap.
+                  const hasSales = statesWithSales.has(abbr);
+                  const fill = opportunity ? (hasSales ? COVERED_FILL : OPEN_FILL) : (brand.paper2 ?? "#F4EEDA");
+                  const stroke = isFocus ? brand.brown : opportunity && !hasSales ? brand.brown : "#d9d4c8";
                   return (
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
                       onClick={() => zoomToState(geo)}
-                      fill={brand.paper2 ?? "#F4EEDA"}
-                      stroke={isFocus ? brand.brown : "#e0dedb"}
+                      fill={fill}
+                      stroke={stroke}
                       strokeWidth={(isFocus ? 1.2 : 0.5) / z}
                       style={{
                         default: { outline: "none", cursor: "pointer" },
-                        hover: { outline: "none", fill: focus ? (brand.paper2 ?? "#F4EEDA") : "#EFE8D2" },
+                        hover: { outline: "none", fill: opportunity ? (hasSales ? COVERED_FILL : OPEN_FILL) : focus ? (brand.paper2 ?? "#F4EEDA") : "#EFE8D2" },
                         pressed: { outline: "none" },
                       }}
                     />
@@ -414,8 +489,9 @@ function ZipHeatMapInner({ orders }) {
               </Geographies>
             )}
 
-            {/* Visual heat layer (non-interactive so state clicks pass through). */}
-            {style === "heat" && (
+            {/* Visual heat layer — Sales view only (non-interactive so state
+                clicks pass through). */}
+            {!opportunity && style === "heat" && (
               <g filter="url(#heatBlur)" style={{ pointerEvents: "none" }}>
                 {sorted.map((a, i) => (
                   <Marker key={i} coordinates={[a.lng, a.lat]}>
@@ -425,42 +501,52 @@ function ZipHeatMapInner({ orders }) {
               </g>
             )}
 
-            {/* Crisp points (interactive) — also the hover hit layer for heat. */}
-            {sorted.map((a, i) => (
-              <Marker key={`p${i}`} coordinates={[a.lng, a.lat]}>
-                <circle
-                  r={style === "points" ? dotRadius(a) : Math.max(2.5, dotRadius(a))}
-                  fill={style === "points" ? colorFor(a) : "transparent"}
-                  fillOpacity={style === "points" ? 0.82 : 0}
-                  stroke={style === "points" ? "#fff" : "none"}
-                  strokeWidth={0.5 / z}
-                  onMouseEnter={() => setHover(a)}
-                  onMouseLeave={() => setHover(null)}
-                  onClick={() => a.state && zoomToAbbr(a.state)}
-                  style={{ cursor: "pointer" }}
-                />
-              </Marker>
-            ))}
+            {/* Markets layer. Sales: every market (crisp points, or the hover hit
+                layer under the heat glow). Opportunity: only the thin/nascent
+                markets, as solid orange dots. */}
+            {visibleMarkets.map((a, i) => {
+              const showDot = opportunity || style === "points";
+              const fillC = opportunity ? brand.brown : style === "points" ? colorFor(a) : "transparent";
+              return (
+                <Marker key={`p${i}`} coordinates={[a.lng, a.lat]}>
+                  <circle
+                    r={opportunity ? Math.max(2.6, dotRadius(a)) : style === "points" ? dotRadius(a) : Math.max(2.5, dotRadius(a))}
+                    fill={fillC}
+                    fillOpacity={showDot ? (opportunity ? 0.9 : 0.82) : 0}
+                    stroke={showDot ? "#fff" : "none"}
+                    strokeWidth={0.5 / z}
+                    onMouseEnter={() => setHover(a)}
+                    onMouseLeave={() => setHover(null)}
+                    onClick={() => a.state && zoomToAbbr(a.state)}
+                    style={{ cursor: "pointer" }}
+                  />
+                </Marker>
+              );
+            })}
 
-            {/* Whitespace: major (pop ≥ 50k) cities with NO sales in the focused
-                state — gray, non-interactive so they never block state clicks. */}
-            {focus && whitespaceCities.map((c, i) => (
-              <Marker key={`w${i}`} coordinates={[c.lng, c.lat]} style={{ default: { pointerEvents: "none" }, hover: {}, pressed: {} }}>
-                <circle r={1.8 / z} fill={brand.muted} fillOpacity={0.7} />
-                <text
-                  x={3.5 / z}
-                  y={1.2 / z}
-                  style={{ fontFamily: "system-ui, sans-serif", fontWeight: 500, pointerEvents: "none" }}
-                  fontSize={7.5 / z}
-                  fill={brand.muted}
-                  stroke="#fff"
-                  strokeWidth={1.4 / z}
-                  paintOrder="stroke"
-                >
-                  {c.c}
-                </text>
-              </Marker>
-            ))}
+            {/* Whitespace cities (no B2B sales). Orange in Opportunity view (drop
+                a rep here), muted gray as context in Sales view. Non-interactive
+                so they never block a state click. */}
+            {[...(focus ? whitespaceCities : nationalWhitespace)].map((c, i) => {
+              const wsColor = opportunity ? brand.brown : brand.muted;
+              return (
+                <Marker key={`w${i}`} coordinates={[c.lng, c.lat]} style={{ default: { pointerEvents: "none" }, hover: {}, pressed: {} }}>
+                  <circle r={(opportunity ? 2.1 : 1.8) / z} fill={wsColor} fillOpacity={opportunity ? 0.95 : 0.7} />
+                  <text
+                    x={3.5 / z}
+                    y={1.2 / z}
+                    style={{ fontFamily: "system-ui, sans-serif", fontWeight: opportunity ? 600 : 500, pointerEvents: "none" }}
+                    fontSize={(opportunity ? 8 : 7.5) / z}
+                    fill={wsColor}
+                    stroke="#fff"
+                    strokeWidth={1.4 / z}
+                    paintOrder="stroke"
+                  >
+                    {c.c}
+                  </text>
+                </Marker>
+              );
+            })}
 
             {/* City labels (where we DO have sales) when zoomed into a state. */}
             {focus && focusCities.map((c, i) => (
@@ -493,20 +579,34 @@ function ZipHeatMapInner({ orders }) {
           </div>
         )}
 
-        {!focus && (
-          <div className="absolute bottom-2 left-2 font-sans text-[10px] text-muted bg-card/80 rounded px-1.5 py-0.5 pointer-events-none">
-            Click a state (or use “Jump to”) to zoom into its cities
-          </div>
-        )}
-        {focus && (
-          <div className="absolute bottom-2 left-2 font-sans text-[10px] text-muted bg-card/80 rounded px-1.5 py-0.5 pointer-events-none">
-            Gray = major city (50k+) with no sales — open territory
-          </div>
-        )}
+        <div className="absolute bottom-2 left-2 font-sans text-[10px] text-muted bg-card/80 rounded px-1.5 py-0.5 pointer-events-none">
+          {opportunity
+            ? focus
+              ? "Orange = major city (50k+) with no B2B sales · dots = thin markets (≤" + MINIMAL_ORDERS + " orders)"
+              : "Orange states = no B2B sales · orange dots = biggest cities with no sales — open territory"
+            : focus
+              ? "Gray = major city (50k+) with no B2B sales — open territory"
+              : "Click a state (or use “Jump to”) to zoom into its cities"}
+        </div>
       </div>
 
       {/* Legend */}
-      {colorBy === "rep" ? (
+      {opportunity ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-[11px] text-inksoft">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-4 h-3 rounded-sm border border-rule" style={{ backgroundColor: OPEN_FILL }} />
+            State with no B2B sales
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-4 h-3 rounded-sm border border-rule" style={{ backgroundColor: COVERED_FILL }} />
+            Already covered
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: brand.brown }} />
+            Open big city / thin market (≤{MINIMAL_ORDERS} orders)
+          </span>
+        </div>
+      ) : colorBy === "rep" ? (
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           {repsPresent.map((id) => (
             <span key={id} className="inline-flex items-center gap-1.5 font-sans text-[11px] text-inksoft">
