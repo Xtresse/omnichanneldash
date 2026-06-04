@@ -42,6 +42,17 @@ const OrdersTable = dynamic(() => import("./OrdersTable.jsx"), {
     </div>
   ),
 });
+// The ZIP heat map pulls react-simple-maps + d3 + a bundled US base map, so it's
+// client-only and lazy. It lives in a defaultCollapsed Section, so the chunk
+// (and the per-order aggregation) only load when Sam expands it.
+const ZipHeatMap = dynamic(() => import("./ZipHeatMap.jsx"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-card border border-rule rounded-xl p-6 md:p-8 text-center text-muted text-sm font-sans">
+      Loading map…
+    </div>
+  ),
+});
 
 const fmtMoney = (n) =>
   new Intl.NumberFormat("en-US", {
@@ -460,6 +471,15 @@ export default function Dashboard({ initial }) {
                   <FulfillmentSplit data={data.fulfillmentSplit} />
                 </ChartCell>
               </ChartGrid>
+            </Section>
+
+            <Section
+              title="ZIP Heat Map"
+              detail="Order density by ZIP · color by rep or metric · click / “Jump to” a state for city-level whitespace"
+              collapsible
+              defaultCollapsed
+            >
+              <ZipHeatMap orders={(data.orders || []).filter((o) => !o.adcs)} />
             </Section>
 
             <Section
