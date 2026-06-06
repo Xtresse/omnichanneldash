@@ -1,11 +1,11 @@
 // /api/lapsed-reactivations
 //
 // One-shot report endpoint for Sam: which Apr 2026 customers reactivated
-// after a 2025 last-purchase. Pulls Windsor exactly the way
-// /api/dashboard does (mirrors lib/windsor.js fetchWindsorRows() — same
-// account, _limit, date_filters shape, fields list semantics) and reuses
-// findRep() + parseOrderTags() so rep attribution and channel
-// classification match the leadership dashboard.
+// after a 2025 last-purchase. Pulls live Shopify data the same way
+// /api/dashboard does — via the shared core (lib/xtresseCore.js
+// fetchShopifyRows), which emits the same row field names this report
+// already consumes. Reuses findRep() + parseOrderTags() so rep
+// attribution and channel classification match the leadership dashboard.
 //
 // Logic (per Sam's spec):
 //   - Period A: Apr 1 - Apr 30, 2026  (the reactivation window)
@@ -23,43 +23,19 @@
 import { NextResponse } from "next/server";
 import { findRep } from "@/lib/reps.js";
 import { parseOrderTags } from "@/lib/classify.js";
-
-const WINDSOR_BASE = "https://connectors.windsor.ai/shopify";
+import { fetchShopifyRows } from "@/lib/xtresseCore.js";
 
 const DTC_SKU_EXCLUSIONS = new Set([
   "X-GN-060CT-001",
   "X-FRC-30ML-001",
 ]);
 
-async function fetchWindsor({ from, to, fields }) {
-  const apiKey = process.env.WINDSOR_API_KEY;
-  if (!apiKey) throw new Error("WINDSOR_API_KEY not set");
-  const account = process.env.WINDSOR_ACCOUNT || "ace1d0-26.myshopify.com";
-
-  const params = new URLSearchParams({
-    api_key: apiKey,
-    accounts: account,
-    fields: fields.join(","),
-    _limit: "50000",
-    date_filters: JSON.stringify({ orders: "createdAt" }),
-    date_from: from,
-    date_to: to,
-  });
-
-  const url = `${WINDSOR_BASE}?${params.toString()}`;
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error(`Windsor request failed (${from}..${to}): ${res.status} ${res.statusText}`);
-  }
-  const ct = res.headers.get("content-type") || "";
-  if (!ct.includes("application/json")) {
-    const preview = (await res.text()).slice(0, 120).replace(/\s+/g, " ");
-    throw new Error(`Windsor non-JSON (${from}..${to}): "${preview}"`);
-  }
-  const json = await res.json();
-  if (Array.isArray(json)) return json;
-  if (Array.isArray(json?.data)) return json.data;
-  return [];
+// SHOPIFY-ONLY: pulls live order rows from the shared Shopify core. The
+// core emits Windsor-shaped rows (same `order_*` / `line_item__*` field
+// names) over a fixed field superset, so the aggregation below is
+// unchanged — no per-call field list is needed.
+async function fetchRows({ from, to }) {
+  return fetchShopifyRows({ from, to });
 }
 
 const numOrZero = (v) => {
@@ -259,31 +235,9 @@ const dayStr = (d) => (d ? String(d).slice(0, 10) : null);
 
 export async function GET() {
   try {
-    // Period A — Apr 2026, full fields.
-    const fieldsA = [
-      "order_id", "order_name", "order_created_at",
-      "order_total_price_amount", "order_total_price",
-      "order_gross_sales", "order_total_discounts",
-      "order_refunds_subtotal", "order_returns_amount",
-      "order_financial_status", "order_subtotal_price",
-      "order_tags", "order_discount_codes",
-      "order_customer_id", "order_email",
-      "order_billing_address_first_name", "order_billing_address_last_name",
-      "order_billing_address_company",
-      "order_shipping_address_first_name", "order_shipping_address_last_name",
-      "order_shipping_address_company",
-      "order_shipping_address_country", "order_shipping_address_province",
-      "line_item__title", "line_item__sku",
-      "line_item__quantity", "line_item__price",
-    ];
-    // Period B — minimal, just enough to find prior-order date+name.
-    const fieldsB = [
-      "order_id", "order_name", "order_created_at",
-      "order_customer_id", "order_email", "order_tags",
-    ];
-
-    // Period B is 15 months — split into quarters to stay under
-    // Windsor's 50k row cap (line-item rows per call).
+    // Period B is 15 months — split into quarters to keep each Shopify
+    // pull responsive (also kept the original chunking so the diagnostic
+    // per-window row counts below stay meaningful).
     const periodBChunks = [
       { from: "2025-01-01", to: "2025-03-31" },
       { from: "2025-04-01", to: "2025-06-30" },
@@ -293,8 +247,8 @@ export async function GET() {
     ];
 
     const [aRows, ...bChunks] = await Promise.all([
-      fetchWindsor({ from: "2026-04-01", to: "2026-04-30", fields: fieldsA }),
-      ...periodBChunks.map((c) => fetchWindsor({ ...c, fields: fieldsB })),
+      fetchRows({ from: "2026-04-01", to: "2026-04-30" }),
+      ...periodBChunks.map((c) => fetchRows({ ...c })),
     ]);
     const bRows = bChunks.flat();
 
@@ -306,14 +260,14 @@ export async function GET() {
     if (aRows.length === 0) {
       return NextResponse.json({
         ok: false,
-        error: "Windsor returned 0 rows for April 2026 — check date_from/date_to and key.",
+        error: "Shopify returned 0 rows for April 2026 — check the date window and Shopify credentials.",
         chunkSizes,
       }, { status: 502 });
     }
     if (bRows.length === 0) {
       return NextResponse.json({
         ok: false,
-        error: "Windsor returned 0 rows for any 2025/Q1-2026 chunk — check Windsor connector.",
+        error: "Shopify returned 0 rows for any 2025/Q1-2026 chunk — check Shopify credentials.",
         chunkSizes,
       }, { status: 502 });
     }
