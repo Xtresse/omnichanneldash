@@ -1,5 +1,7 @@
 "use client";
 
+import { sellingDaysBetween } from "../lib/sellingDays.js";
+
 const fmtCurrency = (n) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -168,16 +170,14 @@ function formatDateRange(from, to) {
 function labelFor(compare) {
   if (!compare) return null;
   if (compare.mode === "yoy") return "last year";
-  // Friendly window length label for prior-period mode.
-  const f = new Date(compare.from + "T00:00:00Z");
-  const t = new Date(compare.to + "T00:00:00Z");
-  const days = Math.round((t - f) / 86400000) + 1;
-  if (days === 1) return "yesterday";
-  if (days === 7) return "prior 7d";
-  if (days === 14) return "prior 14d";
-  if (days === 30) return "prior 30d";
-  if (days === 90) return "prior 90d";
-  return `prior ${days}d`;
+  // Prior windows are matched on SELLING DAYS (weekdays minus US holidays),
+  // not calendar days, so label them in selling days — a raw "prior Nd" would
+  // misstate a window like May 1–7 (7 calendar days, 5 selling days).
+  const sd = sellingDaysBetween(
+    new Date(compare.from + "T00:00:00Z"),
+    new Date(compare.to + "T00:00:00Z")
+  );
+  return `prior ${sd} selling day${sd === 1 ? "" : "s"}`;
 }
 
 function Tile({ label, value, sub, tone, cur, prior, cmpLabel, dateRange, compareOn }) {
