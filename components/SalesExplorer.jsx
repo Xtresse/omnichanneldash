@@ -145,7 +145,13 @@ export default function SalesExplorer({ orders = [], metric = "net" }) {
   };
 
   const M = metric === "gross" ? "Gross" : "Net";
-  const maxSales = breakdown.length ? breakdown[0].sales : 0;
+  // Denominator for the "% of total" column + share bars: the sum across the
+  // current breakdown. Each order lands in exactly one group, so this equals
+  // the filtered selection's total — e.g. with Rep=Laura Mann + group-by
+  // State, every state row reads as a % of Laura's total sales, summing to 100%.
+  const groupTotal = breakdown.reduce((a, g) => a + g.sales, 0);
+  const pctOf = (v) => (groupTotal ? (v / groupTotal) * 100 : 0);
+  const fmtPct = (p) => `${p.toFixed(1)}%`;
 
   return (
     <div className="bg-card border border-rule rounded-xl p-3 md:p-5">
@@ -253,34 +259,51 @@ export default function SalesExplorer({ orders = [], metric = "net" }) {
               <th className="py-2 pr-3 capitalize">{groupBy}</th>
               <th className="py-2 pr-3 text-right">Orders</th>
               <th className="py-2 pr-3 text-right">Accounts</th>
-              <th className="py-2 pr-0 text-right">{M} Sales</th>
+              <th className="py-2 pr-3 text-right">{M} Sales</th>
+              <th className="py-2 pr-0 text-right">% of Total</th>
             </tr>
           </thead>
           <tbody>
-            {breakdown.map((g) => (
-              <tr key={g.key} className="border-b border-rule/60">
-                <td className="py-2 pr-3 text-inksoft font-medium relative">
-                  <span className="relative z-10">{g.key}</span>
-                  {/* Subtle in-row bar for quick magnitude scan */}
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-0 top-1 bottom-1 bg-brown/10 rounded-sm"
-                    style={{ width: maxSales ? `${Math.max(2, (g.sales / maxSales) * 100)}%` : 0 }}
-                  />
-                </td>
-                <td className="py-2 pr-3 text-right text-muted tabular-nums">{g.orders.toLocaleString()}</td>
-                <td className="py-2 pr-3 text-right text-muted tabular-nums">{g.accounts.toLocaleString()}</td>
-                <td className="py-2 pr-0 text-right text-ink font-semibold tabular-nums">{fmtMoney(g.sales)}</td>
-              </tr>
-            ))}
+            {breakdown.map((g) => {
+              const pct = pctOf(g.sales);
+              return (
+                <tr key={g.key} className="border-b border-rule/60">
+                  <td className="py-2 pr-3 text-inksoft font-medium relative">
+                    {/* In-row bar = this group's SHARE of the total, so the
+                        bars visually build up to 100% across the table. */}
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-1 bottom-1 bg-brown/10 rounded-sm"
+                      style={{ width: `${Math.max(2, pct)}%` }}
+                    />
+                    <span className="relative z-10">{g.key}</span>
+                  </td>
+                  <td className="py-2 pr-3 text-right text-muted tabular-nums">{g.orders.toLocaleString()}</td>
+                  <td className="py-2 pr-3 text-right text-muted tabular-nums">{g.accounts.toLocaleString()}</td>
+                  <td className="py-2 pr-3 text-right text-ink font-semibold tabular-nums">{fmtMoney(g.sales)}</td>
+                  <td className="py-2 pr-0 text-right text-brown font-semibold tabular-nums">{fmtPct(pct)}</td>
+                </tr>
+              );
+            })}
             {!breakdown.length && (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-muted">
+                <td colSpan={5} className="py-8 text-center text-muted">
                   No sales match the current filter.
                 </td>
               </tr>
             )}
           </tbody>
+          {breakdown.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-rule font-semibold">
+                <td className="py-2 pr-3 text-ink">Total</td>
+                <td className="py-2 pr-3 text-right text-inksoft tabular-nums">{summary.orders.toLocaleString()}</td>
+                <td className="py-2 pr-3 text-right text-inksoft tabular-nums">{summary.accounts.toLocaleString()}</td>
+                <td className="py-2 pr-3 text-right text-ink tabular-nums">{fmtMoney(groupTotal)}</td>
+                <td className="py-2 pr-0 text-right text-brown tabular-nums">100.0%</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>
