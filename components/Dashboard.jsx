@@ -53,6 +53,14 @@ const ZipHeatMap = dynamic(() => import("./ZipHeatMap.jsx"), {
     </div>
   ),
 });
+const SalesExplorer = dynamic(() => import("./SalesExplorer.jsx"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-card border border-rule rounded-xl p-6 md:p-8 text-center text-muted text-sm font-sans">
+      Loading explorer…
+    </div>
+  ),
+});
 
 const fmtMoney = (n) =>
   new Intl.NumberFormat("en-US", {
@@ -482,6 +490,15 @@ export default function Dashboard({ initial }) {
               {/* B2B only — exclude DTC consumer orders AND ADCS, so the map (and
                   its rep/whitespace signal) is purely the rep-sold business. */}
               <ZipHeatMap orders={(data.orders || []).filter((o) => o.channel === "B2B")} />
+            </Section>
+
+            <Section
+              title="Sales By State, Rep & Zip"
+              detail="Cross-filter sales on all three · % of total per breakdown · honors Net/Gross toggle"
+              collapsible
+              defaultCollapsed
+            >
+              <SalesExplorer orders={data.orders || []} metric={revMetric} />
             </Section>
 
             <Section
