@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ReferenceLine, ResponsiveContainer, LabelList,
 } from "recharts";
+import MetricToggle from "./MetricToggle.jsx";
 
 // Brand palette (mirrors KpiTiles + RepPerformance for consistency).
 const FAVORABLE = "#C8860D";   // sage — ≥100% of target
@@ -71,21 +72,22 @@ function currentMonth() {
  *   "Gummies" | "Serum" | "XVIE" | "Sachets" | "Other" | "Excluded"
  * We only consume the four targeted families and ignore Other/Excluded.
  */
-function actualsFromProductFamily(productFamily) {
+function actualsFromProductFamily(productFamily, metric = "net") {
   const totals = { Gummies: 0, Serum: 0, XVIE: 0, Sachets: 0 };
   if (!Array.isArray(productFamily)) return totals;
+  const gross = metric === "gross";
   for (const row of productFamily) {
     const f = row?.family;
     if (f && totals[f] !== undefined) {
-      // Dashboard's productFamily rows are { family, B2B, ADCS, DTC }.
-      // Actuals for budget comparison = sum across all channels. We
-      // also fall back to flat-shape entries (value/net/amount) in case
+      // Dashboard's productFamily rows are { family, B2B, ADCS, DTC } plus
+      // gross counterparts { B2B_gross, ADCS_gross, DTC_gross }. Actuals for
+      // budget comparison = sum across all channels on the selected basis.
+      // We also fall back to flat-shape entries (value/net/amount) in case
       // upstream schema ever changes.
-      totals[f] +=
-        Number(row.B2B || 0) +
-        Number(row.ADCS || 0) +
-        Number(row.DTC || 0) +
-        Number(row.value || row.net || row.amount || 0);
+      totals[f] += gross
+        ? Number(row.B2B_gross || 0) + Number(row.ADCS_gross || 0) + Number(row.DTC_gross || 0)
+        : Number(row.B2B || 0) + Number(row.ADCS || 0) + Number(row.DTC || 0) +
+          Number(row.value || row.net || row.amount || 0);
     }
   }
   return totals;
@@ -106,11 +108,12 @@ function actualsFromProductFamily(productFamily) {
  * total to the dashboard's currently-loaded actuals. Recharts
  * visualizations sit below the table.
  */
-export default function BudgetVsActual({ productFamily, totalNetSales, periodLabel }) {
+export default function BudgetVsActual({ productFamily, totalNetSales, totalGrossSales, periodLabel }) {
   const [budgetData, setBudgetData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [drillRep, setDrillRep] = useState(null);
+  const [metric, setMetric] = useState("net"); // "net" | "gross" — actuals basis
 
   useEffect(() => {
     let cancelled = false;
@@ -121,7 +124,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
     return () => { cancelled = true; };
   }, []);
 
-  const actuals = useMemo(() => actualsFromProductFamily(productFamily), [productFamily]);
+  const actuals = useMemo(() => actualsFromProductFamily(productFamily, metric), [productFamily, metric]);
 
   // Build the per-product rows for the selected month.
   const rows = useMemo(() => {
@@ -158,7 +161,11 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
     // the Total row TIES to the number up top; the gap is surfaced as an
     // "Other (unbudgeted)" line below.
     const trackedActual = t.actual;
-    const grandActual = totalNetSales != null ? totalNetSales : trackedActual;
+    // Reconcile to the canonical headline on the SAME basis as the actuals
+    // (gross headline when the gross toggle is on) so the Total row ties to
+    // the number up top regardless of basis.
+    const headline = metric === "gross" ? totalGrossSales : totalNetSales;
+    const grandActual = headline != null ? headline : trackedActual;
     const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     return {
       ...t,
@@ -170,7 +177,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
       pctBudget: t.budget > 0 ? grandActual / t.budget : null,
       pctGoal: t.goal > 0 ? grandActual / t.goal : null,
     };
-  }, [rows, totalNetSales]);
+  }, [rows, totalNetSales, totalGrossSales, metric]);
 
   const monthOpts = useMemo(() => monthOffsets(selectedMonth, 3, 3), [selectedMonth]);
   const isStub = budgetData?.mode === "stub";
@@ -205,8 +212,12 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
         >
           This month
         </button>
-        <span className="font-sans text-[10px] md:text-xs text-muted w-full sm:w-auto sm:ml-auto leading-tight">
-          Actuals · {periodLabel || "current dashboard window"}
+        <div className="flex items-center gap-1.5 sm:ml-auto">
+          <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted hidden sm:inline">Actuals</span>
+          <MetricToggle value={metric} onChange={setMetric} />
+        </div>
+        <span className="font-sans text-[10px] md:text-xs text-muted w-full sm:w-auto leading-tight">
+          {metric === "gross" ? "Gross" : "Net"} actuals · {periodLabel || "current dashboard window"}
         </span>
       </div>
 

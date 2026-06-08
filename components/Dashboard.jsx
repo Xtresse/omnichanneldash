@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import KpiTiles from "./KpiTiles.jsx";
+import MetricToggle from "./MetricToggle.jsx";
 import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
 import B2BStatusBar from "./B2BStatusBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
@@ -39,6 +40,14 @@ const OrdersTable = dynamic(() => import("./OrdersTable.jsx"), {
   loading: () => (
     <div className="bg-card border border-rule rounded-xl p-6 md:p-8 text-center text-muted text-sm font-sans">
       Loading orders…
+    </div>
+  ),
+});
+const SalesExplorer = dynamic(() => import("./SalesExplorer.jsx"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-card border border-rule rounded-xl p-6 md:p-8 text-center text-muted text-sm font-sans">
+      Loading explorer…
     </div>
   ),
 });
@@ -242,7 +251,9 @@ export default function Dashboard({ initial }) {
           </h2>
           <p className="font-sans text-sm text-inksoft">{error}</p>
           <p className="font-sans text-xs text-muted mt-3">
-            Check that <code className="bg-paper px-1 rounded">WINDSOR_API_KEY</code> is set in
+            Check that <code className="bg-paper px-1 rounded">SHOPIFY_ADMIN_API_TOKEN</code> (or{" "}
+            <code className="bg-paper px-1 rounded">SHOPIFY_CLIENT_ID</code> +{" "}
+            <code className="bg-paper px-1 rounded">SHOPIFY_CLIENT_SECRET</code>) is set in
             Vercel env vars.
           </p>
         </div>
@@ -311,7 +322,7 @@ export default function Dashboard({ initial }) {
               disabled={isPending || !data}
               className="shrink-0 min-h-touch px-3 md:px-4 rounded-md font-sans text-xs md:text-sm font-semibold bg-paper text-brown border border-brown hover:bg-paper2 disabled:opacity-50 disabled:cursor-not-allowed transition tracking-[0.04em] inline-flex items-center gap-1.5 md:order-2"
               aria-label="Refresh dashboard data"
-              title="Re-fetch the current window from Windsor"
+              title="Re-fetch the current window from Shopify"
             >
               <RefreshIcon spinning={isPending} />
               {/* Icon-only on phones to keep the header tight; full label from sm+ */}
@@ -408,7 +419,7 @@ export default function Dashboard({ initial }) {
             </div>
 
             <Section title="Actual Vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
-              <BudgetVsActual productFamily={data.productFamily} totalNetSales={data.kpis.totalNetSales} periodLabel={periodLabel} />
+              <BudgetVsActual productFamily={data.productFamily} totalNetSales={data.kpis.totalNetSales} totalGrossSales={data.kpis.totalGrossSales} periodLabel={periodLabel} />
             </Section>
 
             <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
@@ -460,6 +471,15 @@ export default function Dashboard({ initial }) {
                   <FulfillmentSplit data={data.fulfillmentSplit} />
                 </ChartCell>
               </ChartGrid>
+            </Section>
+
+            <Section
+              title="Sales By State, Rep & Zip"
+              detail="Cross-filter sales on all three · honors Net/Gross toggle"
+              collapsible
+              defaultCollapsed
+            >
+              <SalesExplorer orders={data.orders || []} metric={revMetric} />
             </Section>
 
             <Section
@@ -562,7 +582,7 @@ export default function Dashboard({ initial }) {
                 </ChartCell>
               </ChartGrid>
               <p className="font-sans text-xs text-muted mt-3 leading-snug max-w-2xl">
-                Activates once Google Ads, Meta, TikTok, and Klaviyo are authorized on Windsor.ai.
+                Activates once Google Ads, Meta, TikTok, and Klaviyo ad-spend connectors are wired in.
               </p>
             </Section>
 
@@ -577,7 +597,7 @@ export default function Dashboard({ initial }) {
                 <code className="bg-card border border-rule px-1 rounded">wholesale</code>, or if a
                 B2B-pattern discount code (REP-/XVIE\d+/B2B-/ADCS-) is used; <strong>DTC</strong> otherwise.
                 Orders containing the DTC carve-out SKUs (X-GN-060CT-001, X-FRC-30ML-001) are
-                forced to DTC. Windsor only began returning DTC data on 2026-04-01, so any pre-2026-04-01
+                forced to DTC. The store's DTC channel ramped on 2026-04-01, so any pre-2026-04-01
                 order without an explicit B2B/ADCS signal is treated as untagged B2B (not DTC).
                 Line-item metrics use proportional net allocation: line_net = order_net ×
                 (line_revenue / order_subtotal).
@@ -694,25 +714,3 @@ function ChartCell({ title, subtitle, wide, action, children }) {
 }
 
 // Compact Net/Gross segmented toggle for the channel revenue chart.
-function MetricToggle({ value, onChange }) {
-  const opts = [
-    { k: "net", label: "Net" },
-    { k: "gross", label: "Gross" },
-  ];
-  return (
-    <div className="inline-flex rounded-md border border-rule overflow-hidden">
-      {opts.map((o) => (
-        <button
-          key={o.k}
-          type="button"
-          onClick={() => onChange(o.k)}
-          className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
-            value === o.k ? "bg-brown text-paper font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}

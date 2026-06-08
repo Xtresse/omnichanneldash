@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import MetricToggle from "./MetricToggle.jsx";
 
 // B2B MTD status bar — three side-by-side cards (Gummies / Xvié / Serum)
 // showing month-to-date B2B sales, linear pacing, user-entered monthly goal,
@@ -11,6 +12,12 @@ import { useEffect, useMemo, useState } from "react";
 // already returns a productFamily array keyed by family. We pull the
 // .B2B value for Gummies / XVIE / Serum regardless of what the user has
 // selected in the main FilterBar — this card is *always* MTD.
+//
+// TOTAL B2B card ties to the B2B Net Sales KPI by construction: it reads the
+// SAME field (kpis.b2bNetSales / b2bGrossSales) over the same MTD window,
+// rather than summing the three focus cards. The three focus cards are a
+// rep-attributed, case-SKU subset of that total (see b2bFocusByFamily in
+// lib/salesData.js). Net/Gross toggle switches every figure in this bar.
 //
 // Goals are stored server-side at data/b2b-goals.json via /api/b2b-goals.
 // Once a goal is entered for a (product, year-month) it's display-locked,
@@ -67,7 +74,10 @@ function mtdRange() {
 }
 
 export default function B2BStatusBar() {
-  const [mtd, setMtd] = useState(null);      // { Serum, XVIE, Gummies }
+  const [metric, setMetric] = useState("net"); // "net" | "gross" — local toggle
+  const [mtd, setMtd] = useState(null);      // net focus { Serum, XVIE, Gummies }
+  const [mtdGross, setMtdGross] = useState(null); // gross focus { Serum, XVIE, Gummies }
+  const [b2bTotal, setB2bTotal] = useState(null); // { net, gross } canonical B2B (kpis)
   const [mtdErr, setMtdErr] = useState(null);
   const [goals, setGoals] = useState({});    // keyed `${product}|${ym}`
   const [editing, setEditing] = useState(null); // product label currently in edit mode
@@ -98,23 +108,33 @@ export default function B2BStatusBar() {
           setMtdErr(j.error || "Failed to load MTD data");
           return;
         }
-        const totals = { Serum: 0, XVIE: 0, Gummies: 0 };
-        // Prefer b2bFocusByFamily (case-SKU-filtered) when present. Falls
-        // back to productFamily.B2B for old API responses that haven't been
-        // redeployed yet — guarantees the widget still renders during the
-        // brief window between commits.
+        const totalsNet = { Serum: 0, XVIE: 0, Gummies: 0 };
+        const totalsGross = { Serum: 0, XVIE: 0, Gummies: 0 };
+        // Prefer b2bFocusByFamily (rep-attributed, case-SKU-filtered) when
+        // present. Falls back to productFamily.B2B for old API responses
+        // that haven't been redeployed yet — guarantees the widget still
+        // renders during the brief window between commits.
         if (j.b2bFocusByFamily && typeof j.b2bFocusByFamily === "object") {
-          for (const fam of Object.keys(totals)) {
-            totals[fam] = Number(j.b2bFocusByFamily[fam] || 0);
+          for (const fam of Object.keys(totalsNet)) {
+            totalsNet[fam] = Number(j.b2bFocusByFamily[fam] || 0);
+            totalsGross[fam] = Number(j.b2bFocusByFamilyGross?.[fam] || 0);
           }
         } else {
           for (const row of j.productFamily || []) {
-            if (row?.family && totals[row.family] !== undefined) {
-              totals[row.family] = Number(row.B2B || 0);
+            if (row?.family && totalsNet[row.family] !== undefined) {
+              totalsNet[row.family] = Number(row.B2B || 0);
+              totalsGross[row.family] = Number(row.B2B_gross || 0);
             }
           }
         }
-        setMtd(totals);
+        setMtd(totalsNet);
+        setMtdGross(totalsGross);
+        // Canonical B2B total — the SAME field the B2B Net Sales KPI reads,
+        // so the "Total B2B" card ties to it by construction.
+        setB2bTotal({
+          net: Number(j.kpis?.b2bNetSales || 0),
+          gross: Number(j.kpis?.b2bGrossSales || 0),
+        });
       })
       .catch((e) => { if (!cancelled) setMtdErr(String(e?.message || e)); });
     return () => { cancelled = true; };
@@ -170,9 +190,12 @@ export default function B2BStatusBar() {
         <h2 className="font-display text-lg md:text-xl font-semibold text-brown leading-tight">
           B2B Month-to-Date
         </h2>
-        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted leading-snug">
-          Day {completed}/{total} · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-        </span>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted leading-snug">
+            Day {completed}/{total} · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+          </span>
+          <MetricToggle value={metric} onChange={setMetric} />
+        </div>
       </div>
 
       {saveErr && (
@@ -191,7 +214,10 @@ export default function B2BStatusBar() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {PRODUCTS.map((p) => {
-          const actual = mtd ? Number(mtd[p.family] || 0) : null;
+          // Focus map for the selected basis. Net = line-allocated net,
+          // Gross = line-item gross (both rep-attributed, case-SKU only).
+          const focus = metric === "gross" ? mtdGross : mtd;
+          const actual = focus ? Number(focus[p.family] || 0) : null;
           // Pace is based on COMPLETED full days only — today's partial day
           // is excluded from the divisor so a slow morning doesn't artificially
           // lower the run-rate projection. On day 1 of the month there are no
@@ -234,7 +260,11 @@ export default function B2BStatusBar() {
             n == null
               ? "—"
               : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-          const tActual = mtd ? PRODUCTS.reduce((s, p) => s + Number(mtd[p.family] || 0), 0) : null;
+          // Total B2B ties to the B2B Net/Gross Sales KPI by construction —
+          // it reads the canonical kpis.b2b{Net,Gross}Sales field (rep-
+          // attributed, ALL SKUs) for the same MTD window, NOT the sum of the
+          // three case-SKU focus cards above (which are a subset of this).
+          const tActual = b2bTotal ? Number(metric === "gross" ? b2bTotal.gross : b2bTotal.net) : null;
           const tPace = tActual != null && completed > 0 ? (tActual / completed) * total : null;
           const tGoal =
             PRODUCTS.reduce((s, p) => {
@@ -271,7 +301,7 @@ export default function B2BStatusBar() {
                   }}
                 />
               </div>
-              <div className="font-sans text-[10px] text-muted mt-2 truncate">Gummies + Xvié + Serum case SKUs</div>
+              <div className="font-sans text-[10px] text-muted mt-2 truncate" title="Rep-attributed B2B, all SKUs — matches the B2B Sales KPI">All rep-attributed B2B · ties to B2B KPI</div>
             </div>
           );
         })()}

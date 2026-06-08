@@ -31,6 +31,17 @@ function Tile({ label, value }) {
   );
 }
 
+// Table header cell — matches the house style used in BudgetVsActual.jsx so
+// the XVIE50 tables read consistently with the rest of the dashboard.
+function Th({ children, align = "left" }) {
+  const alignClass = align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+  return (
+    <th className={`py-2 px-3 font-sans text-[10px] uppercase tracking-[0.14em] text-muted font-semibold ${alignClass}`}>
+      {children}
+    </th>
+  );
+}
+
 export default function AmbassadorProgram() {
   const [data, setData] = useState(null); // ambassadorProgram[]
   const [err, setErr] = useState(null);
@@ -97,10 +108,13 @@ export default function AmbassadorProgram() {
       {/* Per-rep groups */}
       {model.reps.map((g) => (
         <div key={g.rep} className="bg-card border border-rule rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-paper2 border-b border-rule">
+          <div className="flex items-baseline justify-between gap-x-3 gap-y-1 flex-wrap px-4 py-2.5 bg-paper2 border-b border-rule">
             <span className="font-display text-sm font-semibold text-ink truncate">{g.rep}</span>
-            <span className="font-sans text-[11px] text-muted tabular-nums whitespace-nowrap">
-              {fmtN(g.accts.length)} acct · {fmtN(g.reordered)} reordered · {fmtN(g.units)}u · {fmt$(g.gross)}
+            <span className="font-sans text-[11px] text-muted tabular-nums">
+              <span className="font-semibold text-inksoft">{fmtN(g.accts.length)}</span> acct ·{" "}
+              <span className="font-semibold text-inksoft">{fmtN(g.reordered)}</span> reordered ·{" "}
+              <span className="font-semibold text-inksoft">{fmtN(g.units)}</span>u ·{" "}
+              <span className="font-semibold text-inksoft">{fmt$(g.gross)}</span>
             </span>
           </div>
 
@@ -108,26 +122,26 @@ export default function AmbassadorProgram() {
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs font-sans border-collapse">
               <thead>
-                <tr className="text-left text-muted">
-                  <th className="py-1.5 px-3 font-semibold">Account / company</th>
-                  <th className="py-1.5 px-3 font-semibold">XVIE50 entry</th>
-                  <th className="py-1.5 px-3 font-semibold text-right">Reorders</th>
-                  <th className="py-1.5 px-3 font-semibold text-right">Units</th>
-                  <th className="py-1.5 px-3 font-semibold text-right">Reorder $</th>
-                  <th className="py-1.5 px-3 font-semibold text-right">Days → 1st</th>
-                  <th className="py-1.5 px-3 font-semibold text-center">Reordered</th>
+                <tr className="bg-paper2 border-b border-rule">
+                  <Th>Account / company</Th>
+                  <Th>XVIE50 entry</Th>
+                  <Th align="right">Reorders</Th>
+                  <Th align="right">Units</Th>
+                  <Th align="right">Reorder $</Th>
+                  <Th align="right">Days → 1st</Th>
+                  <Th align="center">Reordered</Th>
                 </tr>
               </thead>
               <tbody>
                 {g.accts.map((a, i) => (
                   <tr key={i} className="border-t border-rule/60 hover:bg-paper2/40">
-                    <td className="py-1.5 px-3 text-ink font-medium">{a.name}</td>
-                    <td className="py-1.5 px-3 text-inksoft whitespace-nowrap">{fmtDate(a.entryDate)}</td>
-                    <td className="py-1.5 px-3 text-right tabular-nums">{fmtN(a.reorderOrders)}</td>
-                    <td className="py-1.5 px-3 text-right tabular-nums">{fmtN(a.reorderUnits)}</td>
-                    <td className="py-1.5 px-3 text-right tabular-nums font-semibold">{fmt$(a.reorderGross)}</td>
-                    <td className="py-1.5 px-3 text-right tabular-nums text-inksoft">{a.daysToFirstReorder == null ? "—" : fmtN(a.daysToFirstReorder)}</td>
-                    <td className="py-1.5 px-3 text-center"><Badge ok={a.reordered} /></td>
+                    <td className="py-2 px-3 text-ink font-medium">{a.name}</td>
+                    <td className="py-2 px-3 text-inksoft whitespace-nowrap">{fmtDate(a.entryDate)}</td>
+                    <td className="py-2 px-3 text-right tabular-nums">{fmtN(a.reorderOrders)}</td>
+                    <td className="py-2 px-3 text-right tabular-nums">{fmtN(a.reorderUnits)}</td>
+                    <td className="py-2 px-3 text-right tabular-nums font-semibold">{fmt$(a.reorderGross)}</td>
+                    <td className="py-2 px-3 text-right tabular-nums text-inksoft">{a.daysToFirstReorder == null ? "—" : fmtN(a.daysToFirstReorder)}</td>
+                    <td className="py-2 px-3 text-center"><Badge ok={a.reordered} /></td>
                   </tr>
                 ))}
               </tbody>

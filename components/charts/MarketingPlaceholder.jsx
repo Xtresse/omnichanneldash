@@ -6,7 +6,7 @@ export default function MarketingPlaceholder({ label }) {
       <div className="font-serif text-3xl text-muted/50">—</div>
       <div className="font-sans text-xs text-muted mt-2">{label}</div>
       <div className="font-sans text-[10px] text-muted/70 mt-1 max-w-[220px] text-center px-3">
-        Authorize Google Ads, Meta, TikTok, or Klaviyo on Windsor.ai to activate.
+        Wire in Google Ads, Meta, TikTok, or Klaviyo ad-spend data to activate.
       </div>
     </div>
   );

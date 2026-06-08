@@ -1,6 +1,6 @@
 # Xtressé Omnichannel Dashboard
 
-Unified B2B + DTC analytics dashboard pulling from Windsor.ai → Shopify. Combines logic from `xtresse-leadershipdash` (B2B) and `xtressedtcdash` (DTC) into a single omnichannel view, **mobile-first**.
+Unified B2B + DTC analytics dashboard pulling directly from the Shopify Admin API. Combines logic from `xtresse-leadershipdash` (B2B) and `xtressedtcdash` (DTC) into a single omnichannel view, **mobile-first**.
 
 ## Mobile-first design choices
 
@@ -42,14 +42,14 @@ Specific patterns:
 - Blended ROAS placeholder
 - CAC by channel placeholder
 - Ad spend allocation placeholder
-- Activates once Google Ads, Meta, TikTok, Klaviyo are authorized on Windsor.ai
+- Activates once Google Ads, Meta, TikTok, Klaviyo ad-spend data is wired in
 
 ## Architecture
 
 - **Framework**: Next.js 14 (App Router), 14.2.35 (security-patched)
 - **Charts**: Recharts 2.13
 - **Styling**: Tailwind CSS 3.4
-- **Data source**: Windsor.ai → Shopify connector (account `ace1d0-26.myshopify.com`)
+- **Data source**: Shopify Admin API direct (store `ace1d0-26.myshopify.com`), via the canonical shared core `lib/xtresseCore.js`. Windsor.ai is no longer used.
 - **Channel classification** (`lib/classify.js`):
   - `b2b` or `wholesale` tag → B2B
   - Any tag matching a person-name pattern (and not in the NON_REP_TAGS list) → B2B
@@ -87,7 +87,9 @@ xtresse-omnichannel/
 │       ├── FulfillmentSplit.jsx
 │       └── MarketingPlaceholder.jsx
 ├── lib/
-│   ├── windsor.js               # Data fetcher + all aggregations
+│   ├── salesData.js             # Shopify data fetcher + all aggregations
+│   ├── shopify.js               # Thin adapter over the shared core
+│   ├── xtresseCore.js           # Canonical Shopify client + revenue/tag logic
 │   ├── classify.js              # B2B/DTC classification + tag parsing
 │   └── constants.js             # SKU families, 3PL routing, color palette
 ├── .env.example
@@ -104,7 +106,7 @@ xtresse-omnichannel/
 1. Create a new GitHub repo: `samxtresse/xtresse-omnichannel`
 2. Push these files to `main`
 3. On vercel.com → New Project → import `samxtresse/xtresse-omnichannel` under team Xtressé (`team_nutKciUOSpBvDrfG2cSPbSSA`)
-4. Add environment variable: `WINDSOR_API_KEY` (same key the other two dashboards use)
+4. Add environment variables: `SHOPIFY_ADMIN_API_TOKEN` (or `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET`); optional `SHOPIFY_STORE_DOMAIN` (defaults to `ace1d0-26.myshopify.com`)
 5. Deploy → Vercel auto-detects Next.js and ships in ~90 s
 
 ## Local development
@@ -112,7 +114,7 @@ xtresse-omnichannel/
 ```bash
 npm install
 cp .env.example .env.local
-# Edit .env.local with your WINDSOR_API_KEY
+# Edit .env.local with your SHOPIFY_ADMIN_API_TOKEN (or CLIENT_ID + CLIENT_SECRET)
 npm run dev
 # Open http://localhost:3000 — try resizing to 375 px to validate mobile
 ```
@@ -133,8 +135,8 @@ npm run build   # Should compile cleanly, ~107 kB page / ~194 kB First Load JS
 
 ## Constraints to be aware of
 
-- **DTC backfill pending**: Windsor only has DTC Shopify data from 3/31/26 forward (~30 days). Long-range DTC trends will be sparse until Windsor support extends the historical range. The dashboard surfaces this as a banner so it's clear what to expect.
-- **Tier 4 inactive** until ad-platform connectors are authorized on Windsor.ai. Once Google Ads / Meta / TikTok / Klaviyo are connected, the placeholder cells can be replaced with real ROAS / CAC / spend charts using the same `<ChartShell>` pattern.
+- **DTC ramp**: the store's DTC channel ramped on 3/31/26, so long-range DTC trends are sparse before that date. The dashboard surfaces this as a banner so it's clear what to expect.
+- **Tier 4 inactive** until ad-platform spend data is wired in. Once Google Ads / Meta / TikTok / Klaviyo are connected, the placeholder cells can be replaced with real ROAS / CAC / spend charts using the same `<ChartShell>` pattern.
 
 ## Mobile testing checklist
 

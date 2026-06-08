@@ -12,7 +12,7 @@ Important data conventions:
 - "B2B", "ADCS", and "DTC" are mutually exclusive channels and sum to total net sales.
 - B2B is defined by canonical rep tags (the rep registry in the context).
 - ADCS = orders tagged "adcs" or "advanced derm".
-- DTC = everything else. Windsor only began returning DTC data on 2026-04-01, so DTC numbers before that date are essentially zero.
+- DTC = everything else. The store's DTC channel ramped on 2026-04-01, so DTC numbers before that date are essentially zero.
 - "Net" sales = gross − discounts − refunds.
 - The rep performance table groups reps into Existing / New / 1099 territories.
 - Time-series buckets are either daily (windows ≤ 100 days) or monthly. The granularity field in the context tells you which.

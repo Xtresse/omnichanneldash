@@ -22,7 +22,7 @@ const startOfWeek = (d) => {
   return x;
 };
 
-// All-time start anchor (Windsor doesn't have data before this).
+// All-time start anchor (the store opened in 2024; no orders before this).
 const ALL_TIME_START = "2024-01-01";
 
 // Each preset returns [from, to] (ISO YYYY-MM-DD).

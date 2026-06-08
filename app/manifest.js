@@ -5,7 +5,7 @@ export default function manifest() {
     name: "Xtresse Omni Channel Dashboard",
     short_name: "Xtresse Omni",
     description:
-      "B2B + ADCS + DTC unified analytics for Xtresse, sourced from Windsor.ai → Shopify.",
+      "B2B + ADCS + DTC unified analytics for Xtresse, sourced directly from Shopify.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",

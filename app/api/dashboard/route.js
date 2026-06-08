@@ -1,27 +1,25 @@
 import { NextResponse } from "next/server";
 import {
-  fetchWindsorRows,
-  fetchWindsorAllTimeLight,
+  fetchSalesRows,
+  fetchSalesAllTime,
   buildDashboardData,
   buildCompareSnapshot,
   computeCompareWindow,
-} from "@/lib/windsor.js";
+} from "@/lib/salesData.js";
+import { ALLOWED_API_PRESETS } from "@/lib/presets.mjs";
 export const maxDuration = 60; // ~11s cold Shopify all-time pull, cached after
 
 // 5-minute cache on the API. Browser still gets a fresh response per query
 // (preset/from/to combinations cache independently).
 export const revalidate = 300;
 
-const ALLOWED_PRESETS = new Set([
-  "last_7d",
-  "last_30d",
-  "last_3m",
-  "last_6m",
-  "last_12m",
-  "last_year",
-  "this_year",
-  "last_2years",
-]);
+// Accept every preset the resolver can map (lib/presets.mjs) — including the
+// FilterBar values (today/mtd/ytd/all_time/…) the defensive refresh() path
+// can post back. Previously this was a hand-maintained set that advertised
+// presets the resolver couldn't handle (and omitted ones the UI emits), so
+// unknown presets were normalized to last_3m while others silently became a
+// 90-day window. Now the allow-list and the resolver share one source.
+const ALLOWED_PRESETS = ALLOWED_API_PRESETS;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ALLOWED_GRANULARITY = new Set(["auto", "day", "week", "biweek", "month"]);
@@ -55,9 +53,9 @@ export async function GET(request) {
 
   try {
     const [raw, allTimeRows, compareRaw] = await Promise.all([
-      fetchWindsorRows(queryParams),
-      fetchWindsorAllTimeLight(),
-      compareWindow ? fetchWindsorRows(compareWindow) : Promise.resolve(null),
+      fetchSalesRows(queryParams),
+      fetchSalesAllTime(),
+      compareWindow ? fetchSalesRows(compareWindow) : Promise.resolve(null),
     ]);
     const data = buildDashboardData(
       raw,
