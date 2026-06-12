@@ -551,7 +551,7 @@ export default function Dashboard({ initial }) {
 
             <Section
               title="XVIE Accelerator"
-              detail="June 2026 promo · 4× 2ML-006 or 8× 2ML-003 net units → +2pp gummy rate"
+              detail="June 2026 promo · 24 vials combined (case = 6, starter = 3) → +2pp gummy rate"
               collapsible
             >
               <XvieAccelerator accelerator={data.xvieAccelerator} />

@@ -3,16 +3,18 @@
 /**
  * XVIE Accelerator leaderboard (June 2026 comp promo).
  *
- * Ranks reps by progress toward the June accelerator: sell >= 4 net units
- * of X-XVIE-2ML-006 OR >= 8 net units of X-XVIE-2ML-003 during June 2026
- * to earn +2pp on the gummy (+sachets) commission rate. Data comes from
+ * Ranks reps by progress toward the June accelerator: move >= 24 XVIE
+ * VIALS in June 2026 — COMBINABLE across the two promo SKUs (2ML-006
+ * case = 6 vials, 2ML-003 starter = 3 vials, any mix) — to earn +2pp on
+ * the gummy (+sachets) commission rate. Data comes from
  * `data.xvieAccelerator` (lib/windsor.js buildXvieAccelerator) — pinned to
  * June 2026 from the all-time pull, so it doesn't move with the dashboard's
- * date window. Units are EXACT net of returns, matching the comp calc in
- * Sales-Rep-Dashboards/lib/compPlan.js.
+ * date window. Units are EXACT net of returns and XVIE50 promo orders are
+ * excluded whole-order, matching the comp calc in
+ * Sales-Rep-Dashboards (lib/compPlan.js + lib/repData.js).
  *
- * Qualification shown here is by UNITS ONLY — window Tier-4 W-2 reps don't
- * receive the bump even when they clear the units (noted in the footer).
+ * Qualification shown here is by VIALS ONLY — window Tier-4 W-2 reps don't
+ * receive the bump even when they clear the vials (noted in the footer).
  */
 
 const fmtSkuShort = (sku) => String(sku || "").replace(/^X-XVIE-/, "");
@@ -36,7 +38,10 @@ function ProgressBar({ pct, qualified }) {
 
 export default function XvieAccelerator({ accelerator }) {
   if (!accelerator) return null;
-  const { rows, qualifiedCount, sku006, sku003, min006, min003 } = accelerator;
+  const {
+    rows, qualifiedCount, sku006, sku003,
+    vialsPer006 = 6, vialsPer003 = 3, vialsMin = 24,
+  } = accelerator;
 
   return (
     <div className="bg-card border border-rule rounded-xl overflow-hidden">
@@ -51,13 +56,12 @@ export default function XvieAccelerator({ accelerator }) {
 
       <div className="px-4 pt-3 md:px-5">
         <p className="font-sans text-[10px] md:text-[11px] leading-snug text-muted">
-          Sell{" "}
-          <span className="text-ink font-semibold">{min006}+ units of {fmtSkuShort(sku006)}</span>{" "}
-          or{" "}
-          <span className="text-ink font-semibold">{min003}+ units of {fmtSkuShort(sku003)}</span>{" "}
-          in June (net of returns) to unlock{" "}
+          Reach <span className="text-ink font-semibold">{vialsMin} XVIE vials</span> in June —{" "}
+          <span className="text-ink font-semibold">{fmtSkuShort(sku006)} case = {vialsPer006} vials</span>,{" "}
+          <span className="text-ink font-semibold">{fmtSkuShort(sku003)} starter = {vialsPer003} vials</span>,
+          any mix, net of returns — to unlock{" "}
           <span className="text-ink font-semibold">+2pp on the gummy commission rate</span>.
-          Progress shows the closer of the two tracks.
+          Orders with the XVIE50 promo code don&rsquo;t count.
         </p>
       </div>
 
@@ -75,15 +79,21 @@ export default function XvieAccelerator({ accelerator }) {
                 <th className="px-2 py-1.5 font-semibold text-inksoft w-16">Region</th>
                 <th
                   className="px-2 py-1.5 font-semibold text-inksoft text-right"
-                  title={`June net units of ${sku006} — ${min006} needed on this track`}
+                  title={`June net units of ${sku006} — each counts ${vialsPer006} vials`}
                 >
                   {fmtSkuShort(sku006)}
                 </th>
                 <th
                   className="px-2 py-1.5 font-semibold text-inksoft text-right"
-                  title={`June net units of ${sku003} — ${min003} needed on this track`}
+                  title={`June net units of ${sku003} — each counts ${vialsPer003} vials`}
                 >
                   {fmtSkuShort(sku003)}
+                </th>
+                <th
+                  className="px-2 py-1.5 font-semibold text-inksoft text-right"
+                  title={`Combined vials — ${vialsMin} needed to qualify`}
+                >
+                  Vials
                 </th>
                 <th className="px-2 py-1.5 font-semibold text-inksoft">Progress</th>
                 <th className="px-2 py-1.5 font-semibold text-inksoft text-right">Status</th>
@@ -100,13 +110,15 @@ export default function XvieAccelerator({ accelerator }) {
                     )}
                   </td>
                   <td className="px-2 py-1.5 text-inksoft">{r.region || "—"}</td>
-                  <td className={`px-2 py-1.5 text-right tabular-nums ${r.units006 >= min006 ? "text-favorable font-semibold" : "text-ink"}`}>
+                  <td className="px-2 py-1.5 text-right tabular-nums text-ink">
                     {r.units006}
-                    <span className="text-muted/70"> / {min006}</span>
                   </td>
-                  <td className={`px-2 py-1.5 text-right tabular-nums ${r.units003 >= min003 ? "text-favorable font-semibold" : "text-ink"}`}>
+                  <td className="px-2 py-1.5 text-right tabular-nums text-ink">
                     {r.units003}
-                    <span className="text-muted/70"> / {min003}</span>
+                  </td>
+                  <td className={`px-2 py-1.5 text-right tabular-nums ${r.qualified ? "text-favorable font-semibold" : "text-ink"}`}>
+                    {r.vials}
+                    <span className="text-muted/70"> / {vialsMin}</span>
                   </td>
                   <td className="px-2 py-1.5">
                     <ProgressBar pct={r.progressPct} qualified={r.qualified} />
@@ -117,7 +129,7 @@ export default function XvieAccelerator({ accelerator }) {
                         Qualified
                       </span>
                     ) : (
-                      <span className="text-muted text-[11px]">{r.unitsToGo} to go</span>
+                      <span className="text-muted text-[11px]">{r.vialsToGo} vial{r.vialsToGo === 1 ? "" : "s"} to go</span>
                     )}
                   </td>
                 </tr>
@@ -130,10 +142,10 @@ export default function XvieAccelerator({ accelerator }) {
       <div className="px-4 pb-3 md:px-5">
         <p className="font-sans text-[10px] leading-snug text-muted">
           Units are June-2026 only, exact net of returns, on rep-attributed B2B
-          orders — same counting as the Sales Rep Dashboards commission calc.
-          Reps with no accelerator-SKU units yet aren't listed. Note: W-2 reps
-          whose window commission tier is Tier 4 don't receive the +2pp bump
-          even when the units qualify.
+          orders, excluding XVIE50 promo orders — same counting as the Sales
+          Rep Dashboards commission calc. Reps with no accelerator-SKU units
+          yet aren't listed. Note: W-2 reps whose window commission tier is
+          Tier 4 don't receive the +2pp bump even when the vials qualify.
         </p>
       </div>
     </div>
