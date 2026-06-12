@@ -73,8 +73,10 @@ function arrow(cur, prior) {
  * of their first serum is 1 new serum customer). Hovering reveals the
  * units + dollar split.
  *   - Gummies "new" = order has Shopify Flow's `b2b` + `first order` tags
- *   - Serum / XVIE / Sachets "new" = customer's first-EVER purchase of
- *     that product (across all time) lands inside the loaded window
+ *   - Serum "new" = order has the `First FR order` (Shopify Flow) or
+ *     `First serum` (manual rep) tag — matches xtresse-leadershipdash
+ *   - XVIE / Sachets "new" = customer's first-EVER purchase of that
+ *     product (across all time) lands inside the loaded window
  *
  * `compare` (optional) carries prior-period values keyed by rep name:
  *   { mode, from, to, reps: [{rep, net, orders, productMix}] }
@@ -208,6 +210,8 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
                   title={
                     f.key === "Gummies"
                       ? "Distinct accounts with a 'first order'-tagged gummy order (N) vs returning gummy accounts (E). Hover the cell for units + $."
+                      : f.key === "Serum"
+                      ? "Distinct accounts with a 'First FR order'- or 'First serum'-tagged serum order (N) vs returning serum accounts (E). Hover the cell for units + $."
                       : `Distinct customers whose first-ever ${f.label} purchase is inside this window (N) vs returning ${f.label} customers (E). Hover the cell for units + $.`
                   }
                 >
