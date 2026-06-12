@@ -7,6 +7,7 @@ import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
 import B2BStatusBar from "./B2BStatusBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
+import XvieAccelerator from "./XvieAccelerator.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
@@ -546,6 +547,14 @@ export default function Dashboard({ initial }) {
                 repPerformance={data.repPerformance || []}
                 compare={data.compare}
               />
+            </Section>
+
+            <Section
+              title="XVIE Accelerator"
+              detail="June 2026 promo · 4× 2ML-006 or 8× 2ML-003 net units → +2pp gummy rate"
+              collapsible
+            >
+              <XvieAccelerator accelerator={data.xvieAccelerator} />
             </Section>
 
             <Section
