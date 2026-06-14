@@ -5,7 +5,7 @@ import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ReferenceLine, ResponsiveContainer, LabelList,
 } from "recharts";
-import { SCENARIOS, hasScenarioGoals, scenarioGoalFor } from "../lib/scenarioGoals.js";
+import { SCENARIOS, GOAL_CHANNELS, hasScenarioGoals, scenarioGoalFor } from "../lib/scenarioGoals.js";
 
 // Brand palette (mirrors KpiTiles + RepPerformance for consistency).
 const FAVORABLE = "#F0922E";   // orange — ≥100% of target (on/over goal)
@@ -89,26 +89,26 @@ function currentMonth() {
 }
 
 /**
- * Map omnichanneldash productFamily entries → BudgetVsActual products.
- * The dashboard's productFamily has entries with `family` field:
- *   "Gummies" | "Serum" | "XVIE" | "Sachets" | "Other" | "Excluded"
- * We only consume the four targeted families and ignore Other/Excluded.
+ * Map omnichanneldash productFamily entries → BudgetVsActual products, for a
+ * given channel. The dashboard's productFamily rows are { family, B2B, ADCS,
+ * DTC }. channel: "B2B" | "DTC" | "All" (All = B2B + ADCS + DTC). B2B/DTC are
+ * apples-to-apples with the per-channel goals; "All" also includes ADCS, which
+ * has no goal (reconciled into the "Other (unbudgeted)" line).
  */
-function actualsFromProductFamily(productFamily) {
+function actualsFromProductFamily(productFamily, channel = "All") {
   const totals = { Gummies: 0, Serum: 0, XVIE: 0, Sachets: 0 };
   if (!Array.isArray(productFamily)) return totals;
   for (const row of productFamily) {
     const f = row?.family;
     if (f && totals[f] !== undefined) {
-      // Dashboard's productFamily rows are { family, B2B, ADCS, DTC }.
-      // Actuals for budget comparison = sum across all channels. We
-      // also fall back to flat-shape entries (value/net/amount) in case
-      // upstream schema ever changes.
+      const b2b = Number(row.B2B || 0);
+      const adcs = Number(row.ADCS || 0);
+      const dtc = Number(row.DTC || 0);
+      const flat = Number(row.value || row.net || row.amount || 0);
       totals[f] +=
-        Number(row.B2B || 0) +
-        Number(row.ADCS || 0) +
-        Number(row.DTC || 0) +
-        Number(row.value || row.net || row.amount || 0);
+        channel === "B2B" ? b2b
+        : channel === "DTC" ? dtc
+        : b2b + adcs + dtc + flat; // All
     }
   }
   return totals;
@@ -134,6 +134,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [scenario, setScenario] = useState("base"); // "base" | "stretch"
+  const [channel, setChannel] = useState("All");     // "All" | "B2B" | "DTC"
   const [drillRep, setDrillRep] = useState(null);
 
   // When the selected month has Base/Stretch scenario goals defined, the
@@ -151,7 +152,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
     return () => { cancelled = true; };
   }, []);
 
-  const actuals = useMemo(() => actualsFromProductFamily(productFamily), [productFamily]);
+  const actuals = useMemo(() => actualsFromProductFamily(productFamily, channel), [productFamily, channel]);
 
   // Build the per-product rows for the selected month.
   const rows = useMemo(() => {
@@ -166,7 +167,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
       // Scenario goal (Base/Stretch) takes precedence when defined for this
       // month; otherwise fall back to the summed per-rep goals.
       const goalSum = usingScenario
-        ? scenarioGoalFor(selectedMonth, scenario, p)
+        ? scenarioGoalFor(selectedMonth, scenario, p, channel)
         : repGoalSum;
       const actual = Number(actuals[p] || 0);
       const dBudget = actual - budget;
@@ -176,7 +177,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
       return { product: p, budget, goal: goalSum, actual, dBudget, dGoal, pctBudget, pctGoal };
     });
     return out;
-  }, [budgetData, selectedMonth, actuals, usingScenario, scenario]);
+  }, [budgetData, selectedMonth, actuals, usingScenario, scenario, channel]);
 
   const totals = useMemo(() => {
     const t = rows.reduce(
@@ -192,9 +193,13 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
     // dashboard's headline net sales. Reconcile to the canonical total so
     // the Total row TIES to the number up top; the gap is surfaced as an
     // "Other (unbudgeted)" line below.
+    // Only the "All" view reconciles to the dashboard's canonical net total
+    // (which spans every SKU); the "Other (unbudgeted)" line surfaces the gap.
+    // For a single channel we don't have a clean per-channel grand total here,
+    // so the Total = sum of the tracked product actuals (no Other line).
     const trackedActual = t.actual;
-    const grandActual = totalNetSales != null ? totalNetSales : trackedActual;
-    const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
+    const grandActual = channel === "All" && totalNetSales != null ? totalNetSales : trackedActual;
+    const otherActual = channel === "All" ? Math.max(0, Math.round(grandActual - trackedActual)) : 0;
     return {
       ...t,
       trackedActual,
@@ -205,14 +210,15 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
       pctBudget: t.budget > 0 ? grandActual / t.budget : null,
       pctGoal: t.goal > 0 ? grandActual / t.goal : null,
     };
-  }, [rows, totalNetSales]);
+  }, [rows, totalNetSales, channel]);
 
   const monthOpts = useMemo(() => monthOffsets(selectedMonth, 3, 3), [selectedMonth]);
   const isStub = budgetData?.mode === "stub";
 
-  // Label for the goal column / readouts: scenario-aware when active.
+  // Label for the goal column / readouts: scenario- and channel-aware.
   const scenarioLabel = SCENARIOS.find((s) => s.key === scenario)?.label || "Base";
-  const goalColLabel = usingScenario ? `Goal · ${scenarioLabel}` : "Rep Goal";
+  const channelLabel = channel === "All" ? "" : ` · ${channel}`;
+  const goalColLabel = usingScenario ? `Goal · ${scenarioLabel}${channelLabel}` : "Rep Goal";
 
   return (
     <div className="space-y-3 md:space-y-4">
@@ -254,6 +260,13 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
           </div>
         )}
 
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold hidden sm:inline">
+            Channel
+          </span>
+          <ChannelToggle value={channel} onChange={setChannel} />
+        </div>
+
         <span className="font-sans text-[9px] md:text-[10px] uppercase tracking-[0.16em] font-semibold text-brown border border-brown/40 rounded px-1.5 py-0.5 shrink-0">
           Net sales
         </span>
@@ -272,7 +285,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
           <div className="rounded-xl border border-rule bg-card px-4 py-3 md:px-5 md:py-4 flex items-center justify-between flex-wrap gap-3">
             <div>
               <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
-                Total · Actual vs Goal · Net{usingScenario ? ` · ${scenarioLabel}` : ""} · {monthLabel(selectedMonth)}
+                Total · Actual vs Goal · Net{usingScenario ? ` · ${scenarioLabel}` : ""}{channelLabel} · {monthLabel(selectedMonth)}
               </div>
               <div className="flex items-baseline gap-2 md:gap-3 mt-0.5">
                 <span className="font-display text-2xl md:text-3xl font-semibold text-ink tabular-nums">{fmt$(totals.actual)}</span>
@@ -424,6 +437,26 @@ function ScenarioToggle({ value, onChange }) {
   return (
     <div className="inline-flex rounded-md border border-rule overflow-hidden">
       {SCENARIOS.map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => onChange(o.key)}
+          className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
+            value === o.key ? "bg-brown text-ink font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// All / B2B / DTC channel filter for the goals + actuals.
+function ChannelToggle({ value, onChange }) {
+  return (
+    <div className="inline-flex rounded-md border border-rule overflow-hidden">
+      {GOAL_CHANNELS.map((o) => (
         <button
           key={o.key}
           type="button"
