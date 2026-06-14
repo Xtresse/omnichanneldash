@@ -372,13 +372,9 @@ export default function Dashboard({ initial }) {
           <>
             {/* Executive summary — the 5-second headline read */}
             <div className="mb-4 md:mb-6 rounded-xl border border-rule bg-card px-4 py-4 md:px-6 md:py-5">
-              <div className="flex items-center justify-between gap-2 mb-1.5">
+              <div className="mb-1.5">
                 <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted">
                   Executive summary · {periodLabel}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted hidden sm:inline">Showing</span>
-                  <MetricToggle value={revMetric} onChange={setRevMetric} />
                 </div>
               </div>
               <div className="flex items-end gap-x-4 gap-y-2 flex-wrap">
@@ -424,6 +420,10 @@ export default function Dashboard({ initial }) {
             </div>
 
             <div className="mb-4 md:mb-6">
+              <div className="flex items-center justify-end gap-1.5 mb-2">
+                <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted hidden sm:inline">Showing</span>
+                <MetricToggle value={revMetric} onChange={setRevMetric} />
+              </div>
               <KpiTiles kpis={data.kpis} compare={data.compare} metric={revMetric} />
             </div>
 
