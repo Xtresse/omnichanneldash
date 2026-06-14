@@ -133,7 +133,7 @@ export default function Dashboard({ initial }) {
   // and the mount effect below reads ?compare= on the client and reconciles.
   const [compareMode, setCompareMode] = useState("off");
   // Net/Gross toggle for the channel revenue chart (Top-Line Performance).
-  const [revMetric, setRevMetric] = useState("net");
+  const [revMetric, setRevMetric] = useState("gross");
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
 
@@ -370,55 +370,6 @@ export default function Dashboard({ initial }) {
 
         {data && (
           <>
-            {/* Executive summary — the 5-second headline read */}
-            <div className="mb-4 md:mb-6 rounded-xl border border-rule bg-card px-4 py-4 md:px-6 md:py-5">
-              <div className="mb-1.5">
-                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted">
-                  Executive summary · {periodLabel}
-                </div>
-              </div>
-              <div className="flex items-end gap-x-4 gap-y-2 flex-wrap">
-                <div>
-                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross Sales</div>
-                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
-                    {fmtMoney(data.kpis.totalGrossSales)}
-                  </div>
-                </div>
-                <div className="font-display text-2xl text-muted pb-1 leading-none">→</div>
-                <div>
-                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Net Sales</div>
-                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
-                    {fmtMoney(data.kpis.totalNetSales)}
-                  </div>
-                </div>
-                <div>
-                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross → Net</div>
-                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
-                    {data.kpis.totalGrossSales ? `${Math.round((data.kpis.totalNetSales / data.kpis.totalGrossSales) * 100)}%` : "—"}
-                  </div>
-                </div>
-                {(() => {
-                  const cur = data.kpis.totalNetSales;
-                  const prior = data.compare?.kpis?.totalNetSales;
-                  if (prior == null || prior <= 0) return null;
-                  const x = (cur - prior) / prior;
-                  const up = x >= 0;
-                  return (
-                    <div className="font-sans text-sm md:text-base font-semibold" style={{ color: up ? "#F0922E" : "#5C2F2E" }}>
-                      {up ? "\u25B2" : "\u25BC"} {Math.abs(x * 100).toFixed(1)}%{" "}
-                      <span className="text-muted font-normal">vs prior</span>
-                    </div>
-                  );
-                })()}
-                <div className="font-sans text-xs md:text-sm text-inksoft ml-auto max-w-xl leading-snug">
-                  B2B <strong className="text-ink">{fmtCompact(data.kpis.b2bNetSales)}</strong>
-                  {data.kpis.b2bShare != null ? ` (${Math.round(data.kpis.b2bShare * 100)}% of net)` : ""}
-                  {" \u00B7 "}DTC <strong className="text-ink">{fmtCompact(data.kpis.dtcNetSales)}</strong>
-                  {data.kpis.adcsNetSales ? <>{" \u00B7 "}ADCS <strong className="text-ink">{fmtCompact(data.kpis.adcsNetSales)}</strong></> : null}.
-                </div>
-              </div>
-            </div>
-
             <div className="mb-4 md:mb-6">
               <div className="flex items-center justify-end gap-1.5 mb-2">
                 <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted hidden sm:inline">Showing</span>
@@ -744,8 +695,8 @@ function ChartCell({ title, subtitle, wide, action, children }) {
 // Compact Net/Gross segmented toggle for the channel revenue chart.
 function MetricToggle({ value, onChange }) {
   const opts = [
-    { k: "net", label: "Net" },
     { k: "gross", label: "Gross" },
+    { k: "net", label: "Net" },
   ];
   return (
     <div className="inline-flex rounded-md border border-rule overflow-hidden">
