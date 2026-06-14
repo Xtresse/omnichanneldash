@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ReferenceLine, ResponsiveContainer, LabelList,
 } from "recharts";
+import { SCENARIOS, hasScenarioGoals, scenarioGoalFor } from "../lib/scenarioGoals.js";
 
 // Brand palette (mirrors KpiTiles + RepPerformance for consistency).
 const FAVORABLE = "#F0922E";   // orange — ≥100% of target (on/over goal)
@@ -110,7 +111,14 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
   const [budgetData, setBudgetData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
+  const [scenario, setScenario] = useState("base"); // "base" | "stretch"
   const [drillRep, setDrillRep] = useState(null);
+
+  // When the selected month has Base/Stretch scenario goals defined, the
+  // Goal column is driven by the chosen scenario (company-level product
+  // targets). Months without a scenario fall back to the Sheet-backed
+  // per-rep goal sum (legacy behavior).
+  const usingScenario = hasScenarioGoals(selectedMonth);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,10 +137,15 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
     const goalsByRep = budgetData?.repGoals || {};
     const out = PRODUCTS.map((p) => {
       const budget = Number(b[p]?.[selectedMonth] || 0);
-      let goalSum = 0;
+      let repGoalSum = 0;
       for (const rep of Object.keys(goalsByRep)) {
-        goalSum += Number(goalsByRep[rep]?.[p]?.[selectedMonth] || 0);
+        repGoalSum += Number(goalsByRep[rep]?.[p]?.[selectedMonth] || 0);
       }
+      // Scenario goal (Base/Stretch) takes precedence when defined for this
+      // month; otherwise fall back to the summed per-rep goals.
+      const goalSum = usingScenario
+        ? scenarioGoalFor(selectedMonth, scenario, p)
+        : repGoalSum;
       const actual = Number(actuals[p] || 0);
       const dBudget = actual - budget;
       const dGoal = actual - goalSum;
@@ -141,7 +154,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
       return { product: p, budget, goal: goalSum, actual, dBudget, dGoal, pctBudget, pctGoal };
     });
     return out;
-  }, [budgetData, selectedMonth, actuals]);
+  }, [budgetData, selectedMonth, actuals, usingScenario, scenario]);
 
   const totals = useMemo(() => {
     const t = rows.reduce(
@@ -175,6 +188,10 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
   const monthOpts = useMemo(() => monthOffsets(selectedMonth, 3, 3), [selectedMonth]);
   const isStub = budgetData?.mode === "stub";
 
+  // Label for the goal column / readouts: scenario-aware when active.
+  const scenarioLabel = SCENARIOS.find((s) => s.key === scenario)?.label || "Base";
+  const goalColLabel = usingScenario ? `Goal · ${scenarioLabel}` : "Rep Goal";
+
   return (
     <div className="space-y-3 md:space-y-4">
       {loadErr && (
@@ -205,6 +222,16 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
         >
           This month
         </button>
+
+        {usingScenario && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold hidden sm:inline">
+              Goal
+            </span>
+            <ScenarioToggle value={scenario} onChange={setScenario} />
+          </div>
+        )}
+
         <span className="font-sans text-[10px] md:text-xs text-muted w-full sm:w-auto sm:ml-auto leading-tight">
           Actuals · {periodLabel || "current dashboard window"}
         </span>
@@ -220,7 +247,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
           <div className="rounded-xl border border-rule bg-card px-4 py-3 md:px-5 md:py-4 flex items-center justify-between flex-wrap gap-3">
             <div>
               <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
-                Total · Actual vs Goal · {monthLabel(selectedMonth)}
+                Total · Actual vs Goal{usingScenario ? ` · ${scenarioLabel}` : ""} · {monthLabel(selectedMonth)}
               </div>
               <div className="flex items-baseline gap-2 md:gap-3 mt-0.5">
                 <span className="font-display text-2xl md:text-3xl font-semibold text-ink tabular-nums">{fmt$(totals.actual)}</span>
@@ -250,7 +277,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
             <thead>
               <tr className="bg-paper2 text-left">
                 <Th align="left">Product</Th>
-                <Th align="right">Rep Goal</Th>
+                <Th align="right">{goalColLabel}</Th>
                 <Th align="right">Actual</Th>
                 <Th align="right">Δ Goal→Actual</Th>
                 <Th align="right">% to Goal</Th>
@@ -357,8 +384,31 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
         Variance color key: <span style={{ color: FAVORABLE }} className="font-semibold">sage</span> ≥100% of target ·{" "}
         <span style={{ color: PARTIAL }} className="font-semibold">amber</span> 90–100% ·{" "}
         <span style={{ color: UNFAVORABLE }} className="font-semibold">maroon</span> &lt;90%.
-        Actuals come from the dashboard&apos;s current date window — change the date range above to see other periods.
+        {usingScenario
+          ? " Goals are the June Base / Stretch B2B targets (toggle above); actuals come from the dashboard's current date window."
+          : " Actuals come from the dashboard's current date window — change the date range above to see other periods."}
       </div>
+    </div>
+  );
+}
+
+// ─── Base / Stretch segmented toggle (mirrors Dashboard.jsx MetricToggle) ─
+
+function ScenarioToggle({ value, onChange }) {
+  return (
+    <div className="inline-flex rounded-md border border-rule overflow-hidden">
+      {SCENARIOS.map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => onChange(o.key)}
+          className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
+            value === o.key ? "bg-brown text-ink font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -468,7 +518,7 @@ function PaceBars({ rows }) {
         <Tooltip formatter={(v) => `${v}%`} />
         <Legend wrapperStyle={{ paddingTop: 4 }} />
         <ReferenceLine x={100} stroke="#5A4F40" strokeDasharray="4 4" label={{ value: "100% target", fill: "#5A4F40", fontSize: 10, position: "right" }} />
-        <Bar dataKey="pctGoal" fill={BRAND_SAGE} name="% of Rep Goal" />
+        <Bar dataKey="pctGoal" fill={BRAND_SAGE} name="% of Goal" />
       </BarChart>
     </ResponsiveContainer>
   );
