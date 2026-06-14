@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import KpiTiles from "./KpiTiles.jsx";
 import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
-import B2BStatusBar from "./B2BStatusBar.jsx";
+import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
 import XvieAccelerator from "./XvieAccelerator.jsx";
@@ -365,7 +365,7 @@ export default function Dashboard({ initial }) {
         </div>
 
         <div className="mb-4 md:mb-6">
-          <B2BStatusBar />
+          <ChannelNetSalesBar />
         </div>
 
         {data && (
