@@ -364,6 +364,50 @@ export default function Dashboard({ initial }) {
           />
         </div>
 
+        {data && (
+          <div className="mb-4 md:mb-6 rounded-xl border border-rule bg-card px-4 py-4 md:px-6 md:py-5">
+            <div className="mb-1.5">
+              <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted">
+                Executive summary · {periodLabel}
+              </div>
+            </div>
+            <div className="flex items-end gap-x-4 gap-y-2 flex-wrap">
+              <div>
+                <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross Sales</div>
+                <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                  {fmtMoney(data.kpis.totalGrossSales)}
+                </div>
+              </div>
+              <div className="font-display text-2xl text-muted pb-1 leading-none">→</div>
+              <div>
+                <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Net Sales</div>
+                <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                  {fmtMoney(data.kpis.totalNetSales)}
+                </div>
+              </div>
+              <div>
+                <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross → Net</div>
+                <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                  {data.kpis.totalGrossSales ? `${Math.round((data.kpis.totalNetSales / data.kpis.totalGrossSales) * 100)}%` : "—"}
+                </div>
+              </div>
+              {(() => {
+                const cur = data.kpis.totalNetSales;
+                const prior = data.compare?.kpis?.totalNetSales;
+                if (prior == null || prior <= 0) return null;
+                const x = (cur - prior) / prior;
+                const up = x >= 0;
+                return (
+                  <div className="font-sans text-sm md:text-base font-semibold" style={{ color: up ? "#F0922E" : "#5C2F2E" }}>
+                    {up ? "▲" : "▼"} {Math.abs(x * 100).toFixed(1)}%{" "}
+                    <span className="text-muted font-normal">vs prior</span>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
         <div className="mb-4 md:mb-6">
           <ChannelNetSalesBar />
         </div>
@@ -378,7 +422,7 @@ export default function Dashboard({ initial }) {
               <KpiTiles kpis={data.kpis} compare={data.compare} metric={revMetric} />
             </div>
 
-            <Section title="Actual Vs Goal" detail="Per-product, monthly · Sheet-backed" collapsible>
+            <Section title="Actual Vs Goal" detail="Per-product net sales · monthly · Base / Stretch" collapsible>
               <BudgetVsActual productFamily={data.productFamily} totalNetSales={data.kpis.totalNetSales} periodLabel={periodLabel} />
             </Section>
 

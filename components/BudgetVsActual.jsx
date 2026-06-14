@@ -13,9 +13,11 @@ const PARTIAL   = "#9A8F80";   // gray — 90–100% of target (almost)
 const UNFAVORABLE = "#5C2F2E"; // brand maroon — <90% of target
 const NEUTRAL   = "#9A8F80";   // gray — no target / unknown
 
-// Goal vs Actual grouped bars: black reference (Goal) + brand orange (Actual).
-// No green / muddy gold per CEO. (Names kept for minimal churn downstream.)
-const BRAND_SAGE  = "#2B1A10"; // Goal — black reference
+// Goal vs Actual: brand maroon reference (Goal) + brand orange (Actual).
+// Was near-black (#2B1A10) which read as a heavy all-black block — swapped
+// to the brand maroon so charts sit in the cream/maroon/orange palette.
+// (Names kept for minimal churn downstream.)
+const BRAND_SAGE  = "#5C2F2E"; // Goal — brand maroon reference
 const BRAND_AMBER = "#F0922E"; // Actual — brand orange
 
 const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lumped into Gummies (2026-05)
@@ -232,6 +234,9 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
           </div>
         )}
 
+        <span className="font-sans text-[9px] md:text-[10px] uppercase tracking-[0.16em] font-semibold text-brown border border-brown/40 rounded px-1.5 py-0.5 shrink-0">
+          Net sales
+        </span>
         <span className="font-sans text-[10px] md:text-xs text-muted w-full sm:w-auto sm:ml-auto leading-tight">
           Actuals · {periodLabel || "current dashboard window"}
         </span>
@@ -247,7 +252,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
           <div className="rounded-xl border border-rule bg-card px-4 py-3 md:px-5 md:py-4 flex items-center justify-between flex-wrap gap-3">
             <div>
               <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
-                Total · Actual vs Goal{usingScenario ? ` · ${scenarioLabel}` : ""} · {monthLabel(selectedMonth)}
+                Total · Actual vs Goal · Net{usingScenario ? ` · ${scenarioLabel}` : ""} · {monthLabel(selectedMonth)}
               </div>
               <div className="flex items-baseline gap-2 md:gap-3 mt-0.5">
                 <span className="font-display text-2xl md:text-3xl font-semibold text-ink tabular-nums">{fmt$(totals.actual)}</span>
@@ -385,8 +390,8 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
         <span style={{ color: PARTIAL }} className="font-semibold">amber</span> 90–100% ·{" "}
         <span style={{ color: UNFAVORABLE }} className="font-semibold">maroon</span> &lt;90%.
         {usingScenario
-          ? " Goals are the June Base / Stretch B2B targets (toggle above); actuals come from the dashboard's current date window."
-          : " Actuals come from the dashboard's current date window — change the date range above to see other periods."}
+          ? " All figures are net sales (gross − discounts − returns). Goals are the June Base / Stretch targets — B2B + DTC ($120k DTC: 90% gummies / 10% serum) — toggle above; actuals come from the dashboard's current date window."
+          : " All figures are net sales. Actuals come from the dashboard's current date window — change the date range above to see other periods."}
       </div>
     </div>
   );
@@ -467,7 +472,9 @@ function Waterfall({ totals }) {
       name: "Actual Δ",
       base: actualDelta >= 0 ? goal : actual,
       value: Math.abs(actualDelta),
-      color: actualDelta >= 0 ? BRAND_SAGE : UNFAVORABLE,
+      // Over goal → orange (favorable); shortfall → neutral gray gap so it
+      // reads as "the gap to goal" rather than another dark block.
+      color: actualDelta >= 0 ? FAVORABLE : NEUTRAL,
     },
     { name: "Actual", base: 0, value: actual, color: BRAND_AMBER },
   ];
@@ -518,7 +525,7 @@ function PaceBars({ rows }) {
         <Tooltip formatter={(v) => `${v}%`} />
         <Legend wrapperStyle={{ paddingTop: 4 }} />
         <ReferenceLine x={100} stroke="#5A4F40" strokeDasharray="4 4" label={{ value: "100% target", fill: "#5A4F40", fontSize: 10, position: "right" }} />
-        <Bar dataKey="pctGoal" fill={BRAND_SAGE} name="% of Goal" />
+        <Bar dataKey="pctGoal" fill={BRAND_AMBER} name="% of Goal" />
       </BarChart>
     </ResponsiveContainer>
   );
