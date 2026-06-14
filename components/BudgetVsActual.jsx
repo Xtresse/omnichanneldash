@@ -537,10 +537,12 @@ function Waterfall({ totals, onSelect }) {
   const actual = totals.actual;
   const variance = actual - goal;
 
+  // Variance gets its own color (rust) so it never collides with Goal (maroon)
+  // or Actual (orange). Sign is conveyed by the bar direction + value label.
   const data = [
-    { name: "Actual", value: actual, color: BRAND_AMBER },
-    { name: "Goal", value: goal, color: BRAND_SAGE },
-    { name: "Variance", value: variance, color: variance >= 0 ? FAVORABLE : UNFAVORABLE },
+    { name: "Actual", value: actual, color: BRAND_AMBER },   // orange
+    { name: "Goal", value: goal, color: BRAND_SAGE },         // maroon
+    { name: "Variance", value: variance, color: "#B85042" },  // rust
   ];
   const handleClick = () => { if (onSelect) onSelect("ALL"); };
 
