@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ReferenceLine, ResponsiveContainer, LabelList,
 } from "recharts";
 import { SCENARIOS, hasScenarioGoals, scenarioGoalFor } from "../lib/scenarioGoals.js";
@@ -469,7 +469,7 @@ function Waterfall({ totals }) {
   const data = [
     { name: "Goal", base: 0, value: goal, color: BRAND_SAGE },
     {
-      name: "Actual Δ",
+      name: actualDelta >= 0 ? "Over goal" : "Gap to goal",
       base: actualDelta >= 0 ? goal : actual,
       value: Math.abs(actualDelta),
       // Over goal → orange (favorable); shortfall → neutral gray gap so it
@@ -495,7 +495,7 @@ function Waterfall({ totals }) {
         <Bar dataKey="base" stackId="a" fill="transparent" />
         <Bar dataKey="value" stackId="a">
           {data.map((d, i) => (
-            <Bar key={i} dataKey="value" fill={d.color} />
+            <Cell key={i} fill={d.color} />
           ))}
           <LabelList
             dataKey="value"
