@@ -22,6 +22,14 @@ const BRAND_AMBER = "#F0922E"; // Actual — brand orange
 
 const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lumped into Gummies (2026-05)
 
+// Distinct per-product colors (warm, on-brand) so products are tellable apart
+// in the % to goal chart — Gummies orange, Serum terracotta, XVIE maroon.
+const PRODUCT_COLOR = {
+  Gummies: "#F0922E",
+  Serum:   "#B85042",
+  XVIE:    "#5C2F2E",
+};
+
 const fmt$ = (n) => {
   const v = Number(n) || 0;
   const sign = v < 0 ? "-" : "";
@@ -61,18 +69,6 @@ function monthProgressFraction(ym) {
   if (ym > cur) return 0;
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   return now.getDate() / daysInMonth;
-}
-
-// Pace color: how a product's %-to-goal compares to where it "should" be by
-// today. ratio = attainment / elapsed (1.0 = exactly on pace). Ahead/on →
-// orange, slightly behind → gray, well behind → maroon.
-function paceColor(pctGoal, elapsed) {
-  if (pctGoal == null || !isFinite(pctGoal)) return NEUTRAL;
-  if (!elapsed || elapsed <= 0) return colorForPct(pctGoal); // no pace basis → fall back to attainment
-  const ratio = pctGoal / elapsed;
-  if (ratio >= 1.0)  return FAVORABLE;   // on / ahead of pace
-  if (ratio >= 0.85) return PARTIAL;     // slightly behind
-  return UNFAVORABLE;                     // well behind
 }
 
 /** Build the +/- N month list around a center month. */
@@ -387,14 +383,14 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
-        <ChartCell title="Grouped bars" subtitle="Goal · Actual per product">
-          <GroupedBars rows={rows} />
+        <ChartCell title="Goal vs Actual" subtitle="Per product · click a bar to drill in">
+          <GroupedBars rows={rows} onSelect={setDrillRep} />
         </ChartCell>
-        <ChartCell title="Variance waterfall" subtitle="Goal → Actual Δ">
-          <Waterfall totals={totals} />
+        <ChartCell title="Variance" subtitle="Actual · Goal · Variance">
+          <Waterfall totals={totals} onSelect={setDrillRep} />
         </ChartCell>
-        <ChartCell title="% to goal" subtitle="Color = vs pace today · lines at pace & 100%" wide>
-          <PaceBars rows={rows} monthProgress={monthProgressFraction(selectedMonth)} />
+        <ChartCell title="% to goal" subtitle="By product · lines at pace & 100% · click to drill" wide>
+          <PaceBars rows={rows} monthProgress={monthProgressFraction(selectedMonth)} onSelect={setDrillRep} />
         </ChartCell>
       </div>
 
@@ -410,9 +406,10 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
       )}
 
       <div className="font-sans text-[10px] text-muted leading-snug">
-        Variance color key: <span style={{ color: FAVORABLE }} className="font-semibold">sage</span> ≥100% of target ·{" "}
-        <span style={{ color: PARTIAL }} className="font-semibold">amber</span> 90–100% ·{" "}
+        Table % to goal: <span style={{ color: FAVORABLE }} className="font-semibold">orange</span> ≥100% ·{" "}
+        <span style={{ color: PARTIAL }} className="font-semibold">gray</span> 90–100% ·{" "}
         <span style={{ color: UNFAVORABLE }} className="font-semibold">maroon</span> &lt;90%.
+        In the charts, each product has its own color — click any bar to drill into rep goals.
         {usingScenario
           ? " All figures are net sales (gross − discounts − returns). Goals are the June Base / Stretch targets — B2B + DTC ($120k DTC: 90% gummies / 10% serum) — toggle above; actuals come from the dashboard's current date window."
           : " All figures are net sales. Actuals come from the dashboard's current date window — change the date range above to see other periods."}
@@ -456,107 +453,126 @@ function ChartCell({ title, subtitle, children, wide }) {
   );
 }
 
-// ─── Chart: grouped bars ───────────────────────────────────────────────
+// Rich tooltip for the Goal-vs-Actual grouped bars: shows Goal, Actual,
+// variance and % to goal for the hovered product.
+function GoalActualTooltip({ active, payload, label }) {
+  if (!active || !payload || !payload.length) return null;
+  const goal = Number(payload.find((p) => p.dataKey === "Goal")?.value || 0);
+  const actual = Number(payload.find((p) => p.dataKey === "Actual")?.value || 0);
+  const dv = actual - goal;
+  const pct = goal > 0 ? actual / goal : null;
+  return (
+    <div className="rounded-md border border-rule bg-card px-3 py-2 shadow-sm font-sans text-[11px] text-inksoft">
+      <div className="font-semibold text-ink mb-1">{label}</div>
+      <div>Goal <span className="tabular-nums font-semibold text-ink">{fmt$(goal)}</span></div>
+      <div>Actual <span className="tabular-nums font-semibold text-ink">{fmt$(actual)}</span></div>
+      <div style={{ color: colorForPct(pct) }}>
+        {dv >= 0 ? "+" : ""}{fmt$(dv)}{pct != null ? ` · ${fmtPct(pct)} to goal` : ""}
+      </div>
+      <div className="text-muted mt-1">Click to drill into reps</div>
+    </div>
+  );
+}
 
-function GroupedBars({ rows }) {
-  const data = rows.map((r) => ({
-    product: r.product,
-    Goal: r.goal,
-    Actual: r.actual,
-  }));
+// ─── Chart: grouped bars (Goal vs Actual per product) ──────────────────
+
+function GroupedBars({ rows, onSelect }) {
+  const data = rows.map((r) => ({ product: r.product, Goal: r.goal, Actual: r.actual }));
+  const handleClick = (d) => { if (onSelect && d?.product) onSelect(d.product); };
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" vertical={false} />
         <XAxis dataKey="product" tickLine={false} axisLine={false} />
         <YAxis tickFormatter={fmt$k} tickLine={false} axisLine={false} width={56} />
-        <Tooltip formatter={(v) => fmt$(v)} />
+        <Tooltip cursor={{ fill: "#5C2F2E0F" }} content={<GoalActualTooltip />} />
         <Legend wrapperStyle={{ paddingTop: 4 }} />
-        <Bar dataKey="Goal" fill={BRAND_SAGE} />
-        <Bar dataKey="Actual" fill={BRAND_AMBER} />
+        <Bar dataKey="Goal" fill={BRAND_SAGE} cursor="pointer" onClick={handleClick} />
+        <Bar dataKey="Actual" fill={BRAND_AMBER} cursor="pointer" onClick={handleClick} />
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-// ─── Chart: variance waterfall (Goal → Actual Δ → Actual) ───
+// ─── Chart: Actual · Goal · Variance ───────────────────────────────────
 
-function Waterfall({ totals }) {
-  // Build 3 bars: Goal (start), Actual Δ (relative to Goal), and Actual
-  // (final). The Actual Δ renders as a floating bar using a [base, top]
-  // pair so positive deltas stack upward and negatives stack downward
-  // visibly.
+function Waterfall({ totals, onSelect }) {
+  // Three plain bars in Sam's order — Actual, Goal, then Variance (signed:
+  // negative renders below the zero line). Orange = actual / favorable,
+  // maroon = goal / shortfall.
   const goal = totals.goal;
   const actual = totals.actual;
-  const actualDelta = actual - goal;
+  const variance = actual - goal;
 
   const data = [
-    { name: "Goal", base: 0, value: goal, color: BRAND_SAGE },
-    {
-      name: actualDelta >= 0 ? "Over goal" : "Gap to goal",
-      base: actualDelta >= 0 ? goal : actual,
-      value: Math.abs(actualDelta),
-      // Over goal → orange (favorable); shortfall → neutral gray gap so it
-      // reads as "the gap to goal" rather than another dark block.
-      color: actualDelta >= 0 ? FAVORABLE : NEUTRAL,
-    },
-    { name: "Actual", base: 0, value: actual, color: BRAND_AMBER },
+    { name: "Actual", value: actual, color: BRAND_AMBER },
+    { name: "Goal", value: goal, color: BRAND_SAGE },
+    { name: "Variance", value: variance, color: variance >= 0 ? FAVORABLE : UNFAVORABLE },
   ];
+  const handleClick = () => { if (onSelect) onSelect("ALL"); };
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" vertical={false} />
         <XAxis dataKey="name" tickLine={false} axisLine={false} />
         <YAxis tickFormatter={fmt$k} tickLine={false} axisLine={false} width={56} />
-        <Tooltip
-          formatter={(_v, _n, ctx) => {
-            const d = ctx?.payload;
-            if (!d) return "";
-            return fmt$((d.base || 0) + (d.value || 0));
-          }}
-        />
-        <Bar dataKey="base" stackId="a" fill="transparent" />
-        <Bar dataKey="value" stackId="a">
+        <Tooltip cursor={{ fill: "#5C2F2E0F" }} formatter={(v) => [fmt$(v), ""]} labelClassName="font-semibold" />
+        <ReferenceLine y={0} stroke="#9A8F80" />
+        <Bar dataKey="value" cursor="pointer" onClick={handleClick}>
           {data.map((d, i) => (
             <Cell key={i} fill={d.color} />
           ))}
-          <LabelList
-            dataKey="value"
-            position="top"
-            formatter={(v) => fmt$k(v)}
-            style={{ fontSize: 11, fill: "#5A4F40" }}
-          />
+          <LabelList dataKey="value" position="top" formatter={(v) => fmt$k(v)} style={{ fontSize: 11, fill: "#5A4F40" }} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-// ─── Chart: % to target horizontal stacked bars ───────────────────────
+// ─── Chart: % to goal (horizontal, per-product colors) ─────────────────
 
-function PaceBars({ rows, monthProgress = 0 }) {
+function PaceTooltip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null;
+  const p = payload[0]?.payload;
+  if (!p) return null;
+  return (
+    <div className="rounded-md border border-rule bg-card px-3 py-2 shadow-sm font-sans text-[11px] text-inksoft">
+      <div className="font-semibold text-ink mb-1">{p.product}</div>
+      <div>Actual <span className="tabular-nums font-semibold text-ink">{fmt$(p.actual)}</span></div>
+      <div>Goal <span className="tabular-nums font-semibold text-ink">{fmt$(p.goal)}</span></div>
+      <div className="tabular-nums font-semibold" style={{ color: p.color }}>{p.pctGoal}% to goal</div>
+      <div className="text-muted mt-1">Click to drill into reps</div>
+    </div>
+  );
+}
+
+function PaceBars({ rows, monthProgress = 0, onSelect }) {
   const data = rows.map((r) => ({
     product: r.product,
     pctGoal: Math.round((r.pctGoal || 0) * 100),
-    color: paceColor(r.pctGoal, monthProgress),
+    actual: r.actual,
+    goal: r.goal,
+    color: PRODUCT_COLOR[r.product] || BRAND_AMBER,
   }));
   const pacePct = Math.round((monthProgress || 0) * 100);
+  const handleClick = (d) => { if (onSelect && d?.product) onSelect(d.product); };
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} layout="vertical" margin={{ top: 5, right: 24, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" horizontal={false} />
         <XAxis type="number" domain={[0, "dataMax + 20"]} tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} />
         <YAxis type="category" dataKey="product" tickLine={false} axisLine={false} width={64} tick={{ fontSize: 11 }} />
-        <Tooltip formatter={(v) => `${v}%`} />
+        <Tooltip cursor={{ fill: "#5C2F2E0F" }} content={<PaceTooltip />} />
         {pacePct > 0 && pacePct < 100 && (
           <ReferenceLine x={pacePct} stroke="#9A8F80" strokeDasharray="4 4" label={{ value: `pace ${pacePct}%`, fill: "#9A8F80", fontSize: 10, position: "top" }} />
         )}
         <ReferenceLine x={100} stroke="#5A4F40" strokeDasharray="4 4" label={{ value: "100% target", fill: "#5A4F40", fontSize: 10, position: "right" }} />
-        <Bar dataKey="pctGoal" name="% of Goal">
+        <Bar dataKey="pctGoal" name="% of Goal" cursor="pointer" onClick={handleClick}>
           {data.map((d, i) => (
             <Cell key={i} fill={d.color} />
           ))}
+          <LabelList dataKey="pctGoal" position="right" formatter={(v) => `${v}%`} style={{ fontSize: 11, fill: "#5A4F40" }} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
