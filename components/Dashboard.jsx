@@ -2,7 +2,6 @@
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import KpiTiles from "./KpiTiles.jsx";
 import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
 import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
@@ -409,19 +408,11 @@ export default function Dashboard({ initial }) {
         )}
 
         <div className="mb-4 md:mb-6">
-          <ChannelNetSalesBar />
+          <ChannelNetSalesBar metric={revMetric} onMetricChange={setRevMetric} />
         </div>
 
         {data && (
           <>
-            <div className="mb-4 md:mb-6">
-              <div className="flex items-center justify-end gap-1.5 mb-2">
-                <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted hidden sm:inline">Showing</span>
-                <MetricToggle value={revMetric} onChange={setRevMetric} />
-              </div>
-              <KpiTiles kpis={data.kpis} compare={data.compare} metric={revMetric} />
-            </div>
-
             <Section title="Actual Vs Goal" detail="Per-product net sales · monthly · Base / Stretch" collapsible>
               <BudgetVsActual productFamily={data.productFamily} totalNetSales={data.kpis.totalNetSales} periodLabel={periodLabel} />
             </Section>
@@ -736,26 +727,3 @@ function ChartCell({ title, subtitle, wide, action, children }) {
   );
 }
 
-// Compact Net/Gross segmented toggle for the channel revenue chart.
-function MetricToggle({ value, onChange }) {
-  const opts = [
-    { k: "gross", label: "Gross" },
-    { k: "net", label: "Net" },
-  ];
-  return (
-    <div className="inline-flex rounded-md border border-rule overflow-hidden">
-      {opts.map((o) => (
-        <button
-          key={o.k}
-          type="button"
-          onClick={() => onChange(o.k)}
-          className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
-            value === o.k ? "bg-brown text-ink font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
