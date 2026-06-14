@@ -51,6 +51,30 @@ function colorForPct(pct) {
   return UNFAVORABLE;
 }
 
+// Fraction of `ym` (YYYY-MM) elapsed today: full month in the past → 1,
+// future month → 0, current month → day-of-month / days-in-month. Used to
+// judge whether a product's MTD attainment is ahead of or behind pace.
+function monthProgressFraction(ym) {
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  if (!ym || ym < cur) return 1;
+  if (ym > cur) return 0;
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return now.getDate() / daysInMonth;
+}
+
+// Pace color: how a product's %-to-goal compares to where it "should" be by
+// today. ratio = attainment / elapsed (1.0 = exactly on pace). Ahead/on →
+// orange, slightly behind → gray, well behind → maroon.
+function paceColor(pctGoal, elapsed) {
+  if (pctGoal == null || !isFinite(pctGoal)) return NEUTRAL;
+  if (!elapsed || elapsed <= 0) return colorForPct(pctGoal); // no pace basis → fall back to attainment
+  const ratio = pctGoal / elapsed;
+  if (ratio >= 1.0)  return FAVORABLE;   // on / ahead of pace
+  if (ratio >= 0.85) return PARTIAL;     // slightly behind
+  return UNFAVORABLE;                     // well behind
+}
+
 /** Build the +/- N month list around a center month. */
 function monthOffsets(center, before = 3, after = 3) {
   if (!center) return [];
@@ -369,8 +393,8 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
         <ChartCell title="Variance waterfall" subtitle="Goal → Actual Δ">
           <Waterfall totals={totals} />
         </ChartCell>
-        <ChartCell title="% to goal" subtitle="MTD pace · target line at 100%" wide>
-          <PaceBars rows={rows} />
+        <ChartCell title="% to goal" subtitle="Color = vs pace today · lines at pace & 100%" wide>
+          <PaceBars rows={rows} monthProgress={monthProgressFraction(selectedMonth)} />
         </ChartCell>
       </div>
 
@@ -511,11 +535,13 @@ function Waterfall({ totals }) {
 
 // ─── Chart: % to target horizontal stacked bars ───────────────────────
 
-function PaceBars({ rows }) {
+function PaceBars({ rows, monthProgress = 0 }) {
   const data = rows.map((r) => ({
     product: r.product,
     pctGoal: Math.round((r.pctGoal || 0) * 100),
+    color: paceColor(r.pctGoal, monthProgress),
   }));
+  const pacePct = Math.round((monthProgress || 0) * 100);
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} layout="vertical" margin={{ top: 5, right: 24, left: 0, bottom: 0 }}>
@@ -523,9 +549,15 @@ function PaceBars({ rows }) {
         <XAxis type="number" domain={[0, "dataMax + 20"]} tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} />
         <YAxis type="category" dataKey="product" tickLine={false} axisLine={false} width={64} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v) => `${v}%`} />
-        <Legend wrapperStyle={{ paddingTop: 4 }} />
+        {pacePct > 0 && pacePct < 100 && (
+          <ReferenceLine x={pacePct} stroke="#9A8F80" strokeDasharray="4 4" label={{ value: `pace ${pacePct}%`, fill: "#9A8F80", fontSize: 10, position: "top" }} />
+        )}
         <ReferenceLine x={100} stroke="#5A4F40" strokeDasharray="4 4" label={{ value: "100% target", fill: "#5A4F40", fontSize: 10, position: "right" }} />
-        <Bar dataKey="pctGoal" fill={BRAND_AMBER} name="% of Goal" />
+        <Bar dataKey="pctGoal" name="% of Goal">
+          {data.map((d, i) => (
+            <Cell key={i} fill={d.color} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
