@@ -370,14 +370,13 @@ export default function Dashboard({ initial }) {
                 Executive summary · {periodLabel}
               </div>
             </div>
-            <div className="flex items-end gap-x-4 gap-y-2 flex-wrap">
+            <div className="flex items-end justify-between gap-x-6 gap-y-3 flex-wrap">
               <div>
                 <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross Sales</div>
                 <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
                   {fmtMoney(data.kpis.totalGrossSales)}
                 </div>
               </div>
-              <div className="font-display text-2xl text-muted pb-1 leading-none">→</div>
               <div>
                 <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Net Sales</div>
                 <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
@@ -397,9 +396,11 @@ export default function Dashboard({ initial }) {
                 const x = (cur - prior) / prior;
                 const up = x >= 0;
                 return (
-                  <div className="font-sans text-sm md:text-base font-semibold" style={{ color: up ? "#F0922E" : "#5C2F2E" }}>
-                    {up ? "▲" : "▼"} {Math.abs(x * 100).toFixed(1)}%{" "}
-                    <span className="text-muted font-normal">vs prior</span>
+                  <div>
+                    <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Net vs Prior</div>
+                    <div className="font-display text-3xl md:text-4xl font-semibold leading-none tabular-nums" style={{ color: up ? "#F0922E" : "#5C2F2E" }}>
+                      {up ? "▲" : "▼"} {Math.abs(x * 100).toFixed(1)}%
+                    </div>
                   </div>
                 );
               })()}
@@ -408,7 +409,7 @@ export default function Dashboard({ initial }) {
         )}
 
         <div className="mb-4 md:mb-6">
-          <ChannelNetSalesBar metric={revMetric} onMetricChange={setRevMetric} />
+          <ChannelNetSalesBar />
         </div>
 
         {data && (
@@ -418,6 +419,10 @@ export default function Dashboard({ initial }) {
             </Section>
 
             <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
+              <div className="flex items-center justify-end gap-1.5 mb-3">
+                <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted hidden sm:inline">Showing</span>
+                <MetricToggle value={revMetric} onChange={setRevMetric} />
+              </div>
               <ChartGrid>
                 <ChartCell title={`${M} Sales By Channel`} subtitle={`${G}, B2B vs DTC`}>
                   <RevenueByChannel data={data.monthlySeries} compare={data.compare} metric={revMetric} />
@@ -661,6 +666,31 @@ function Section({ title, detail, children, collapsible = false, defaultCollapse
 
 function ChartGrid({ children }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">{children}</div>;
+}
+
+// Compact Gross/Net segmented toggle — controls the metric for the chart
+// sections below (Top-Line, Geography, Sales Explorer, etc.).
+function MetricToggle({ value, onChange }) {
+  const opts = [
+    { k: "gross", label: "Gross" },
+    { k: "net", label: "Net" },
+  ];
+  return (
+    <div className="inline-flex rounded-md border border-rule overflow-hidden">
+      {opts.map((o) => (
+        <button
+          key={o.k}
+          type="button"
+          onClick={() => onChange(o.k)}
+          className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
+            value === o.k ? "bg-brown text-ink font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /**
