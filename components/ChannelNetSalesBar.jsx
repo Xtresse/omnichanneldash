@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
-// Total Sales by Channel — month-to-date, broken out by channel, showing BOTH
-// gross and net per channel (no toggle). Replaces the old B2B-MTD bar AND the
-// redundant KPI tiles. ALWAYS month-to-date, independent of the FilterBar.
+// Total Sales by Channel — broken out by channel, showing BOTH gross and net
+// per channel (no toggle). Replaces the old B2B-MTD bar AND the redundant KPI
+// tiles.
 //
-// Data source: /api/dashboard?from=<1st-of-month>&to=<today>. We read the kpis
-// block (net + gross per channel) and present three channel cards + a Total.
+// Driven entirely by the selected FilterBar window: the parent Dashboard passes
+// in the `kpis` block (net + gross per channel) for whatever period / Today is
+// active, plus a `periodLabel`. So these cards fluctuate with the date picker
+// exactly like every other card — no independent MTD fetch.
 //
 // Tie-out: channels sum to Total by construction, for both metrics —
 //   B2B = total − dtc − adcs · DTC = dtc · ADCS = adcs.
@@ -23,51 +23,8 @@ const fmt$ = (n) =>
 
 const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 
-// Days elapsed INCLUDING today, and total days in the current month.
-function dayProgress() {
-  const now = new Date();
-  const completed = now.getDate();
-  const total = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  return { completed, total };
-}
-
-// First-of-month → end of TODAY in YYYY-MM-DD (includes today's sales).
-function mtdRange() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const ymd = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${dd}`;
-  };
-  return { from: ymd(start), to: ymd(now) };
-}
-
-export default function ChannelNetSalesBar() {
-  const [kpis, setKpis] = useState(null);
-  const [err, setErr] = useState(null);
-
-  const { completed, total } = useMemo(() => dayProgress(), []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const range = mtdRange();
-    const qs = new URLSearchParams({ from: range.from, to: range.to, granularity: "auto" });
-    fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled) return;
-        if (!j.ok || !j.kpis) {
-          setErr(j.error || "Failed to load sales data");
-          return;
-        }
-        setKpis(j.kpis);
-      })
-      .catch((e) => { if (!cancelled) setErr(String(e?.message || e)); });
-    return () => { cancelled = true; };
-  }, []);
-
+export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selected period", error = null }) {
+  const err = error;
   const loading = kpis == null && !err;
 
   // Both metrics per channel; B2B = total − dtc − adcs so each ties to Total.
@@ -94,7 +51,7 @@ export default function ChannelNetSalesBar() {
           Total Sales by Channel
         </h2>
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted leading-snug">
-          Gross &amp; Net · MTD · Day {completed}/{total} · {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+          Gross &amp; Net · {periodLabel}
         </span>
       </div>
 
@@ -125,7 +82,7 @@ export default function ChannelNetSalesBar() {
         <div className="relative bg-card border-2 border-brown rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0">
           <div className="flex items-baseline justify-between">
             <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted">Total</span>
-            <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted">MTD</span>
+            <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted">{periodLabel}</span>
           </div>
           <MetricPair loading={loading} error={err} gross={totalGross} net={totalNet} big />
           <div className="font-sans text-[10px] text-muted mt-2 pt-2 border-t border-rule truncate">B2B + DTC + ADCS</div>

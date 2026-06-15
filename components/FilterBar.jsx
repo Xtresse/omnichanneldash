@@ -56,7 +56,10 @@ const PRESETS = [
   { value: "all_time", label: "All time", range: () => [ALL_TIME_START, today()] },
 ];
 
-const GRANULARITY_OPTIONS = [
+// Bucket / chart-granularity options. Exported so the toggle can live down
+// beside the charts it controls (see BucketToggle in Dashboard) rather than up
+// here in the date FilterBar.
+export const GRANULARITY_OPTIONS = [
   { value: "auto", label: "Auto" },
   { value: "day", label: "Day" },
   { value: "week", label: "Week" },
@@ -68,16 +71,14 @@ export default function FilterBar({
   activePreset,        // string preset value, or null when custom dates are active
   customFrom,
   customTo,
-  granularity,         // "auto" | "day" | "week" | "biweek" | "month"
-  resolvedGranularity, // what the server actually used (for the Auto badge)
   onPresetChange,      // (presetValue, from, to) => void
   onCustomChange,      // ({from, to}) => void
-  onGranularityChange, // (granularity) => void
   loading,
 }) {
   return (
-    <div className="bg-paper2 border border-rule rounded-md px-3 py-2.5 md:px-4 md:py-3 space-y-2.5">
-      {/* Row 1 — quick presets + custom date inputs */}
+    <div className="bg-paper2 border border-rule rounded-md px-3 py-2.5 md:px-4 md:py-3">
+      {/* Quick presets + custom date inputs. The bucket / granularity control
+          moved out to sit directly above the time-series charts it drives. */}
       <div className="space-y-2.5 md:space-y-0 md:flex md:items-center md:gap-4 md:flex-wrap">
         <div className="flex items-center gap-2 md:gap-3 flex-nowrap overflow-x-auto no-scrollbar -mx-1 px-1">
           <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-muted shrink-0">
@@ -150,36 +151,6 @@ export default function FilterBar({
             </span>
           )}
         </div>
-      </div>
-
-      {/* Row 2 — bucket / chart granularity */}
-      <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-rule/60">
-        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-muted shrink-0">
-          Bucket
-        </span>
-        {GRANULARITY_OPTIONS.map((g) => {
-          const active = (granularity || "auto") === g.value;
-          return (
-            <button
-              key={g.value}
-              type="button"
-              onClick={() => onGranularityChange(g.value)}
-              className={`shrink-0 min-h-touch px-3 rounded-md font-sans text-xs transition border ${
-                active
-                  ? "bg-brown text-ink border-brown"
-                  : "bg-paper text-inksoft border-rule hover:bg-paper2 hover:border-tan"
-              }`}
-              aria-pressed={active}
-            >
-              {g.label}
-            </button>
-          );
-        })}
-        {(!granularity || granularity === "auto") && resolvedGranularity && (
-          <span className="font-sans text-[11px] text-muted ml-1">
-            using <strong className="text-inksoft">{GRANULARITY_OPTIONS.find((x) => x.value === resolvedGranularity)?.label || resolvedGranularity}</strong>
-          </span>
-        )}
       </div>
     </div>
   );

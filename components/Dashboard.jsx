@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import FilterBar, { PRESET_LABELS } from "./FilterBar.jsx";
+import FilterBar, { PRESET_LABELS, GRANULARITY_OPTIONS } from "./FilterBar.jsx";
 import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
@@ -354,11 +354,8 @@ export default function Dashboard({ initial }) {
             activePreset={activePreset}
             customFrom={customFrom}
             customTo={customTo}
-            granularity={granularity}
-            resolvedGranularity={data?.granularity}
             onPresetChange={changePreset}
             onCustomChange={changeCustom}
-            onGranularityChange={changeGranularity}
             loading={isPending}
           />
         </div>
@@ -409,7 +406,11 @@ export default function Dashboard({ initial }) {
         )}
 
         <div className="mb-4 md:mb-6">
-          <ChannelNetSalesBar />
+          <ChannelNetSalesBar
+            kpis={data?.kpis || null}
+            periodLabel={periodLabel}
+            error={!data ? error : null}
+          />
         </div>
 
         {data && (
@@ -419,9 +420,20 @@ export default function Dashboard({ initial }) {
             </Section>
 
             <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
-              <div className="flex items-center justify-end gap-1.5 mb-3">
-                <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted hidden sm:inline">Showing</span>
-                <MetricToggle value={revMetric} onChange={setRevMetric} />
+              {/* Bucket (granularity) lives here — directly above the time-series
+                  charts it actually controls — alongside the Gross/Net toggle.
+                  Both re-bucket/redraw whenever the date period (or Today) and
+                  this control change. */}
+              <div className="flex items-center justify-between sm:justify-end gap-x-4 gap-y-2 mb-3 flex-wrap">
+                <BucketToggle
+                  value={granularity}
+                  resolved={data?.granularity}
+                  onChange={changeGranularity}
+                />
+                <div className="flex items-center gap-1.5">
+                  <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted hidden sm:inline">Showing</span>
+                  <MetricToggle value={revMetric} onChange={setRevMetric} />
+                </div>
               </div>
               <ChartGrid>
                 <ChartCell title={`${M} Sales By Channel`} subtitle={`${G}, B2B vs DTC`}>
@@ -689,6 +701,39 @@ function MetricToggle({ value, onChange }) {
           {o.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+// Bucket / chart-granularity control. Moved out of the top FilterBar to sit
+// directly above the time-series charts it drives. "Auto" lets the server pick
+// the bucket for the selected window; when Auto is active we surface what it
+// resolved to ("using Weekly") so the choice is legible.
+function BucketToggle({ value, resolved, onChange }) {
+  const cur = value || "auto";
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted">Bucket</span>
+      <div className="inline-flex rounded-md border border-rule overflow-hidden">
+        {GRANULARITY_OPTIONS.map((g) => (
+          <button
+            key={g.value}
+            type="button"
+            onClick={() => onChange(g.value)}
+            aria-pressed={cur === g.value}
+            className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
+              cur === g.value ? "bg-brown text-ink font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+            }`}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+      {cur === "auto" && resolved && (
+        <span className="font-sans text-[10px] text-muted">
+          using <strong className="text-inksoft">{GRANULARITY_OPTIONS.find((x) => x.value === resolved)?.label || resolved}</strong>
+        </span>
+      )}
     </div>
   );
 }
