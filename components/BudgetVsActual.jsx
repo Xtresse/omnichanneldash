@@ -449,8 +449,8 @@ function Breakdown({ title, subtitle, rows, otherActual = 0, grandActual = 0, fo
       </div>
 
       {/* Desktop / tablet table */}
-      <div className="hidden sm:block">
-        <table className="w-full text-xs md:text-sm font-sans border-collapse">
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-[11px] md:text-xs font-sans border-collapse">
           <thead>
             <tr className="text-left">
               <Th align="left">Name</Th>
@@ -627,7 +627,7 @@ function MarginTable({ title, rows }) {
       <div className="px-4 py-2 md:px-5 font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">
         {title}
       </div>
-      <table className="w-full text-xs md:text-sm font-sans border-collapse">
+      <table className="w-full text-[11px] md:text-xs font-sans border-collapse">
         <thead>
           <tr className="text-left">
             <Th align="left">Name</Th>
@@ -686,17 +686,21 @@ function SporadicTag() {
 
 function Th({ children, align = "left", className = "" }) {
   const alignClass = align === "right" ? "text-right" : "text-left";
+  // Tight first-column inset (aligns under the card title), snug numeric cols so
+  // five columns + large variance values fit the card without clipping.
+  const padClass = align === "right" ? "px-2 md:px-3" : "pl-4 pr-2 md:pl-5";
   return (
-    <th className={`py-2 px-4 md:px-5 font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold ${alignClass} ${className}`}>
+    <th className={`py-2 ${padClass} font-sans text-[10px] uppercase tracking-[0.14em] text-muted font-semibold ${alignClass} ${className}`}>
       {children}
     </th>
   );
 }
 
-function Td({ children, align = "left", className = "", style }) {
+function Td({ children, align = "left", className = "", style, colSpan }) {
   const alignClass = align === "right" ? "text-right tabular-nums" : "text-left";
+  const padClass = align === "right" ? "px-2 md:px-3" : "pl-4 pr-2 md:pl-5";
   return (
-    <td style={style} className={`py-2 px-4 md:px-5 text-inksoft whitespace-nowrap ${alignClass} ${className}`}>
+    <td colSpan={colSpan} style={style} className={`py-2 ${padClass} text-inksoft whitespace-nowrap ${alignClass} ${className}`}>
       {children}
     </td>
   );
