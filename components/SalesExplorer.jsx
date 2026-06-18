@@ -39,7 +39,7 @@ const NO_REP = "__norep__"; // DTC / untagged orders have no rep
  * breakdown table below re-groups the surviving orders by whichever
  * dimension you pick, sorted by sales. Honors the global Net/Gross toggle.
  */
-export default function SalesExplorer({ orders = [], metric = "net" }) {
+export default function SalesExplorer({ orders = [], metric = "net", repRoster = [] }) {
   const [state, setState] = useState(ALL);
   const [rep, setRep] = useState(ALL);
   const [zip, setZip] = useState(ALL);
@@ -79,22 +79,40 @@ export default function SalesExplorer({ orders = [], metric = "net" }) {
 
   // Build sorted, sales-ranked option lists for each dropdown.
   const options = useMemo(() => {
-    const collect = (except, keyOf, isRep) => {
+    const collect = (except, keyOf) => {
       const m = new Map();
       for (const o of rows) {
         if (!passes(o, except)) continue;
         const k = keyOf(o);
-        if (isRep ? false : !k) continue; // skip blank state/zip; keep NO_REP
+        if (!k) continue; // skip blank state/zip
         m.set(k, (m.get(k) || 0) + val(o));
       }
       return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
     };
+
+    // REP dropdown (Mike, 2026-06): reps only — DROP the "DTC / no rep" bucket —
+    // and list EVERY rep on the canonical roster, even ones with $0 in the
+    // current window, so the list is never truncated to just the active reps.
+    const repM = new Map();
+    for (const o of rows) {
+      if (!passes(o, "rep")) continue;
+      if (o._rep === NO_REP) continue; // reps only
+      repM.set(o._rep, (repM.get(o._rep) || 0) + val(o));
+    }
+    for (const r of repRoster) {
+      const name = typeof r === "string" ? r : r?.name;
+      if (name && !repM.has(name)) repM.set(name, 0);
+    }
+    const reps = Array.from(repM.entries()).sort(
+      (a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]))
+    );
+
     return {
-      states: collect("state", (o) => o._state, false),
-      reps: collect("rep", (o) => o._rep, true),
-      zips: collect("zip", (o) => o._zip, false),
+      states: collect("state", (o) => o._state),
+      reps,
+      zips: collect("zip", (o) => o._zip),
     };
-  }, [rows, state, rep, zip, channel, metric]);
+  }, [rows, state, rep, zip, channel, metric, repRoster]);
 
   // Final filtered set (all filters applied).
   const filtered = useMemo(

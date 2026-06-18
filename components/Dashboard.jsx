@@ -502,7 +502,7 @@ export default function Dashboard({ initial }) {
               collapsible
               defaultCollapsed
             >
-              <SalesExplorer orders={data.orders || []} metric={revMetric} />
+              <SalesExplorer orders={data.orders || []} metric={revMetric} repRoster={data.repRoster || []} />
             </Section>
 
             <Section

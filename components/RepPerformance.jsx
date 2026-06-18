@@ -93,17 +93,25 @@ export default function RepPerformance({ repPerformance, compare }) {
   // unambiguous. Built once at the top so we don't redo the work per cell.
   const compareLabel = compare ? buildCompareLabel(compare) : null;
 
+  // Mike (2026-06): one stack-ranked leaderboard instead of the three
+  // Existing / New / 1099 sections. Combine all W2 reps — EXCLUDING 1099
+  // reps (territory "1099", the same designation the server stamps from the
+  // canonical REPS registry) — rank by net sales, and keep the top 20.
+  const ranked = repPerformance
+    .filter((sec) => sec.territory !== "1099")
+    .flatMap((sec) => sec.rows || [])
+    .sort((a, b) => (b.net || 0) - (a.net || 0))
+    .slice(0, 20)
+    .map((r, i) => ({ ...r, rank: i + 1 }));
+
   return (
     <div className="space-y-3 md:space-y-4">
-      {repPerformance.map(({ territory, rows }) => (
-        <RepTable
-          key={territory}
-          title={TERRITORY_LABEL[territory] || territory}
-          rows={rows}
-          priorByRep={priorByRep}
-          compareLabel={compareLabel}
-        />
-      ))}
+      <RepTable
+        title="Top 20 Reps · Net Sales (excl. 1099)"
+        rows={ranked}
+        priorByRep={priorByRep}
+        compareLabel={compareLabel}
+      />
     </div>
   );
 }
