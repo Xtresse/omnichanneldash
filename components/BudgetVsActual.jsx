@@ -1,34 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ReferenceLine, ResponsiveContainer, LabelList,
-} from "recharts";
-import { SCENARIOS, GOAL_CHANNELS, hasScenarioGoals, scenarioGoalFor } from "../lib/scenarioGoals.js";
+import { SCENARIOS, hasScenarioGoals, scenarioGoalFor } from "../lib/scenarioGoals.js";
 
-// Brand palette (mirrors KpiTiles + RepPerformance for consistency).
-const FAVORABLE = "#F0922E";   // orange — ≥100% of target (on/over goal)
-const PARTIAL   = "#9A8F80";   // gray — 90–100% of target (almost)
-const UNFAVORABLE = "#5C2F2E"; // brand maroon — <90% of target
-const NEUTRAL   = "#9A8F80";   // gray — no target / unknown
+// Brand palette — restrained, used ONLY to signal ahead / behind pace.
+const AHEAD    = "#F0922E"; // orange — ≥100% of (prorated) target
+const NEAR     = "#9A8F80"; // gray  — 90–100% (on pace)
+const BEHIND   = "#5C2F2E"; // maroon — <90% (behind pace)
+const NEUTRAL  = "#9A8F80"; // gray  — no target / unknown
 
-// Goal vs Actual: brand maroon reference (Goal) + brand orange (Actual).
-// Was near-black (#2B1A10) which read as a heavy all-black block — swapped
-// to the brand maroon so charts sit in the cream/maroon/orange palette.
-// (Names kept for minimal churn downstream.)
-const BRAND_SAGE  = "#5C2F2E"; // Goal — brand maroon reference
-const BRAND_AMBER = "#F0922E"; // Actual — brand orange
-
-const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lumped into Gummies (2026-05)
-
-// Distinct per-product colors (warm, on-brand) so products are tellable apart
-// in the % to goal chart — Gummies orange, Serum terracotta, XVIE maroon.
-const PRODUCT_COLOR = {
-  Gummies: "#F0922E",
-  Serum:   "#B85042",
-  XVIE:    "#5C2F2E",
-};
+const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lump into "Other"
 
 const fmt$ = (n) => {
   const v = Number(n) || 0;
@@ -37,13 +18,13 @@ const fmt$ = (n) => {
 };
 const fmt$k = (n) => {
   const v = Number(n) || 0;
-  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
   if (Math.abs(v) >= 1_000) return `$${(v / 1_000).toFixed(0)}k`;
   return fmt$(v);
 };
 const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 
-/** "2026-05" → label like "May 2026". */
+/** "2026-06" → "June 2026". */
 function monthLabel(ym) {
   if (!ym) return "—";
   const [y, m] = ym.split("-").map(Number);
@@ -52,26 +33,16 @@ function monthLabel(ym) {
   return d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
-function colorForPct(pct) {
-  if (!isFinite(pct)) return NEUTRAL;
-  if (pct >= 1.0)  return FAVORABLE;
-  if (pct >= 0.9)  return PARTIAL;
-  return UNFAVORABLE;
+// Color for attainment vs a (prorated) target. >=100% favorable, 90–100% on
+// pace, <90% behind. null → neutral gray.
+function paceTone(pct) {
+  if (pct == null || !isFinite(pct)) return NEUTRAL;
+  if (pct >= 1.0) return AHEAD;
+  if (pct >= 0.9) return NEAR;
+  return BEHIND;
 }
 
-// Fraction of `ym` (YYYY-MM) elapsed today: full month in the past → 1,
-// future month → 0, current month → day-of-month / days-in-month. Used to
-// judge whether a product's MTD attainment is ahead of or behind pace.
-function monthProgressFraction(ym) {
-  const now = new Date();
-  const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  if (!ym || ym < cur) return 1;
-  if (ym > cur) return 0;
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  return now.getDate() / daysInMonth;
-}
-
-/** Build the +/- N month list around a center month. */
+/** +/- N month list around a center month, for the goal-month selector. */
 function monthOffsets(center, before = 3, after = 3) {
   if (!center) return [];
   const [y, m] = center.split("-").map(Number);
@@ -89,58 +60,54 @@ function currentMonth() {
 }
 
 /**
- * Map omnichanneldash productFamily entries → BudgetVsActual products, for a
- * given channel. The dashboard's productFamily rows are { family, B2B, ADCS,
- * DTC }. channel: "B2B" | "DTC" | "All" (All = B2B + ADCS + DTC). B2B/DTC are
- * apples-to-apples with the per-channel goals; "All" also includes ADCS, which
- * has no goal (reconciled into the "Other (unbudgeted)" line).
+ * Sum the dashboard's productFamily rows into { Gummies, Serum, XVIE, Sachets }
+ * net-sales actuals across ALL channels (B2B + ADCS + DTC + any flat value).
  */
-function actualsFromProductFamily(productFamily, channel = "All") {
+function actualsByProduct(productFamily) {
   const totals = { Gummies: 0, Serum: 0, XVIE: 0, Sachets: 0 };
   if (!Array.isArray(productFamily)) return totals;
   for (const row of productFamily) {
     const f = row?.family;
     if (f && totals[f] !== undefined) {
-      const b2b = Number(row.B2B || 0);
-      const adcs = Number(row.ADCS || 0);
-      const dtc = Number(row.DTC || 0);
-      const flat = Number(row.value || row.net || row.amount || 0);
       totals[f] +=
-        channel === "B2B" ? b2b
-        : channel === "DTC" ? dtc
-        : b2b + adcs + dtc + flat; // All
+        Number(row.B2B || 0) + Number(row.ADCS || 0) + Number(row.DTC || 0) +
+        Number(row.value || row.net || row.amount || 0);
     }
   }
   return totals;
 }
 
 /**
- * Actual vs Goal section. Renders inside a Section (the collapsible
- * wrapper) in Dashboard.jsx. Reads:
- *   - /api/budget for rep goals (Sheet-backed; stub when env vars not
- *     set). The same endpoint also returns company-budget numbers, but
- *     they're intentionally not displayed here — Sam only wants the
- *     Actual-vs-Goal comparison surfaced. Budget data is still fetched
- *     so it's available if we ever want to flip it back on.
- *   - data.productFamily from the parent dashboard load for the
- *     current period's actuals
+ * Clean exec financial view for Actual vs Goal.
  *
- * Headline: a per-product table comparing the SELECTED month's rep-goal
- * total to the dashboard's currently-loaded actuals. Recharts
- * visualizations sit below the table.
+ *   1. ONE "so what" header — window net sales ONCE, with a single pace status
+ *      against the GOAL (prorated to the loaded window). Budget + Forecast are
+ *      small secondary references.
+ *   2. Two breakdowns — BY PRODUCT and BY CHANNEL — each: Actual · Target
+ *      (prorated goal) · % to goal · variance.
+ *   3. Gross margin as its own section (by product + by channel), PLACEHOLDER
+ *      COGS until Sam sends real numbers.
+ *
+ * Proration reuses lib/budgetForecast.js (window + day-count fractions on the
+ * dashboard payload): B2B prorates by SELLING days, DTC by CALENDAR days. The
+ * headline "All" goal is the blend (B2B·sellingFraction + DTC·calendarFraction),
+ * so the By-Product and By-Channel Target columns sum EXACTLY to the headline.
+ * Scenario Base/Stretch goals, the Sheet-backed Budget and run-rate Forecast are
+ * all preserved.
  */
-export default function BudgetVsActual({ productFamily, totalNetSales, periodLabel }) {
+export default function BudgetVsActual({
+  productFamily,
+  totalNetSales,
+  channelActuals,
+  periodLabel,
+  budgetForecast,
+  grossMargin,
+}) {
   const [budgetData, setBudgetData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [scenario, setScenario] = useState("base"); // "base" | "stretch"
-  const [channel, setChannel] = useState("All");     // "All" | "B2B" | "DTC"
-  const [drillRep, setDrillRep] = useState(null);
 
-  // When the selected month has Base/Stretch scenario goals defined, the
-  // Goal column is driven by the chosen scenario (company-level product
-  // targets). Months without a scenario fall back to the Sheet-backed
-  // per-rep goal sum (legacy behavior).
   const usingScenario = hasScenarioGoals(selectedMonth);
 
   useEffect(() => {
@@ -152,83 +119,137 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
     return () => { cancelled = true; };
   }, []);
 
-  const actuals = useMemo(() => actualsFromProductFamily(productFamily, channel), [productFamily, channel]);
+  const prodActuals = useMemo(() => actualsByProduct(productFamily), [productFamily]);
 
-  // Build the per-product rows for the selected month.
-  const rows = useMemo(() => {
-    const b = budgetData?.budget || {};
-    const goalsByRep = budgetData?.repGoals || {};
-    const out = PRODUCTS.map((p) => {
-      const budget = Number(b[p]?.[selectedMonth] || 0);
-      let repGoalSum = 0;
-      for (const rep of Object.keys(goalsByRep)) {
-        repGoalSum += Number(goalsByRep[rep]?.[p]?.[selectedMonth] || 0);
-      }
-      // Scenario goal (Base/Stretch) takes precedence when defined for this
-      // month; otherwise fall back to the summed per-rep goals.
-      const goalSum = usingScenario
-        ? scenarioGoalFor(selectedMonth, scenario, p, channel)
-        : repGoalSum;
-      const actual = Number(actuals[p] || 0);
-      const dBudget = actual - budget;
-      const dGoal = actual - goalSum;
-      const pctBudget = budget > 0 ? actual / budget : null;
-      const pctGoal = goalSum > 0 ? actual / goalSum : null;
-      return { product: p, budget, goal: goalSum, actual, dBudget, dGoal, pctBudget, pctGoal };
-    });
-    return out;
-  }, [budgetData, selectedMonth, actuals, usingScenario, scenario, channel]);
-
-  const totals = useMemo(() => {
-    const t = rows.reduce(
-      (acc, r) => ({
-        budget: acc.budget + r.budget,
-        goal: acc.goal + r.goal,
-        actual: acc.actual + r.actual,
-      }),
-      { budget: 0, goal: 0, actual: 0 }
-    );
-    // The four product families don't cover every SKU (apparel / shipping /
-    // uncategorized roll up to "Other"), so summing them lands short of the
-    // dashboard's headline net sales. Reconcile to the canonical total so
-    // the Total row TIES to the number up top; the gap is surfaced as an
-    // "Other (unbudgeted)" line below.
-    // Only the "All" view reconciles to the dashboard's canonical net total
-    // (which spans every SKU); the "Other (unbudgeted)" line surfaces the gap.
-    // For a single channel we don't have a clean per-channel grand total here,
-    // so the Total = sum of the tracked product actuals (no Other line).
-    const trackedActual = t.actual;
-    const grandActual = channel === "All" && totalNetSales != null ? totalNetSales : trackedActual;
-    const otherActual = channel === "All" ? Math.max(0, Math.round(grandActual - trackedActual)) : 0;
-    return {
-      ...t,
-      trackedActual,
-      otherActual,
-      actual: grandActual,
-      dBudget: grandActual - t.budget,
-      dGoal: grandActual - t.goal,
-      pctBudget: t.budget > 0 ? grandActual / t.budget : null,
-      pctGoal: t.goal > 0 ? grandActual / t.goal : null,
+  // Proration to the loaded window, reusing the SAME day counts as the
+  // dashboard's budgetForecast payload (lib/budgetForecast.js). Only active when
+  // the window is a sub-month window that sits inside the selected goal month.
+  const pro = useMemo(() => {
+    const w = budgetForecast?.window;
+    const pr = budgetForecast?.proration;
+    const off = {
+      active: false, sellingFraction: 1, calendarFraction: 1,
+      sellingDaysInWindow: pr?.sellingDaysInWindow ?? null,
+      sellingDaysInMonth: pr?.sellingDaysInMonth ?? null,
+      calendarDaysInWindow: pr?.calendarDaysInWindow ?? null,
+      calendarDaysInMonth: pr?.calendarDaysInMonth ?? null,
     };
-  }, [rows, totalNetSales, channel]);
+    if (!w || !pr || !w.proratable || w.ym !== selectedMonth) return off;
+    return {
+      active: true,
+      sellingFraction: pr.sellingFraction,
+      calendarFraction: pr.calendarFraction,
+      sellingDaysInWindow: pr.sellingDaysInWindow,
+      sellingDaysInMonth: pr.sellingDaysInMonth,
+      calendarDaysInWindow: pr.calendarDaysInWindow,
+      calendarDaysInMonth: pr.calendarDaysInMonth,
+    };
+  }, [budgetForecast, selectedMonth]);
+
+  const sf = pro.active ? pro.sellingFraction : 1; // B2B / All basis
+  const cf = pro.active ? pro.calendarFraction : 1; // DTC basis
+
+  // Per-product full-month rep-goal sum (fallback when no scenario goals).
+  const repGoalProduct = useMemo(() => {
+    const goalsByRep = budgetData?.repGoals || {};
+    const out = { Gummies: 0, Serum: 0, XVIE: 0 };
+    for (const p of PRODUCTS) {
+      let s = 0;
+      for (const rep of Object.keys(goalsByRep)) s += Number(goalsByRep[rep]?.[p]?.[selectedMonth] || 0);
+      out[p] = s;
+    }
+    return out;
+  }, [budgetData, selectedMonth]);
+
+  // ── BY PRODUCT ──────────────────────────────────────────────────────────
+  // Target prorates each product's B2B slice by selling days and DTC slice by
+  // calendar days, so product targets sum to the headline blend.
+  const byProduct = useMemo(() => {
+    const rows = PRODUCTS.map((p) => {
+      const actual = Number(prodActuals[p] || 0);
+      const target = usingScenario
+        ? scenarioGoalFor(selectedMonth, scenario, p, "B2B") * sf +
+          scenarioGoalFor(selectedMonth, scenario, p, "DTC") * cf
+        : Number(repGoalProduct[p] || 0) * sf;
+      return makeRow(p, actual, target, true);
+    });
+    const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
+    const grandActual = totalNetSales != null ? Number(totalNetSales) : trackedActual;
+    const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
+    return { rows, otherActual, grandActual };
+  }, [prodActuals, usingScenario, selectedMonth, scenario, sf, cf, repGoalProduct, totalNetSales]);
+
+  // ── BY CHANNEL ──────────────────────────────────────────────────────────
+  const byChannel = useMemo(() => {
+    const ca = channelActuals || {};
+    const monthlyB2B = usingScenario
+      ? PRODUCTS.reduce((a, p) => a + scenarioGoalFor(selectedMonth, scenario, p, "B2B"), 0)
+      : PRODUCTS.reduce((a, p) => a + Number(repGoalProduct[p] || 0), 0);
+    const monthlyDTC = usingScenario
+      ? PRODUCTS.reduce((a, p) => a + scenarioGoalFor(selectedMonth, scenario, p, "DTC"), 0)
+      : 0;
+
+    // ADCS (Aesthetic Derm + Cosmetic Surgery) orders SPORADICALLY — lumpy, not
+    // a steady daily cadence — so it is exempt from day-proration and from the
+    // daily-pace (% / behind-pace) framing, which would read wildly off on any
+    // given day. Show its actual cleanly, flagged "sporadic".
+    const adcs = makeRow("ADCS", Number(ca.ADCS || 0), 0, false);
+    adcs.sporadic = true;
+    const rows = [
+      makeRow("B2B", Number(ca.B2B || 0), monthlyB2B * sf, monthlyB2B > 0),
+      makeRow("DTC", Number(ca.DTC || 0), monthlyDTC * cf, monthlyDTC > 0),
+      adcs,
+    ];
+    const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
+    const grandActual = totalNetSales != null ? Number(totalNetSales) : trackedActual;
+    const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
+    return { rows, otherActual, grandActual };
+  }, [channelActuals, usingScenario, selectedMonth, scenario, sf, cf, repGoalProduct, totalNetSales]);
+
+  // ── Headline (so-what) ────────────────────────────────────────────────────
+  const headline = useMemo(() => {
+    const actual = byProduct.grandActual;
+    // Goal = blended prorated target = sum of by-product (== by-channel) targets.
+    const goal = byProduct.rows.reduce((a, r) => a + (r.target || 0), 0);
+    return { actual, goal, hasGoal: goal > 0, pct: goal > 0 ? actual / goal : null, variance: actual - goal };
+  }, [byProduct]);
+
+  // Full-month goal (un-prorated) for the "of $X monthly" context line.
+  const goalMonthValue = useMemo(() => {
+    if (usingScenario) {
+      return PRODUCTS.reduce(
+        (a, p) => a + scenarioGoalFor(selectedMonth, scenario, p, "B2B") + scenarioGoalFor(selectedMonth, scenario, p, "DTC"),
+        0
+      );
+    }
+    return PRODUCTS.reduce((a, p) => a + Number(repGoalProduct[p] || 0), 0);
+  }, [usingScenario, selectedMonth, scenario, repGoalProduct]);
+
+  // Secondary references: Sheet-backed Budget (distinct from the deck Goal) and
+  // the run-rate / sheet Forecast — both prorated to the window.
+  const sheetBudgetMonth = useMemo(
+    () => PRODUCTS.reduce((a, p) => a + Number(budgetData?.budget?.[p]?.[selectedMonth] || 0), 0),
+    [budgetData, selectedMonth]
+  );
+  const sheetBudgetWindow = sheetBudgetMonth * sf;
+  const sc = budgetForecast?.scenarios?.[scenario] || budgetForecast?.scenarios?.base;
+  const forecastWindow = Number(sc?.forecast?.combined || 0);
+  const forecastMonth = Number(sc?.forecast?.monthlyCombined || 0);
+  const forecastSrc = budgetForecast?.forecastSource === "sheet" ? "sheet" : "run-rate";
 
   const monthOpts = useMemo(() => monthOffsets(selectedMonth, 3, 3), [selectedMonth]);
-  const isStub = budgetData?.mode === "stub";
-
-  // Label for the goal column / readouts: scenario- and channel-aware.
   const scenarioLabel = SCENARIOS.find((s) => s.key === scenario)?.label || "Base";
-  const channelLabel = channel === "All" ? "" : ` · ${channel}`;
-  const goalColLabel = usingScenario ? `Goal · ${scenarioLabel}${channelLabel}` : "Rep Goal";
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className="space-y-4 md:space-y-5">
       {loadErr && (
         <div className="rounded-md border border-red-300/60 bg-red-50/60 px-3 py-2 font-sans text-[11px] text-red-900">
           Couldn&apos;t load /api/budget: {loadErr}
         </div>
       )}
 
-      {/* Month selector + actuals window */}
+      {/* Controls — goal month + scenario only (channel split lives in the
+          By-Channel breakdown below). */}
       <div className="flex flex-wrap items-center gap-2 md:gap-3">
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold shrink-0">
           Goal month
@@ -260,178 +281,377 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold hidden sm:inline">
-            Channel
-          </span>
-          <ChannelToggle value={channel} onChange={setChannel} />
-        </div>
-
-        <span className="font-sans text-[9px] md:text-[10px] uppercase tracking-[0.16em] font-semibold text-brown border border-brown/40 rounded px-1.5 py-0.5 shrink-0">
-          Net sales
-        </span>
         <span className="font-sans text-[10px] md:text-xs text-muted w-full sm:w-auto sm:ml-auto leading-tight">
           Actuals · {periodLabel || "current dashboard window"}
         </span>
       </div>
 
-      {/* Combined TOTAL vs Goal + made-budget indicator */}
-      {(() => {
-        const noGoal = !(totals.goal > 0);
-        const made = !noGoal && totals.actual >= totals.goal;
-        const short = totals.goal - totals.actual;
-        const tone = noGoal ? NEUTRAL : made ? FAVORABLE : UNFAVORABLE;
-        return (
-          <div className="rounded-xl border border-rule bg-card px-4 py-3 md:px-5 md:py-4 flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
-                Total · Actual vs Goal · Net{usingScenario ? ` · ${scenarioLabel}` : ""}{channelLabel} · {monthLabel(selectedMonth)}
-              </div>
-              <div className="flex items-baseline gap-2 md:gap-3 mt-0.5">
-                <span className="font-display text-2xl md:text-3xl font-semibold text-ink tabular-nums">{fmt$(totals.actual)}</span>
-                <span className="font-sans text-xs md:text-sm text-muted tabular-nums">/ goal {fmt$(totals.goal)}</span>
-              </div>
-            </div>
-            <div
-              className="flex items-center gap-2 rounded-lg px-3 py-2 font-sans font-semibold"
-              style={{ color: tone, backgroundColor: tone + "1A" }}
-            >
-              {noGoal ? (
-                <span className="text-sm">No goal set</span>
-              ) : made ? (
-                <span className="text-sm md:text-base">{"✔"} Budget met · {fmtPct(totals.pctGoal)}</span>
-              ) : (
-                <span className="text-sm md:text-base">{fmtPct(totals.pctGoal)} to goal · {fmt$(Math.abs(short))} short</span>
-              )}
-            </div>
-          </div>
-        );
-      })()}
+      {/* ── 1 · SO-WHAT HEADER ───────────────────────────────────────────── */}
+      <Headline
+        scenarioLabel={usingScenario ? scenarioLabel : null}
+        monthName={monthLabel(selectedMonth)}
+        actual={headline.actual}
+        goal={headline.goal}
+        goalMonth={goalMonthValue}
+        hasGoal={headline.hasGoal}
+        pct={headline.pct}
+        variance={headline.variance}
+        prorated={pro.active}
+        sellingDaysInWindow={pro.sellingDaysInWindow}
+        sellingDaysInMonth={pro.sellingDaysInMonth}
+        budgetWindow={sheetBudgetWindow}
+        budgetMonth={sheetBudgetMonth}
+        forecastWindow={forecastWindow}
+        forecastMonth={forecastMonth}
+        forecastSrc={forecastSrc}
+      />
 
-      {/* Per-product table */}
-      <div className="bg-card border border-rule rounded-xl overflow-hidden">
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-xs font-sans border-collapse">
-            <thead>
-              <tr className="bg-paper2 text-left">
-                <Th align="left">Product</Th>
-                <Th align="right">{goalColLabel}</Th>
-                <Th align="right">Actual</Th>
-                <Th align="right">Δ Goal→Actual</Th>
-                <Th align="right">% to Goal</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.product} className="border-t border-rule/60">
-                  <Td className="font-medium text-ink">{r.product}</Td>
-                  <Td align="right">{fmt$(r.goal)}</Td>
-                  <Td align="right" className="font-semibold">{fmt$(r.actual)}</Td>
-                  <Td align="right" style={{ color: colorForPct(r.pctGoal) }}>
-                    {(r.dGoal >= 0 ? "+" : "") + fmt$(r.dGoal)}
-                  </Td>
-                  <Td align="right" style={{ color: colorForPct(r.pctGoal) }}>
-                    {r.pctGoal == null ? "—" : fmtPct(r.pctGoal)}
-                  </Td>
-                </tr>
-              ))}
-              {totals.otherActual > 0 && (
-                <tr className="border-t border-rule/60">
-                  <Td className="italic text-muted">Other (unbudgeted)</Td>
-                  <Td align="right" className="text-muted">—</Td>
-                  <Td align="right" className="text-muted">{fmt$(totals.otherActual)}</Td>
-                  <Td align="right" className="text-muted">—</Td>
-                  <Td align="right" className="text-muted">—</Td>
-                </tr>
-              )}
-            </tbody>
-            <tfoot>
-              <tr className="bg-paper2 font-semibold border-t border-rule/60">
-                <Td className="italic text-inksoft">Total</Td>
-                <Td align="right">{fmt$(totals.goal)}</Td>
-                <Td align="right" className="text-ink">{fmt$(totals.actual)}</Td>
-                <Td align="right" style={{ color: colorForPct(totals.pctGoal) }}>
-                  {(totals.dGoal >= 0 ? "+" : "") + fmt$(totals.dGoal)}
-                </Td>
-                <Td align="right" style={{ color: colorForPct(totals.pctGoal) }}>
-                  {totals.pctGoal == null ? "—" : fmtPct(totals.pctGoal)}
-                </Td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        {/* Mobile: stacked cards */}
-        <div className="md:hidden divide-y divide-rule/60">
-          {rows.map((r) => (
-            <button
-              key={r.product}
-              type="button"
-              onClick={() => setDrillRep("ALL")}
-              className="block w-full text-left px-4 py-3 hover:bg-paper2 focus:outline-none"
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-sans text-sm font-semibold text-ink">{r.product}</span>
-                <span className="font-display text-base font-semibold text-ink tabular-nums">{fmt$(r.actual)}</span>
-              </div>
-              <div className="font-sans text-[11px] text-muted tabular-nums mt-1">
-                Goal {fmt$(r.goal)}
-              </div>
-              <div className="font-sans text-[11px] tabular-nums mt-0.5" style={{ color: colorForPct(r.pctGoal) }}>
-                {r.pctGoal == null ? "—" : fmtPct(r.pctGoal)} of goal
-              </div>
-            </button>
-          ))}
-          {totals.otherActual > 0 && (
-            <div className="px-4 py-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-sans text-sm font-semibold text-muted italic">Other (unbudgeted)</span>
-                <span className="font-display text-base font-semibold text-muted tabular-nums">{fmt$(totals.otherActual)}</span>
-              </div>
-              <div className="font-sans text-[11px] text-muted tabular-nums mt-1">No goal</div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Charts grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
-        <ChartCell title="Goal vs Actual" subtitle="Per product · click a bar to drill in">
-          <GroupedBars rows={rows} onSelect={setDrillRep} />
-        </ChartCell>
-        <ChartCell title="Variance" subtitle="Actual · Goal · Variance">
-          <Waterfall totals={totals} onSelect={setDrillRep} />
-        </ChartCell>
-        <ChartCell title="% to goal" subtitle="By product · lines at pace & 100% · click to drill" wide>
-          <PaceBars rows={rows} monthProgress={monthProgressFraction(selectedMonth)} onSelect={setDrillRep} />
-        </ChartCell>
-      </div>
-
-      {/* Per-rep drill-down drawer */}
-      {drillRep && (
-        <RepDrillDrawer
-          rep={drillRep}
-          selectedMonth={selectedMonth}
-          repGoals={budgetData?.repGoals || {}}
-          actuals={actuals}
-          onClose={() => setDrillRep(null)}
+      {/* ── 2 · BREAKDOWNS ───────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
+        <Breakdown
+          title="By product"
+          subtitle="Net sales vs prorated goal"
+          rows={byProduct.rows}
+          otherActual={byProduct.otherActual}
+          grandActual={byProduct.grandActual}
         />
-      )}
+        <Breakdown
+          title="By channel"
+          subtitle="Net sales vs prorated goal"
+          rows={byChannel.rows}
+          otherActual={byChannel.otherActual}
+          grandActual={byChannel.grandActual}
+          footnote={
+            pro.active
+              ? "B2B prorated by selling days, DTC by calendar days. ADCS orders sporadically — shown at full-period actual, exempt from daily-pace proration."
+              : "ADCS orders sporadically — shown at full-period actual, no daily-pace target."
+          }
+        />
+      </div>
+
+      {/* ── 3 · GROSS MARGIN (separate section) ──────────────────────────── */}
+      <MarginSection grossMargin={grossMargin} prodActuals={prodActuals} />
 
       <div className="font-sans text-[10px] text-muted leading-snug">
-        Table % to goal: <span style={{ color: FAVORABLE }} className="font-semibold">orange</span> ≥100% ·{" "}
-        <span style={{ color: PARTIAL }} className="font-semibold">gray</span> 90–100% ·{" "}
-        <span style={{ color: UNFAVORABLE }} className="font-semibold">maroon</span> &lt;90%.
-        In the charts, each product has its own color — click any bar to drill into rep goals.
+        All figures are net sales (gross − discounts − returns).{" "}
+        <span style={{ color: AHEAD }} className="font-semibold">Orange</span> ≥100% ·{" "}
+        <span style={{ color: NEAR }} className="font-semibold">gray</span> 90–100% (on pace) ·{" "}
+        <span style={{ color: BEHIND }} className="font-semibold">maroon</span> &lt;90%.
         {usingScenario
-          ? " All figures are net sales (gross − discounts − returns). Goals are the June Base / Stretch targets — B2B + DTC ($120k DTC: 90% gummies / 10% serum) — toggle above; actuals come from the dashboard's current date window."
-          : " All figures are net sales. Actuals come from the dashboard's current date window — change the date range above to see other periods."}
+          ? ` Goals are the ${scenarioLabel} targets (B2B + DTC), prorated to the dashboard window.`
+          : " Goals fall back to the Sheet-backed per-rep goal sum, prorated to the dashboard window."}
       </div>
     </div>
   );
 }
 
-// ─── Base / Stretch segmented toggle (mirrors Dashboard.jsx MetricToggle) ─
+// Build a breakdown row with derived pct + variance.
+function makeRow(label, actual, target, hasTarget) {
+  const t = Number(target) || 0;
+  const a = Number(actual) || 0;
+  return {
+    label,
+    actual: a,
+    target: hasTarget ? t : null,
+    hasTarget: !!hasTarget,
+    pct: hasTarget && t > 0 ? a / t : null,
+    variance: hasTarget ? a - t : null,
+  };
+}
+
+// ─── 1 · So-what header ─────────────────────────────────────────────────────
+
+function Headline({
+  scenarioLabel, monthName, actual, goal, goalMonth, hasGoal, pct, variance,
+  prorated, sellingDaysInWindow, sellingDaysInMonth,
+  budgetWindow, budgetMonth, forecastWindow, forecastMonth, forecastSrc,
+}) {
+  const tone = hasGoal ? paceTone(pct) : NEUTRAL;
+  const ahead = (variance || 0) >= 0;
+  return (
+    <div className="rounded-xl border border-rule bg-card px-5 py-4 md:px-6 md:py-5">
+      <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
+        Net sales · Actual vs Goal{scenarioLabel ? ` · ${scenarioLabel}` : ""} · {monthName}
+      </div>
+
+      <div className="mt-1.5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <div className="font-display text-4xl md:text-5xl font-semibold text-ink tabular-nums leading-none">
+            {fmt$(actual)}
+          </div>
+          {hasGoal && (
+            <div className="mt-1.5 font-sans text-xs md:text-sm text-muted tabular-nums">
+              vs goal <span className="font-semibold text-inksoft">{fmt$(goal)}</span>
+              {prorated ? " · prorated to window" : ""}
+            </div>
+          )}
+        </div>
+
+        {hasGoal ? (
+          <div
+            className="self-start sm:self-auto rounded-lg px-3.5 py-2.5 font-sans shrink-0"
+            style={{ color: tone, backgroundColor: tone + "1A" }}
+          >
+            <div className="text-lg md:text-xl font-semibold tabular-nums leading-none">
+              {fmtPct(pct)} <span className="text-sm font-medium">to goal</span>
+            </div>
+            <div className="mt-1 text-[11px] md:text-xs font-medium tabular-nums">
+              {fmt$(Math.abs(variance))} {ahead ? "ahead of" : "behind"} pace
+            </div>
+          </div>
+        ) : (
+          <div className="self-start rounded-lg px-3.5 py-2.5 font-sans text-sm font-semibold" style={{ color: NEUTRAL, backgroundColor: NEUTRAL + "1A" }}>
+            No goal set
+          </div>
+        )}
+      </div>
+
+      {/* Secondary references — small, never full-width boxes. */}
+      <div className="mt-3 pt-3 border-t border-rule/60 flex flex-wrap items-baseline gap-x-6 gap-y-1 font-sans text-[11px] text-muted">
+        {budgetMonth > 0 && (
+          <span>
+            Budget{prorated ? " (prorated)" : ""}{" "}
+            <span className="font-semibold text-inksoft tabular-nums">{fmt$(budgetWindow)}</span>
+            <span className="text-muted"> · of {fmt$k(budgetMonth)} mo</span>
+          </span>
+        )}
+        {forecastMonth > 0 && (
+          <span>
+            Forecast{prorated ? " (prorated)" : ""}{" "}
+            <span className="font-semibold text-inksoft tabular-nums">{fmt$(forecastWindow)}</span>
+            <span className="text-muted"> · {forecastSrc} · of {fmt$k(forecastMonth)} mo</span>
+          </span>
+        )}
+        {prorated && sellingDaysInWindow != null && (
+          <span className="sm:ml-auto">
+            {sellingDaysInWindow}/{sellingDaysInMonth} selling days · goal of {fmt$k(goalMonth)} monthly
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── 2 · Breakdown (table on md+, stacked cards on mobile) ──────────────────
+
+function Breakdown({ title, subtitle, rows, otherActual = 0, grandActual = 0, footnote }) {
+  const totalActual = grandActual;
+  const totalTarget = rows.reduce((a, r) => a + (r.target || 0), 0);
+  const totalHasTarget = totalTarget > 0;
+  const totalPct = totalHasTarget ? totalActual / totalTarget : null;
+  const totalVar = totalHasTarget ? totalActual - totalTarget : null;
+
+  return (
+    <div className="bg-card border border-rule rounded-xl overflow-hidden">
+      <div className="flex items-baseline justify-between gap-2 px-4 py-3 md:px-5 border-b border-rule/60">
+        <h4 className="font-display text-base md:text-lg font-semibold text-ink">{title}</h4>
+        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted">{subtitle}</span>
+      </div>
+
+      {/* Desktop / tablet table */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-[11px] md:text-xs font-sans border-collapse">
+          <thead>
+            <tr className="text-left">
+              <Th align="left">Name</Th>
+              <Th align="right">Actual</Th>
+              <Th align="right">Target</Th>
+              <Th align="right">% Goal</Th>
+              <Th align="right">Δ</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.label} className="border-t border-rule/50">
+                <Td className="font-medium text-ink">
+                  {r.label}
+                  {r.sporadic && <SporadicTag />}
+                </Td>
+                <Td align="right" className="font-semibold text-ink">{fmt$(r.actual)}</Td>
+                {r.sporadic ? (
+                  <Td align="right" colSpan={3} className="text-muted italic">full-period actual · no daily pace</Td>
+                ) : (
+                  <>
+                    <Td align="right" className="text-inksoft">{r.hasTarget ? fmt$(r.target) : "—"}</Td>
+                    <Td align="right" style={{ color: paceTone(r.pct) }} className="font-semibold">
+                      {r.pct == null ? "—" : fmtPct(r.pct)}
+                    </Td>
+                    <Td align="right" style={{ color: paceTone(r.pct) }}>
+                      {r.variance == null ? "—" : (r.variance >= 0 ? "+" : "") + fmt$(r.variance)}
+                    </Td>
+                  </>
+                )}
+              </tr>
+            ))}
+            {otherActual > 0 && (
+              <tr className="border-t border-rule/50">
+                <Td className="italic text-muted">Other</Td>
+                <Td align="right" className="text-muted">{fmt$(otherActual)}</Td>
+                <Td align="right" className="text-muted">—</Td>
+                <Td align="right" className="text-muted">—</Td>
+                <Td align="right" className="text-muted">—</Td>
+              </tr>
+            )}
+          </tbody>
+          <tfoot>
+            <tr className="bg-paper2 font-semibold border-t border-rule">
+              <Td className="text-inksoft">Total</Td>
+              <Td align="right" className="text-ink">{fmt$(totalActual)}</Td>
+              <Td align="right" className="text-inksoft">{totalHasTarget ? fmt$(totalTarget) : "—"}</Td>
+              <Td align="right" style={{ color: paceTone(totalPct) }}>{totalPct == null ? "—" : fmtPct(totalPct)}</Td>
+              <Td align="right" style={{ color: paceTone(totalPct) }}>
+                {totalVar == null ? "—" : (totalVar >= 0 ? "+" : "") + fmt$(totalVar)}
+              </Td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* Mobile stacked cards — no horizontal scroll */}
+      <div className="sm:hidden divide-y divide-rule/50">
+        {rows.map((r) => (
+          <div key={r.label} className="px-4 py-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-sans text-sm font-semibold text-ink">
+                {r.label}
+                {r.sporadic && <SporadicTag />}
+              </span>
+              <span className="font-display text-base font-semibold text-ink tabular-nums">{fmt$(r.actual)}</span>
+            </div>
+            <div className="mt-1 font-sans text-[11px] tabular-nums">
+              {r.sporadic ? (
+                <span className="text-muted italic">Full-period actual · daily pace n/a</span>
+              ) : (
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-muted">Target {r.hasTarget ? fmt$(r.target) : "—"}</span>
+                  <span className="font-semibold" style={{ color: paceTone(r.pct) }}>
+                    {r.pct == null ? "—" : `${fmtPct(r.pct)} to goal`}
+                    {r.variance != null && (
+                      <span className="font-medium"> · {(r.variance >= 0 ? "+" : "") + fmt$(r.variance)}</span>
+                    )}
+                  </span>
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+        {otherActual > 0 && (
+          <div className="px-4 py-3 flex items-baseline justify-between gap-2">
+            <span className="font-sans text-sm italic text-muted">Other</span>
+            <span className="font-display text-base font-semibold text-muted tabular-nums">{fmt$(otherActual)}</span>
+          </div>
+        )}
+        <div className="px-4 py-3 bg-paper2 flex items-baseline justify-between gap-2">
+          <span className="font-sans text-sm font-semibold text-inksoft">Total</span>
+          <div className="text-right">
+            <div className="font-display text-base font-semibold text-ink tabular-nums">{fmt$(totalActual)}</div>
+            {totalHasTarget && (
+              <div className="font-sans text-[11px] tabular-nums font-semibold" style={{ color: paceTone(totalPct) }}>
+                {fmtPct(totalPct)} to goal
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {footnote && (
+        <div className="px-4 py-2 md:px-5 font-sans text-[10px] text-muted leading-snug border-t border-rule/50">
+          {footnote}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── 3 · Gross margin section (PLACEHOLDER COGS) ────────────────────────────
+
+function MarginSection({ grossMargin, prodActuals }) {
+  if (!grossMargin || !grossMargin.overall) return null;
+  const o = grossMargin.overall;
+  const bc = grossMargin.byChannel || {};
+  const bf = grossMargin.byFamily || {};
+
+  // By product — revenue from the dashboard window actuals, COGS from byFamily.
+  const productRows = PRODUCTS.map((p) => {
+    const revenue = Number(prodActuals[p] || 0);
+    const cogs = Number(bf[p] || 0);
+    const gp = revenue - cogs;
+    return {
+      label: p,
+      revenue,
+      grossProfit: Math.round(gp),
+      grossMarginPct: revenue > 0 ? Math.round((gp / revenue) * 1000) / 10 : null,
+    };
+  });
+
+  const channelRows = [
+    ["B2B", bc.B2B],
+    ["DTC", bc.DTC],
+    ["ADCS", bc.ADCS],
+  ]
+    .filter(([, v]) => v && (v.revenue || 0) > 0)
+    .map(([label, v]) => ({ label, revenue: v.revenue, grossProfit: v.grossProfit, grossMarginPct: v.grossMarginPct }));
+
+  return (
+    <div className="bg-card border border-rule rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 md:px-5 border-b border-rule/60">
+        <h4 className="font-display text-base md:text-lg font-semibold text-ink">Gross margin</h4>
+        <div className="flex items-center gap-2">
+          <span className="font-display text-base md:text-lg font-semibold text-ink tabular-nums">{fmt$(o.grossProfit)}</span>
+          <span className="font-sans text-xs tabular-nums text-brown">{o.grossMarginPct == null ? "—" : `${o.grossMarginPct}%`}</span>
+          {grossMargin.placeholder && (
+            <span className="font-sans text-[9px] uppercase tracking-[0.14em] font-semibold text-brown border border-brown/40 rounded px-1.5 py-0.5 whitespace-nowrap">
+              Placeholder COGS
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-rule/50">
+        <MarginTable title="By product" rows={productRows} />
+        <MarginTable title="By channel" rows={channelRows} />
+      </div>
+
+      {grossMargin.placeholder && (
+        <div className="px-4 py-2 md:px-5 font-sans text-[10px] text-muted leading-snug border-t border-rule/50">
+          {grossMargin.note || "PLACEHOLDER COGS — replace with Sam's COGS in lib/cogs.js."}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MarginTable({ title, rows }) {
+  return (
+    <div>
+      <div className="px-4 py-2 md:px-5 font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">
+        {title}
+      </div>
+      <table className="w-full text-[11px] md:text-xs font-sans border-collapse">
+        <thead>
+          <tr className="text-left">
+            <Th align="left">Name</Th>
+            <Th align="right">Revenue</Th>
+            <Th align="right">GP</Th>
+            <Th align="right">GM %</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.label} className="border-t border-rule/50">
+              <Td className="font-medium text-ink">{r.label}</Td>
+              <Td align="right" className="text-inksoft">{fmt$(r.revenue)}</Td>
+              <Td align="right" className="font-semibold text-ink">{fmt$(r.grossProfit)}</Td>
+              <Td align="right" className="text-brown font-semibold">{r.grossMarginPct == null ? "—" : `${r.grossMarginPct}%`}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Base / Stretch segmented toggle ────────────────────────────────────────
 
 function ScenarioToggle({ value, onChange }) {
   return (
@@ -452,250 +672,35 @@ function ScenarioToggle({ value, onChange }) {
   );
 }
 
-// All / B2B / DTC channel filter for the goals + actuals.
-function ChannelToggle({ value, onChange }) {
+// Small "sporadic" chip — marks a channel (ADCS) whose lumpy order cadence
+// makes any daily-pace % misleading, so it's shown at full-period actual only.
+function SporadicTag() {
   return (
-    <div className="inline-flex rounded-md border border-rule overflow-hidden">
-      {GOAL_CHANNELS.map((o) => (
-        <button
-          key={o.key}
-          type="button"
-          onClick={() => onChange(o.key)}
-          className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
-            value === o.key ? "bg-brown text-ink font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
+    <span className="ml-1.5 align-middle inline-block font-sans text-[8px] md:text-[9px] uppercase tracking-[0.12em] font-semibold text-brown border border-brown/40 rounded px-1 py-0.5">
+      sporadic
+    </span>
   );
 }
 
-// ─── Chart cell wrapper (mirrors Dashboard.jsx ChartCell) ──────────────
-
-function ChartCell({ title, subtitle, children, wide }) {
-  return (
-    <div className={`bg-card border border-rule rounded-xl p-3 md:p-4 ${wide ? "lg:col-span-2" : ""}`}>
-      <div className="flex items-baseline justify-between gap-2 mb-2 md:mb-3">
-        <h4 className="font-display text-base md:text-lg font-semibold text-ink">{title}</h4>
-        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted">{subtitle}</span>
-      </div>
-      <div className="h-64 md:h-72">{children}</div>
-    </div>
-  );
-}
-
-// Rich tooltip for the Goal-vs-Actual grouped bars: shows Goal, Actual,
-// variance and % to goal for the hovered product.
-function GoalActualTooltip({ active, payload, label }) {
-  if (!active || !payload || !payload.length) return null;
-  const goal = Number(payload.find((p) => p.dataKey === "Goal")?.value || 0);
-  const actual = Number(payload.find((p) => p.dataKey === "Actual")?.value || 0);
-  const dv = actual - goal;
-  const pct = goal > 0 ? actual / goal : null;
-  return (
-    <div className="rounded-md border border-rule bg-card px-3 py-2 shadow-sm font-sans text-[11px] text-inksoft">
-      <div className="font-semibold text-ink mb-1">{label}</div>
-      <div>Goal <span className="tabular-nums font-semibold text-ink">{fmt$(goal)}</span></div>
-      <div>Actual <span className="tabular-nums font-semibold text-ink">{fmt$(actual)}</span></div>
-      <div style={{ color: colorForPct(pct) }}>
-        {dv >= 0 ? "+" : ""}{fmt$(dv)}{pct != null ? ` · ${fmtPct(pct)} to goal` : ""}
-      </div>
-      <div className="text-muted mt-1">Click to drill into reps</div>
-    </div>
-  );
-}
-
-// ─── Chart: grouped bars (Goal vs Actual per product) ──────────────────
-
-function GroupedBars({ rows, onSelect }) {
-  const data = rows.map((r) => ({ product: r.product, Goal: r.goal, Actual: r.actual }));
-  const handleClick = (d) => { if (onSelect && d?.product) onSelect(d.product); };
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" vertical={false} />
-        <XAxis dataKey="product" tickLine={false} axisLine={false} />
-        <YAxis tickFormatter={fmt$k} tickLine={false} axisLine={false} width={56} />
-        <Tooltip cursor={{ fill: "#5C2F2E0F" }} content={<GoalActualTooltip />} />
-        <Legend wrapperStyle={{ paddingTop: 4 }} />
-        <Bar dataKey="Goal" fill={BRAND_SAGE} cursor="pointer" onClick={handleClick} />
-        <Bar dataKey="Actual" fill={BRAND_AMBER} cursor="pointer" onClick={handleClick} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-// ─── Chart: Actual · Goal · Variance ───────────────────────────────────
-
-function Waterfall({ totals, onSelect }) {
-  // Three plain bars in Sam's order — Actual, Goal, then Variance (signed:
-  // negative renders below the zero line). Orange = actual / favorable,
-  // maroon = goal / shortfall.
-  const goal = totals.goal;
-  const actual = totals.actual;
-  const variance = actual - goal;
-
-  // Variance gets its own color (rust) so it never collides with Goal (maroon)
-  // or Actual (orange). Sign is conveyed by the bar direction + value label.
-  const data = [
-    { name: "Actual", value: actual, color: BRAND_AMBER },   // orange
-    { name: "Goal", value: goal, color: BRAND_SAGE },         // maroon
-    { name: "Variance", value: variance, color: "#B85042" },  // rust
-  ];
-  const handleClick = () => { if (onSelect) onSelect("ALL"); };
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" vertical={false} />
-        <XAxis dataKey="name" tickLine={false} axisLine={false} />
-        <YAxis tickFormatter={fmt$k} tickLine={false} axisLine={false} width={56} />
-        <Tooltip cursor={{ fill: "#5C2F2E0F" }} formatter={(v) => [fmt$(v), ""]} labelClassName="font-semibold" />
-        <ReferenceLine y={0} stroke="#9A8F80" />
-        <Bar dataKey="value" cursor="pointer" onClick={handleClick}>
-          {data.map((d, i) => (
-            <Cell key={i} fill={d.color} />
-          ))}
-          <LabelList dataKey="value" position="top" formatter={(v) => fmt$k(v)} style={{ fontSize: 11, fill: "#5A4F40" }} />
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-// ─── Chart: % to goal (horizontal, per-product colors) ─────────────────
-
-function PaceTooltip({ active, payload }) {
-  if (!active || !payload || !payload.length) return null;
-  const p = payload[0]?.payload;
-  if (!p) return null;
-  return (
-    <div className="rounded-md border border-rule bg-card px-3 py-2 shadow-sm font-sans text-[11px] text-inksoft">
-      <div className="font-semibold text-ink mb-1">{p.product}</div>
-      <div>Actual <span className="tabular-nums font-semibold text-ink">{fmt$(p.actual)}</span></div>
-      <div>Goal <span className="tabular-nums font-semibold text-ink">{fmt$(p.goal)}</span></div>
-      <div className="tabular-nums font-semibold" style={{ color: p.color }}>{p.pctGoal}% to goal</div>
-      <div className="text-muted mt-1">Click to drill into reps</div>
-    </div>
-  );
-}
-
-function PaceBars({ rows, monthProgress = 0, onSelect }) {
-  const data = rows.map((r) => ({
-    product: r.product,
-    pctGoal: Math.round((r.pctGoal || 0) * 100),
-    actual: r.actual,
-    goal: r.goal,
-    color: PRODUCT_COLOR[r.product] || BRAND_AMBER,
-  }));
-  const pacePct = Math.round((monthProgress || 0) * 100);
-  const handleClick = (d) => { if (onSelect && d?.product) onSelect(d.product); };
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 24, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="2 4" stroke="#d8cab2" horizontal={false} />
-        <XAxis type="number" domain={[0, "dataMax + 20"]} tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} />
-        <YAxis type="category" dataKey="product" tickLine={false} axisLine={false} width={64} tick={{ fontSize: 11 }} />
-        <Tooltip cursor={{ fill: "#5C2F2E0F" }} content={<PaceTooltip />} />
-        {pacePct > 0 && pacePct < 100 && (
-          <ReferenceLine x={pacePct} stroke="#9A8F80" strokeDasharray="4 4" label={{ value: `pace ${pacePct}%`, fill: "#9A8F80", fontSize: 10, position: "top" }} />
-        )}
-        <ReferenceLine x={100} stroke="#5A4F40" strokeDasharray="4 4" label={{ value: "100% target", fill: "#5A4F40", fontSize: 10, position: "right" }} />
-        <Bar dataKey="pctGoal" name="% of Goal" cursor="pointer" onClick={handleClick}>
-          {data.map((d, i) => (
-            <Cell key={i} fill={d.color} />
-          ))}
-          <LabelList dataKey="pctGoal" position="right" formatter={(v) => `${v}%`} style={{ fontSize: 11, fill: "#5A4F40" }} />
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-// ─── Per-rep drill-down drawer ────────────────────────────────────────
-
-function RepDrillDrawer({ rep, selectedMonth, repGoals, actuals, onClose }) {
-  // For v0: just show the rep-goal table for the selected month. Actuals
-  // are dashboard-wide (no per-rep actual computation in this section
-  // yet — that lives in the existing rep performance table).
-  const repList = Object.keys(repGoals);
-  return (
-    <div className="fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/30"
-        onClick={onClose}
-        aria-label="Close drill-down"
-      />
-      <div className="relative w-full max-w-md bg-card border-l border-rule shadow-xl overflow-y-auto">
-        <div className="bg-browndeep text-paper px-4 py-3 flex items-center justify-between">
-          <h3 className="font-display text-lg font-semibold">Per-rep goal · {monthLabel(selectedMonth)}</h3>
-          <button onClick={onClose} className="font-sans text-xs uppercase tracking-[0.14em] bg-paper/10 hover:bg-paper/20 border border-paper/30 rounded px-2 py-0.5">
-            Close
-          </button>
-        </div>
-        <div className="p-4 space-y-3">
-          {repList.length === 0 ? (
-            <p className="font-sans text-sm text-muted">
-              No rep goals entered yet for any month. Once the &quot;Rep Goals&quot; tab is populated,
-              each rep&apos;s per-product target shows here.
-            </p>
-          ) : (
-            <div className="overflow-x-auto -mx-1 px-1">
-              <table className="w-full text-xs font-sans border-collapse">
-                <thead>
-                  <tr className="bg-paper2 text-left">
-                    <Th align="left">Rep</Th>
-                    {PRODUCTS.map((p) => <Th key={p} align="right">{p}</Th>)}
-                    <Th align="right">Total</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {repList.map((r) => {
-                    const cells = PRODUCTS.map((p) => Number(repGoals[r]?.[p]?.[selectedMonth] || 0));
-                    const tot = cells.reduce((a, b) => a + b, 0);
-                    return (
-                      <tr key={r} className="border-t border-rule/60">
-                        <Td className="font-medium text-ink">{r}</Td>
-                        {cells.map((v, i) => <Td key={i} align="right">{fmt$(v)}</Td>)}
-                        <Td align="right" className="font-semibold">{fmt$(tot)}</Td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <p className="font-sans text-[10px] text-muted leading-snug">
-            Per-rep <em>actual</em> contribution is in the &quot;Sales by rep&quot; section above.
-            This drawer just lists rep-level targets for the selected month.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Cell helpers ─────────────────────────────────────────────────────
+// ─── Cell helpers ───────────────────────────────────────────────────────────
 
 function Th({ children, align = "left", className = "" }) {
   const alignClass = align === "right" ? "text-right" : "text-left";
+  // Tight first-column inset (aligns under the card title), snug numeric cols so
+  // five columns + large variance values fit the card without clipping.
+  const padClass = align === "right" ? "px-2 md:px-3" : "pl-4 pr-2 md:pl-5";
   return (
-    <th className={`py-2 px-3 font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold ${alignClass} ${className}`}>
+    <th className={`py-2 ${padClass} font-sans text-[10px] uppercase tracking-[0.14em] text-muted font-semibold ${alignClass} ${className}`}>
       {children}
     </th>
   );
 }
 
-function Td({ children, align = "left", className = "", style }) {
+function Td({ children, align = "left", className = "", style, colSpan }) {
   const alignClass = align === "right" ? "text-right tabular-nums" : "text-left";
+  const padClass = align === "right" ? "px-2 md:px-3" : "pl-4 pr-2 md:pl-5";
   return (
-    <td
-      style={style}
-      className={`py-2 px-3 text-inksoft whitespace-nowrap ${alignClass} ${className}`}
-    >
+    <td colSpan={colSpan} style={style} className={`py-2 ${padClass} text-inksoft whitespace-nowrap ${alignClass} ${className}`}>
       {children}
     </td>
   );
