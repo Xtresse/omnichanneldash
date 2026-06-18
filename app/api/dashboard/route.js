@@ -6,11 +6,18 @@ import {
   buildCompareSnapshot,
   computeCompareWindow,
 } from "@/lib/windsor.js";
+import { getCachedData, setCachedData } from "@/lib/dataCache.js";
 export const maxDuration = 60; // ~11s cold Shopify all-time pull, cached after
 
 // 5-minute cache on the API. Browser still gets a fresh response per query
 // (preset/from/to combinations cache independently).
 export const revalidate = 300;
+
+// Shared (cross-instance) KV cache TTL for the aggregated payload. The Next
+// route cache above only lives in one serverless instance's memory and
+// expires fast, so clicking between windows kept hitting cold ~11s pulls.
+// This KV layer keeps every window/granularity warm for all instances.
+const DATA_CACHE_TTL_MS = 15 * 60 * 1000;
 
 const ALLOWED_PRESETS = new Set([
   "last_7d",
@@ -53,7 +60,18 @@ export async function GET(request) {
       ? computeCompareWindow(queryParams.from, queryParams.to, compareMode)
       : null;
 
+  // Stable cache signature for this exact view (window + granularity + compare).
+  const cacheKey =
+    "dash:v1:" +
+    JSON.stringify({ q: queryParams, granularity, compareMode });
+
   try {
+    // Warm path: serve the shared cached payload instantly if still fresh.
+    const cached = await getCachedData(cacheKey, DATA_CACHE_TTL_MS);
+    if (cached) {
+      return NextResponse.json({ ...cached.data, cached: true, cachedAt: cached.at });
+    }
+
     const [raw, allTimeRows, compareRaw] = await Promise.all([
       fetchWindsorRows(queryParams),
       fetchWindsorAllTimeLight(),
@@ -74,14 +92,17 @@ export async function GET(request) {
         ...snapshot,
       };
     }
-    return NextResponse.json({
+    const payload = {
       ok: true,
       ...queryParams,
       granularity,
       compareMode,
       compare,
       ...data,
-    });
+    };
+    // Best-effort write; never blocks/breaks the response on cache failure.
+    await setCachedData(cacheKey, payload);
+    return NextResponse.json({ ...payload, cached: false });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: String(err?.message || err) },

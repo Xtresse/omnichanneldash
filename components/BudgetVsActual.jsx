@@ -129,7 +129,7 @@ function actualsFromProductFamily(productFamily, channel = "All") {
  * total to the dashboard's currently-loaded actuals. Recharts
  * visualizations sit below the table.
  */
-export default function BudgetVsActual({ productFamily, totalNetSales, periodLabel }) {
+export default function BudgetVsActual({ productFamily, totalNetSales, periodLabel, budgetForecast, grossMargin }) {
   const [budgetData, setBudgetData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
@@ -308,6 +308,17 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
         );
       })()}
 
+      {/* Budget + Forecast vs Actual (by month, prorated to the window) */}
+      <BudgetForecastReadout
+        budgetForecast={budgetForecast}
+        scenario={scenario}
+        actualTotal={Number(totals.actual || 0)}
+        periodLabel={periodLabel}
+      />
+
+      {/* Gross margin (PLACEHOLDER COGS — see lib/cogs.js) */}
+      <GrossMarginReadout grossMargin={grossMargin} />
+
       {/* Per-product table */}
       <div className="bg-card border border-rule rounded-xl overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
@@ -427,6 +438,143 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
           ? " All figures are net sales (gross − discounts − returns). Goals are the June Base / Stretch targets — B2B + DTC ($120k DTC: 90% gummies / 10% serum) — toggle above; actuals come from the dashboard's current date window."
           : " All figures are net sales. Actuals come from the dashboard's current date window — change the date range above to see other periods."}
       </div>
+    </div>
+  );
+}
+
+// ─── Budget + Forecast vs Actual readout ──────────────────────────────────
+//
+// Surfaces the month's BUDGET and FORECAST — both prorated to the currently
+// loaded dashboard window when that window is shorter than its month (B2B by
+// SELLING days, DTC by CALENDAR days; see lib/budgetForecast.js) — next to the
+// window's actual net sales. Driven by the same Base/Stretch scenario toggle
+// as the rest of the section. `budgetForecast` comes from the dashboard
+// payload (data.budgetForecast); null/absent → the block hides itself.
+function BudgetForecastReadout({ budgetForecast, scenario, actualTotal, periodLabel }) {
+  if (!budgetForecast || !budgetForecast.scenarios) return null;
+  const sc = budgetForecast.scenarios[scenario] || budgetForecast.scenarios.base;
+  if (!sc) return null;
+
+  const proratable = !!budgetForecast.window?.proratable;
+  const budget = Number(sc.budget?.combined || 0);
+  const forecast = Number(sc.forecast?.combined || 0);
+  const actual = Number(actualTotal || 0);
+
+  const pctBudget = budget > 0 ? actual / budget : null;
+  const pctForecast = forecast > 0 ? actual / forecast : null;
+  const pr = budgetForecast.proration || {};
+  const srcLabel = budgetForecast.forecastSource === "sheet" ? "sheet" : "run-rate";
+
+  const Stat = ({ label, value, target, pct, tone }) => (
+    <div className="flex-1 min-w-[140px]">
+      <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">{label}</div>
+      <div className="flex items-baseline gap-2 mt-0.5">
+        <span className="font-display text-xl md:text-2xl font-semibold text-ink tabular-nums">{fmt$(value)}</span>
+        {pct != null && (
+          <span className="font-sans text-xs tabular-nums" style={{ color: tone }}>{fmtPct(pct)}</span>
+        )}
+      </div>
+      <div className="font-sans text-[11px] text-muted tabular-nums">{target}</div>
+    </div>
+  );
+
+  return (
+    <div className="rounded-xl border border-rule bg-card px-4 py-3 md:px-5 md:py-4">
+      <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
+        <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
+          Budget &amp; Forecast vs Actual{proratable ? " · prorated to window" : ""}
+        </div>
+        <div className="font-sans text-[10px] text-muted">
+          Actuals · {periodLabel || "current window"}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-4 md:gap-6">
+        <Stat label="Actual (net)" value={actual} target={"window total"} />
+        <Stat
+          label={proratable ? "Budget (prorated)" : "Budget (month)"}
+          value={budget}
+          target={proratable ? `of ${fmt$k(sc.budget?.monthlyCombined || 0)} monthly` : "monthly target"}
+          pct={pctBudget}
+          tone={colorForPct(pctBudget)}
+        />
+        <Stat
+          label={proratable ? `Forecast (prorated · ${srcLabel})` : `Forecast (month · ${srcLabel})`}
+          value={forecast}
+          target={proratable ? `of ${fmt$k(sc.forecast?.monthlyCombined || 0)} monthly` : "projected month"}
+          pct={pctForecast}
+          tone={colorForPct(pctForecast)}
+        />
+      </div>
+      {proratable && (
+        <div className="font-sans text-[10px] text-muted leading-snug mt-2">
+          Prorated to the selected window: B2B by selling days
+          ({pr.sellingDaysInWindow}/{pr.sellingDaysInMonth}), DTC by calendar days
+          ({pr.calendarDaysInWindow}/{pr.calendarDaysInMonth}). Forecast source: {srcLabel}
+          {budgetForecast.forecastSource === "sheet" ? " (Google Sheet column)" : " (month-to-date pace projected to month end)"}.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Gross margin readout (PLACEHOLDER COGS) ──────────────────────────────
+//
+// Surfaces gross profit $ and gross margin % overall and by channel. COGS are
+// PLACEHOLDERS sourced from lib/cogs.js (edit there once Sam's real COGS land);
+// the banner makes that explicit so nobody treats the margin as final.
+function GrossMarginReadout({ grossMargin }) {
+  if (!grossMargin || !grossMargin.overall) return null;
+  const o = grossMargin.overall;
+  const bc = grossMargin.byChannel || {};
+  const channels = [
+    ["B2B", bc.B2B],
+    ["DTC", bc.DTC],
+    ["ADCS", bc.ADCS],
+  ].filter(([, v]) => v && (v.revenue || 0) > 0);
+
+  return (
+    <div className="rounded-xl border border-rule bg-card px-4 py-3 md:px-5 md:py-4">
+      <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
+        <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
+          Gross margin · net basis
+        </div>
+        {grossMargin.placeholder && (
+          <span className="font-sans text-[9px] uppercase tracking-[0.14em] font-semibold text-brown border border-brown/40 rounded px-1.5 py-0.5">
+            Placeholder COGS
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-4 md:gap-6">
+        <div className="flex-1 min-w-[140px]">
+          <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">Overall GP</div>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <span className="font-display text-xl md:text-2xl font-semibold text-ink tabular-nums">{fmt$(o.grossProfit)}</span>
+            <span className="font-sans text-xs tabular-nums text-brown">
+              {o.grossMarginPct == null ? "—" : `${o.grossMarginPct}%`}
+            </span>
+          </div>
+          <div className="font-sans text-[11px] text-muted tabular-nums">
+            {fmt$k(o.revenue)} rev · {fmt$k(o.cogs)} COGS
+          </div>
+        </div>
+        {channels.map(([name, v]) => (
+          <div key={name} className="flex-1 min-w-[120px]">
+            <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">{name} GP</div>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="font-display text-lg md:text-xl font-semibold text-ink tabular-nums">{fmt$(v.grossProfit)}</span>
+              <span className="font-sans text-xs tabular-nums text-brown">
+                {v.grossMarginPct == null ? "—" : `${v.grossMarginPct}%`}
+              </span>
+            </div>
+            <div className="font-sans text-[11px] text-muted tabular-nums">{fmt$k(v.revenue)} rev</div>
+          </div>
+        ))}
+      </div>
+      {grossMargin.placeholder && (
+        <div className="font-sans text-[10px] text-muted leading-snug mt-2">
+          {grossMargin.note || "PLACEHOLDER COGS — replace with Sam's COGS in lib/cogs.js."}
+        </div>
+      )}
     </div>
   );
 }
