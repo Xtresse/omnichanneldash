@@ -416,7 +416,7 @@ export default function Dashboard({ initial }) {
         {data && (
           <>
             <Section title="Actual Vs Goal" detail="Per-product net sales · monthly · Base / Stretch" collapsible>
-              <BudgetVsActual productFamily={data.productFamily} totalNetSales={data.kpis.totalNetSales} periodLabel={periodLabel} budgetForecast={data.budgetForecast} grossMargin={data.grossMargin} />
+              <BudgetVsActual productFamily={data.productFamily} totalNetSales={data.kpis.totalNetSales} channelActuals={{ B2B: data.kpis.b2bNetSales, DTC: data.kpis.dtcNetSales, ADCS: data.kpis.adcsNetSales }} periodLabel={periodLabel} budgetForecast={data.budgetForecast} grossMargin={data.grossMargin} />
             </Section>
 
             <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
