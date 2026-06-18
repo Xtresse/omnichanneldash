@@ -189,11 +189,16 @@ export default function BudgetVsActual({
       ? PRODUCTS.reduce((a, p) => a + scenarioGoalFor(selectedMonth, scenario, p, "DTC"), 0)
       : 0;
 
+    // ADCS (Aesthetic Derm + Cosmetic Surgery) orders SPORADICALLY — lumpy, not
+    // a steady daily cadence — so it is exempt from day-proration and from the
+    // daily-pace (% / behind-pace) framing, which would read wildly off on any
+    // given day. Show its actual cleanly, flagged "sporadic".
+    const adcs = makeRow("ADCS", Number(ca.ADCS || 0), 0, false);
+    adcs.sporadic = true;
     const rows = [
       makeRow("B2B", Number(ca.B2B || 0), monthlyB2B * sf, monthlyB2B > 0),
       makeRow("DTC", Number(ca.DTC || 0), monthlyDTC * cf, monthlyDTC > 0),
-      // ADCS carries no goal — Target shown as "—".
-      makeRow("ADCS", Number(ca.ADCS || 0), 0, false),
+      adcs,
     ];
     const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
     const grandActual = totalNetSales != null ? Number(totalNetSales) : trackedActual;
@@ -318,8 +323,8 @@ export default function BudgetVsActual({
           grandActual={byChannel.grandActual}
           footnote={
             pro.active
-              ? "B2B prorated by selling days, DTC by calendar days. ADCS carries no goal."
-              : "ADCS carries no goal."
+              ? "B2B prorated by selling days, DTC by calendar days. ADCS orders sporadically — shown at full-period actual, exempt from daily-pace proration."
+              : "ADCS orders sporadically — shown at full-period actual, no daily-pace target."
           }
         />
       </div>
@@ -458,15 +463,24 @@ function Breakdown({ title, subtitle, rows, otherActual = 0, grandActual = 0, fo
           <tbody>
             {rows.map((r) => (
               <tr key={r.label} className="border-t border-rule/50">
-                <Td className="font-medium text-ink">{r.label}</Td>
+                <Td className="font-medium text-ink">
+                  {r.label}
+                  {r.sporadic && <SporadicTag />}
+                </Td>
                 <Td align="right" className="font-semibold text-ink">{fmt$(r.actual)}</Td>
-                <Td align="right" className="text-inksoft">{r.hasTarget ? fmt$(r.target) : "—"}</Td>
-                <Td align="right" style={{ color: paceTone(r.pct) }} className="font-semibold">
-                  {r.pct == null ? "—" : fmtPct(r.pct)}
-                </Td>
-                <Td align="right" style={{ color: paceTone(r.pct) }}>
-                  {r.variance == null ? "—" : (r.variance >= 0 ? "+" : "") + fmt$(r.variance)}
-                </Td>
+                {r.sporadic ? (
+                  <Td align="right" colSpan={3} className="text-muted italic">full-period actual · no daily pace</Td>
+                ) : (
+                  <>
+                    <Td align="right" className="text-inksoft">{r.hasTarget ? fmt$(r.target) : "—"}</Td>
+                    <Td align="right" style={{ color: paceTone(r.pct) }} className="font-semibold">
+                      {r.pct == null ? "—" : fmtPct(r.pct)}
+                    </Td>
+                    <Td align="right" style={{ color: paceTone(r.pct) }}>
+                      {r.variance == null ? "—" : (r.variance >= 0 ? "+" : "") + fmt$(r.variance)}
+                    </Td>
+                  </>
+                )}
               </tr>
             ))}
             {otherActual > 0 && (
@@ -498,17 +512,26 @@ function Breakdown({ title, subtitle, rows, otherActual = 0, grandActual = 0, fo
         {rows.map((r) => (
           <div key={r.label} className="px-4 py-3">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="font-sans text-sm font-semibold text-ink">{r.label}</span>
+              <span className="font-sans text-sm font-semibold text-ink">
+                {r.label}
+                {r.sporadic && <SporadicTag />}
+              </span>
               <span className="font-display text-base font-semibold text-ink tabular-nums">{fmt$(r.actual)}</span>
             </div>
-            <div className="mt-1 flex items-baseline justify-between gap-2 font-sans text-[11px] tabular-nums">
-              <span className="text-muted">Target {r.hasTarget ? fmt$(r.target) : "—"}</span>
-              <span className="font-semibold" style={{ color: paceTone(r.pct) }}>
-                {r.pct == null ? "—" : `${fmtPct(r.pct)} to goal`}
-                {r.variance != null && (
-                  <span className="font-medium"> · {(r.variance >= 0 ? "+" : "") + fmt$(r.variance)}</span>
-                )}
-              </span>
+            <div className="mt-1 font-sans text-[11px] tabular-nums">
+              {r.sporadic ? (
+                <span className="text-muted italic">Full-period actual · daily pace n/a</span>
+              ) : (
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-muted">Target {r.hasTarget ? fmt$(r.target) : "—"}</span>
+                  <span className="font-semibold" style={{ color: paceTone(r.pct) }}>
+                    {r.pct == null ? "—" : `${fmtPct(r.pct)} to goal`}
+                    {r.variance != null && (
+                      <span className="font-medium"> · {(r.variance >= 0 ? "+" : "") + fmt$(r.variance)}</span>
+                    )}
+                  </span>
+                </span>
+              )}
             </div>
           </div>
         ))}
@@ -646,6 +669,16 @@ function ScenarioToggle({ value, onChange }) {
         </button>
       ))}
     </div>
+  );
+}
+
+// Small "sporadic" chip — marks a channel (ADCS) whose lumpy order cadence
+// makes any daily-pace % misleading, so it's shown at full-period actual only.
+function SporadicTag() {
+  return (
+    <span className="ml-1.5 align-middle inline-block font-sans text-[8px] md:text-[9px] uppercase tracking-[0.12em] font-semibold text-brown border border-brown/40 rounded px-1 py-0.5">
+      sporadic
+    </span>
   );
 }
 
