@@ -154,10 +154,38 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
 
   const actuals = useMemo(() => actualsFromProductFamily(productFamily, channel), [productFamily, channel]);
 
+  // Prorate the GOAL to the loaded dashboard window so the headline ties out to
+  // the windowed actual. Reuses the SAME day counts as the "Budget & Forecast"
+  // box below (lib/budgetForecast.js → budgetForecast.window/.proration), so the
+  // two boxes never disagree. Only prorate when:
+  //   • the window is a sub-month window (proratable), AND
+  //   • that window sits inside the selected goal month (window.ym === month).
+  // Otherwise (full month, "All time", or a different month) the fraction is 1
+  // and the full monthly goal shows. Channel rule mirrors the lower box: B2B and
+  // All prorate by SELLING days (B2B has no weekend sales); DTC by CALENDAR days
+  // (DTC sells 24/7).
+  const goalProration = useMemo(() => {
+    const w = budgetForecast?.window;
+    const pr = budgetForecast?.proration;
+    const inactive = { active: false, fraction: 1, basis: channel === "DTC" ? "calendar" : "selling" };
+    if (!w || !pr || !w.proratable || w.ym !== selectedMonth) return inactive;
+    const basis = channel === "DTC" ? "calendar" : "selling";
+    const fraction = basis === "calendar" ? pr.calendarFraction : pr.sellingFraction;
+    if (!(fraction > 0) || fraction >= 1) return inactive; // guard / full-month
+    return {
+      active: true,
+      fraction,
+      basis,
+      daysInWindow: basis === "calendar" ? pr.calendarDaysInWindow : pr.sellingDaysInWindow,
+      daysInMonth: basis === "calendar" ? pr.calendarDaysInMonth : pr.sellingDaysInMonth,
+    };
+  }, [budgetForecast, selectedMonth, channel]);
+
   // Build the per-product rows for the selected month.
   const rows = useMemo(() => {
     const b = budgetData?.budget || {};
     const goalsByRep = budgetData?.repGoals || {};
+    const goalScale = goalProration.active ? goalProration.fraction : 1;
     const out = PRODUCTS.map((p) => {
       const budget = Number(b[p]?.[selectedMonth] || 0);
       let repGoalSum = 0;
@@ -165,10 +193,12 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
         repGoalSum += Number(goalsByRep[rep]?.[p]?.[selectedMonth] || 0);
       }
       // Scenario goal (Base/Stretch) takes precedence when defined for this
-      // month; otherwise fall back to the summed per-rep goals.
-      const goalSum = usingScenario
+      // month; otherwise fall back to the summed per-rep goals. Either way the
+      // full-month goal is then prorated to the loaded window (goalScale).
+      const monthGoal = usingScenario
         ? scenarioGoalFor(selectedMonth, scenario, p, channel)
         : repGoalSum;
+      const goalSum = monthGoal * goalScale;
       const actual = Number(actuals[p] || 0);
       const dBudget = actual - budget;
       const dGoal = actual - goalSum;
@@ -177,7 +207,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
       return { product: p, budget, goal: goalSum, actual, dBudget, dGoal, pctBudget, pctGoal };
     });
     return out;
-  }, [budgetData, selectedMonth, actuals, usingScenario, scenario, channel]);
+  }, [budgetData, selectedMonth, actuals, usingScenario, scenario, channel, goalProration]);
 
   const totals = useMemo(() => {
     const t = rows.reduce(
@@ -200,8 +230,13 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
     const trackedActual = t.actual;
     const grandActual = channel === "All" && totalNetSales != null ? totalNetSales : trackedActual;
     const otherActual = channel === "All" ? Math.max(0, Math.round(grandActual - trackedActual)) : 0;
+    // Un-prorated full-month goal, for the "of $X monthly" context line.
+    const goalMonth = goalProration.active && goalProration.fraction > 0
+      ? t.goal / goalProration.fraction
+      : t.goal;
     return {
       ...t,
+      goalMonth,
       trackedActual,
       otherActual,
       actual: grandActual,
@@ -210,7 +245,7 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
       pctBudget: t.budget > 0 ? grandActual / t.budget : null,
       pctGoal: t.goal > 0 ? grandActual / t.goal : null,
     };
-  }, [rows, totalNetSales, channel]);
+  }, [rows, totalNetSales, channel, goalProration]);
 
   const monthOpts = useMemo(() => monthOffsets(selectedMonth, 3, 3), [selectedMonth]);
   const isStub = budgetData?.mode === "stub";
@@ -218,7 +253,8 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
   // Label for the goal column / readouts: scenario- and channel-aware.
   const scenarioLabel = SCENARIOS.find((s) => s.key === scenario)?.label || "Base";
   const channelLabel = channel === "All" ? "" : ` · ${channel}`;
-  const goalColLabel = usingScenario ? `Goal · ${scenarioLabel}${channelLabel}` : "Rep Goal";
+  const proratedSuffix = goalProration.active ? " · prorated" : "";
+  const goalColLabel = (usingScenario ? `Goal · ${scenarioLabel}${channelLabel}` : "Rep Goal") + proratedSuffix;
 
   return (
     <div className="space-y-3 md:space-y-4">
@@ -289,8 +325,17 @@ export default function BudgetVsActual({ productFamily, totalNetSales, periodLab
               </div>
               <div className="flex items-baseline gap-2 md:gap-3 mt-0.5">
                 <span className="font-display text-2xl md:text-3xl font-semibold text-ink tabular-nums">{fmt$(totals.actual)}</span>
-                <span className="font-sans text-xs md:text-sm text-muted tabular-nums">/ goal {fmt$(totals.goal)}</span>
+                <span className="font-sans text-xs md:text-sm text-muted tabular-nums">
+                  / goal {fmt$(totals.goal)}{goalProration.active ? " (prorated)" : ""}
+                </span>
               </div>
+              {goalProration.active && (
+                <div className="font-sans text-[10px] text-muted leading-snug mt-0.5">
+                  Goal prorated to window · {goalProration.daysInWindow}/{goalProration.daysInMonth}{" "}
+                  {goalProration.basis === "calendar" ? "calendar" : "selling"} days
+                  {" "}· of {fmt$(totals.goalMonth)} monthly
+                </div>
+              )}
             </div>
             <div
               className="flex items-center gap-2 rounded-lg px-3 py-2 font-sans font-semibold"
