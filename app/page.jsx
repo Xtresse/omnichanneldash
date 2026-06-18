@@ -1,8 +1,8 @@
 import {
   fetchWindsorRows,
-  fetchWindsorAllTimeLight,
   buildDashboardData,
 } from "@/lib/windsor.js";
+import { fetchAllTimeRowsCached } from "@/lib/allTimeCache.js";
 import Dashboard from "@/components/Dashboard.jsx";
 export const maxDuration = 60; // ~11s cold Shopify all-time pull, cached after
 
@@ -28,7 +28,7 @@ async function loadInitial() {
     // the first warm-up.
     const [rows, allTimeRows] = await Promise.all([
       fetchWindsorRows({ from, to }),
-      fetchWindsorAllTimeLight(),
+      fetchAllTimeRowsCached(),
     ]);
     return {
       ok: true,

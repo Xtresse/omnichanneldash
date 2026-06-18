@@ -1,23 +1,28 @@
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import {
   fetchWindsorRows,
-  fetchWindsorAllTimeLight,
   buildDashboardData,
   buildCompareSnapshot,
   computeCompareWindow,
 } from "@/lib/windsor.js";
-import { getCachedData, setCachedData } from "@/lib/dataCache.js";
-export const maxDuration = 60; // ~11s cold Shopify all-time pull, cached after
+import { fetchAllTimeRowsCached } from "@/lib/allTimeCache.js";
+import { getCachedEntry, setCachedData } from "@/lib/dataCache.js";
+export const maxDuration = 60; // cold pull + background SWR refresh headroom
 
 // 5-minute cache on the API. Browser still gets a fresh response per query
 // (preset/from/to combinations cache independently).
 export const revalidate = 300;
 
-// Shared (cross-instance) KV cache TTL for the aggregated payload. The Next
-// route cache above only lives in one serverless instance's memory and
-// expires fast, so clicking between windows kept hitting cold ~11s pulls.
-// This KV layer keeps every window/granularity warm for all instances.
-const DATA_CACHE_TTL_MS = 15 * 60 * 1000;
+// Stale-while-revalidate thresholds for the shared (cross-instance) KV payload:
+//   • FRESH_MS  — serve as-is, no refresh.
+//   • MAX_AGE_MS — serve the stale copy INSTANTLY and refresh in the background
+//     (Vercel waitUntil), so a user never waits on a cold Shopify pull once a
+//     window has been computed once. The 10-min cron keeps common windows fresh
+//     so they almost always fall in the FRESH band anyway.
+// Older than MAX_AGE (or a true cache miss) → compute synchronously.
+const FRESH_MS = 60 * 60 * 1000; // 60 min
+const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 h
 
 const ALLOWED_PRESETS = new Set([
   "last_7d",
@@ -65,44 +70,53 @@ export async function GET(request) {
     "dash:v1:" +
     JSON.stringify({ q: queryParams, granularity, compareMode });
 
-  try {
-    // Warm path: serve the shared cached payload instantly if still fresh.
-    const cached = await getCachedData(cacheKey, DATA_CACHE_TTL_MS);
-    if (cached) {
-      return NextResponse.json({ ...cached.data, cached: true, cachedAt: cached.at });
-    }
-
+  // Recompute the payload from source (window pull + the CACHED all-time pull,
+  // so the dominant full-history cost is paid at most once an hour).
+  const compute = async () => {
     const [raw, allTimeRows, compareRaw] = await Promise.all([
       fetchWindsorRows(queryParams),
-      fetchWindsorAllTimeLight(),
+      fetchAllTimeRowsCached(),
       compareWindow ? fetchWindsorRows(compareWindow) : Promise.resolve(null),
     ]);
-    const data = buildDashboardData(
-      raw,
-      { ...queryParams, granularity },
-      allTimeRows
-    );
+    const data = buildDashboardData(raw, { ...queryParams, granularity }, allTimeRows);
     let compare = null;
     if (compareWindow && compareRaw) {
       const snapshot = buildCompareSnapshot(compareRaw, compareWindow);
-      compare = {
-        mode: compareMode,
-        from: compareWindow.from,
-        to: compareWindow.to,
-        ...snapshot,
-      };
+      compare = { mode: compareMode, from: compareWindow.from, to: compareWindow.to, ...snapshot };
     }
-    const payload = {
-      ok: true,
-      ...queryParams,
-      granularity,
-      compareMode,
-      compare,
-      ...data,
-    };
-    // Best-effort write; never blocks/breaks the response on cache failure.
-    await setCachedData(cacheKey, payload);
-    return NextResponse.json({ ...payload, cached: false });
+    return { ok: true, ...queryParams, granularity, compareMode, compare, ...data };
+  };
+
+  try {
+    const hit = await getCachedEntry(cacheKey);
+    const age = hit ? Date.now() - hit.at : Infinity;
+
+    // Fresh → serve as-is.
+    if (hit && age <= FRESH_MS) {
+      return NextResponse.json({ ...hit.data, cached: true, stale: false, cachedAt: hit.at });
+    }
+
+    // Stale but within max-age → serve INSTANTLY, refresh in the background so
+    // the caller never blocks on a cold pull. waitUntil keeps the function
+    // alive until the refresh + cache write settle (bounded by maxDuration).
+    if (hit && age <= MAX_AGE_MS) {
+      waitUntil(
+        (async () => {
+          try {
+            const fresh = await compute();
+            await setCachedData(cacheKey, fresh);
+          } catch {
+            /* background refresh is best-effort */
+          }
+        })()
+      );
+      return NextResponse.json({ ...hit.data, cached: true, stale: true, cachedAt: hit.at });
+    }
+
+    // Miss (or older than max-age) → compute synchronously, cache, return.
+    const payload = await compute();
+    await setCachedData(cacheKey, payload); // best-effort; never breaks the response
+    return NextResponse.json({ ...payload, cached: false, stale: false });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: String(err?.message || err) },
