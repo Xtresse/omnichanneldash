@@ -41,6 +41,9 @@ const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
 const startOfYear = (d) => new Date(d.getFullYear(), 0, 1);
 const startOfWeek = (d) => { const x = new Date(d); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return x; };
 
+// FilterBar's "All time" anchor — keep in sync (components/FilterBar.jsx).
+const ALL_TIME_START = "2024-01-01";
+
 // Every quick-pick window the client can request, resolved to from/to exactly
 // as FilterBar does. lastNd(n) = N days inclusive of today (matches the client's
 // addDays(t, -(n-1)) form). last_7/180/365d are warmed per the brief even
@@ -66,6 +69,9 @@ function warmWindows() {
     { label: "last_90d", from: lastNd(90)[0], to: lastNd(90)[1] },
     { label: "last_180d", from: lastNd(180)[0], to: lastNd(180)[1] },
     { label: "last_365d", from: lastNd(365)[0], to: lastNd(365)[1] },
+    // All time — the biggest, slowest window. Warm it so SWR serves it instant.
+    // Its raw rows ARE the all-time rows, so we reuse them (no second full pull).
+    { label: "all_time", from: ALL_TIME_START, to: ymd(t), allTime: true },
   ];
 }
 
@@ -104,7 +110,18 @@ export async function GET() {
     const cacheKey =
       "dash:v1:" + JSON.stringify({ q: queryParams, granularity, compareMode });
     try {
-      const raw = await fetchWindsorRows(queryParams);
+      // For the all-time window the raw rows ARE the all-time rows we already
+      // pulled — reuse them instead of a second full-history Shopify pull. If
+      // that pull failed (empty), skip rather than cache an empty all-time view.
+      let raw;
+      if (w.allTime) {
+        if (!allTimeRows.length) {
+          return { label: w.label, from: w.from, to: w.to, ok: false, error: "all-time rows unavailable" };
+        }
+        raw = allTimeRows;
+      } else {
+        raw = await fetchWindsorRows(queryParams);
+      }
       const data = buildDashboardData(raw, { ...queryParams, granularity }, allTimeRows);
       const payload = {
         ok: true,
