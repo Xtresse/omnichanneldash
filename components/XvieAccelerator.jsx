@@ -61,7 +61,7 @@ export default function XvieAccelerator({ accelerator }) {
           <span className="text-ink font-semibold">{fmtSkuShort(sku003)} starter = {vialsPer003} vials</span>,
           any mix, net of returns — to unlock{" "}
           <span className="text-ink font-semibold">+2pp on the gummy commission rate</span>.
-          Orders with the XVIE50 promo code don&rsquo;t count.
+          Orders with the XVIE50 promo code, or discounted over $550, don&rsquo;t count.
         </p>
       </div>
 
@@ -142,7 +142,8 @@ export default function XvieAccelerator({ accelerator }) {
       <div className="px-4 pb-3 md:px-5">
         <p className="font-sans text-[10px] leading-snug text-muted">
           Units are June-2026 only, exact net of returns, on rep-attributed B2B
-          orders, excluding XVIE50 promo orders — same counting as the Sales
+          orders, excluding XVIE50 promo orders and orders discounted over $550
+          — same counting as the Sales
           Rep Dashboards commission calc. Reps with no accelerator-SKU units
           yet aren't listed. Note: W-2 reps whose window commission tier is
           Tier 4 don't receive the +2pp bump even when the vials qualify.
