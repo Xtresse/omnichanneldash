@@ -17,6 +17,12 @@ const PUBLIC_PREFIXES = [
   "/api/login",
   "/api/logout",
   "/api/warm", // Vercel cron warmer — no browser cookie
+  // Next.js metadata routes (generated icons / manifest) — keep them reachable
+  // so the login page renders its favicon + PWA manifest without redirecting.
+  "/icon",
+  "/apple-icon",
+  "/favicon",
+  "/manifest",
 ];
 
 export async function middleware(req) {
