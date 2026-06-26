@@ -590,12 +590,50 @@ function MarginSection({ grossMargin, prodActuals }) {
         <MarginTable title="By channel" rows={channelRows} />
       </div>
 
-      {grossMargin.placeholder && (
-        <div className="px-4 py-2 md:px-5 font-sans text-[10px] text-muted leading-snug border-t border-rule/50">
-          {grossMargin.note || "PLACEHOLDER COGS — replace with Sam's COGS in lib/cogs.js."}
+      {/* Contribution waterfall — gross profit less merchant fees & fulfillment.
+          Only when the cost sheet is wired (rates derived from actuals). */}
+      {grossMargin.contribution != null && (
+        <div className="border-t border-rule/50 px-4 py-3 md:px-5">
+          <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold mb-2">
+            Contribution
+          </div>
+          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5 font-sans text-[11px] md:text-xs tabular-nums">
+            <WaterStep label="Gross profit" value={o.grossProfit} />
+            <WaterStep
+              label={`− Merchant fees${grossMargin.feeRatePct != null ? ` (${grossMargin.feeRatePct}%)` : ""}`}
+              value={-(grossMargin.merchantFees || 0)}
+              neg
+            />
+            <WaterStep
+              label={`− Fulfillment${grossMargin.costPerOrder != null ? ` ($${grossMargin.costPerOrder}/order)` : ""}`}
+              value={-(grossMargin.fulfillment || 0)}
+              neg
+            />
+            <span className="font-semibold text-ink">
+              = Contribution{" "}
+              <span className="text-ink">{fmt$(grossMargin.contribution)}</span>
+              {grossMargin.contributionMarginPct != null && (
+                <span className="text-brown"> · {grossMargin.contributionMarginPct}%</span>
+              )}
+            </span>
+          </div>
         </div>
       )}
+
+      <div className="px-4 py-2 md:px-5 font-sans text-[10px] text-muted leading-snug border-t border-rule/50">
+        {grossMargin.placeholder
+          ? (grossMargin.note || "PLACEHOLDER COGS — replace with Sam's COGS in lib/cogs.js.")
+          : "COGS, merchant fees & fulfillment from the Google Sheet (actuals)."}
+      </div>
     </div>
+  );
+}
+
+function WaterStep({ label, value, neg }) {
+  return (
+    <span className="text-muted">
+      {label} <span className={neg ? "text-unfavorable" : "text-inksoft"}>{fmt$(value)}</span>
+    </span>
   );
 }
 

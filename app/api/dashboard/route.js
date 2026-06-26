@@ -8,6 +8,7 @@ import {
 } from "@/lib/windsor.js";
 import { fetchAllTimeRowsCached } from "@/lib/allTimeCache.js";
 import { getCachedEntry, setCachedData } from "@/lib/dataCache.js";
+import { loadCosts } from "@/lib/costsSheet.js";
 export const maxDuration = 60; // cold pull + background SWR refresh headroom
 
 // 5-minute cache on the API. Browser still gets a fresh response per query
@@ -73,12 +74,13 @@ export async function GET(request) {
   // Recompute the payload from source (window pull + the CACHED all-time pull,
   // so the dominant full-history cost is paid at most once an hour).
   const compute = async () => {
-    const [raw, allTimeRows, compareRaw] = await Promise.all([
+    const [raw, allTimeRows, compareRaw, costs] = await Promise.all([
       fetchWindsorRows(queryParams),
       fetchAllTimeRowsCached(),
       compareWindow ? fetchWindsorRows(compareWindow) : Promise.resolve(null),
+      loadCosts().catch(() => null), // sheet costs — never block the dashboard
     ]);
-    const data = buildDashboardData(raw, { ...queryParams, granularity }, allTimeRows);
+    const data = buildDashboardData(raw, { ...queryParams, granularity }, allTimeRows, costs);
     let compare = null;
     if (compareWindow && compareRaw) {
       const snapshot = buildCompareSnapshot(compareRaw, compareWindow);
