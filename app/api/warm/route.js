@@ -26,12 +26,14 @@ import { setCachedData } from "@/lib/dataCache.js";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic"; // the warmer must always run
 
-// ── ET-anchored date helpers (mirror components/FilterBar.jsx) ───────────────
-const ET_TZ = "America/New_York";
+// ── Pacific-anchored date helpers (mirror components/FilterBar.jsx) ──────────
+// Shop timezone (America/Los_Angeles) — same zone xtresseCore buckets orders
+// in, so warmed window keys match the client's preset ranges exactly.
+const SHOP_TZ = "America/Los_Angeles";
 const pad = (n) => String(n).padStart(2, "0");
 const etTodayD = () => {
   const s = new Intl.DateTimeFormat("en-CA", {
-    timeZone: ET_TZ, year: "numeric", month: "2-digit", day: "2-digit",
+    timeZone: SHOP_TZ, year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date());
   return new Date(s + "T00:00:00");
 };

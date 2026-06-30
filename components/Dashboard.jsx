@@ -122,7 +122,7 @@ export default function Dashboard({ initial }) {
   const [error, setError] = useState(initial?.ok ? null : initial?.error || "Unable to load data");
   // activePreset is the value of the preset that's currently highlighted,
   // or null when the user has typed custom dates manually.
-  const [activePreset, setActivePreset] = useState(initial?.defaults?.preset || "mtd");
+  const [activePreset, setActivePreset] = useState(initial?.defaults?.preset || "today");
   const [customFrom, setCustomFrom] = useState(initial?.defaults?.from || "");
   const [customTo, setCustomTo] = useState(initial?.defaults?.to || "");
   // User-selected chart granularity. "auto" lets the server pick.

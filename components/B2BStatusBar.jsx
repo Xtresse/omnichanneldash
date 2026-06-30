@@ -31,11 +31,23 @@ const fmt$ = (n) =>
 
 const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 
-// "2026-05" key for the current calendar month (UTC to match the rest of
-// the dashboard's month bucketing).
+// Current calendar parts in the SHOP timezone (Pacific, America/Los_Angeles) —
+// matches how xtresseCore buckets orders, so the widget's month/day boundaries
+// tie to revenue and don't roll early via UTC.
+function shopParts() {
+  const p = {};
+  for (const part of new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date()))
+    p[part.type] = part.value;
+  return p; // { year, month, day } as zero-padded strings
+}
+
+// "2026-05" key for the current calendar month (Pacific).
 function currentYearMonth() {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  const p = shopParts();
+  return `${p.year}-${p.month}`;
 }
 
 // Returns {completed, total} — days elapsed INCLUDING today, and total
@@ -45,9 +57,11 @@ function currentYearMonth() {
 // as elapsed; pace divides by elapsed days (today partial nudges pace down
 // slightly, acceptable for a live read).
 function dayProgress() {
-  const now = new Date();
-  const completed = now.getDate(); // include today
-  const total = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const p = shopParts();
+  const year = Number(p.year);
+  const month = Number(p.month); // 1-based
+  const completed = Number(p.day); // include today (Pacific)
+  const total = new Date(year, month, 0).getDate(); // last day of this month
   return { completed, total };
 }
 
@@ -55,15 +69,8 @@ function dayProgress() {
 // the MTD number is live (was end-of-yesterday, which went stale / stuck
 // at day N-1/N on the last day of the month).
 function mtdRange() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const ymd = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${dd}`;
-  };
-  return { from: ymd(start), to: ymd(now) };
+  const p = shopParts();
+  return { from: `${p.year}-${p.month}-01`, to: `${p.year}-${p.month}-${p.day}` };
 }
 
 export default function B2BStatusBar() {

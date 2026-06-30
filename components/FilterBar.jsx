@@ -3,13 +3,16 @@
 // Date helpers — kept identical to xtresse-leadershipdash so omni and
 // leadership compute the same windows for matching presets.
 //
-// "Today" must resolve in Eastern Time. The business runs on EST/EDT, but
-// toISOString() converts to UTC — so after ~8pm ET the old code rolled the
-// date forward a day (e.g. "Today" showed tomorrow). Anchor on America/New_York.
-const ET_TZ = "America/New_York";
+// "Today" must resolve in the SHOP timezone (Pacific, America/Los_Angeles) —
+// the same zone xtresseCore buckets orders in (shopLocalDate). toISOString()
+// converts to UTC, so the old code rolled the date forward in the late
+// afternoon PT (e.g. after ~4–5pm PT "Today" showed tomorrow). Anchoring on
+// America/Los_Angeles keeps "today" the correct PT calendar day until midnight
+// Pacific, matching how revenue is bucketed.
+const SHOP_TZ = "America/Los_Angeles";
 const today = () =>
   new Intl.DateTimeFormat("en-CA", {
-    timeZone: ET_TZ,
+    timeZone: SHOP_TZ,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
