@@ -11,8 +11,9 @@
  *   - Rank = position in descending sort of weightedSales across all reps
  *
  * "First-Time" = newDollars in productMix (gummies = first-order tag;
- * other families = customer's first-ever purchase of that family inside
- * the loaded window — same convention RepPerformance uses).
+ * serum = 'First FR order'/'First serum' tag; XVIE / Sachets =
+ * customer's first-ever purchase of that family inside the loaded
+ * window — same convention RepPerformance uses).
  * "Returning" = existingDollars in productMix.
  *
  * Source of all per-rep numbers is the same `data.repPerformance`
@@ -235,7 +236,10 @@ export default function PresidentsClub({ repPerformance, compare }) {
           <span className="text-inksoft">returning $</span> below. First-time
           definition matches the Sales-by-rep table above: Gummies = order
           tagged <code className="bg-paper2 px-1 rounded">first order</code>;
-          Serum / XVIE / Sachets = customer's first-ever purchase of that
+          Serum = order tagged{" "}
+          <code className="bg-paper2 px-1 rounded">First FR order</code> or{" "}
+          <code className="bg-paper2 px-1 rounded">First serum</code>;
+          XVIE / Sachets = customer's first-ever purchase of that
           family falls inside the window. Numbers tie to{" "}
           xtresse-leadershipdash for the same date window — first-time-Gummies
           and returning-Gummies match column-for-column; Serum / XVIE / Sachets
