@@ -11,7 +11,6 @@ import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
 import BudgetVsActual from "./BudgetVsActual.jsx";
-import DtcScorecard from "./DtcScorecard.jsx";
 import AccountAging from "./AccountAging.jsx";
 import AmbassadorProgram from "./AmbassadorProgram.jsx";
 import RevenueByChannel from "./charts/RevenueByChannel.jsx";
@@ -480,16 +479,6 @@ export default function Dashboard({ initial }) {
                   <SubVsOneTime data={data.subVsOneTime} />
                 </ChartCell>
               </ChartGrid>
-            </Section>
-
-            <Section
-              title="DTC Growth Scorecard"
-              detail="Weekly · sheet-backed · Core KPIs / CPA / revenue mix / website / CRM / CS"
-              collapsible
-            >
-              {/* Fixed weekly cadence from the hand-maintained sheet — the
-                  scorecard ignores the date filter above by design. */}
-              <DtcScorecard />
             </Section>
 
             <Section title="Operational & Geographic" detail="Tier 3 / 3 charts" collapsible defaultCollapsed>
