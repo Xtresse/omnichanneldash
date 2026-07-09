@@ -136,16 +136,27 @@ export default function KpiTiles({ kpis, compare, metric = "net" }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-      {tiles.map((t) => (
-        <Tile
-          key={t.label}
-          {...t}
-          cmpLabel={cmpLabel}
-          dateRange={dateRange}
-          compareOn={!!cmp}
-        />
-      ))}
+    <div className="space-y-2 md:space-y-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        {tiles.map((t) => (
+          <Tile
+            key={t.label}
+            {...t}
+            cmpLabel={cmpLabel}
+            dateRange={dateRange}
+            compareOn={!!cmp}
+          />
+        ))}
+      </div>
+      {/* Plain-language description of the gross vs net calculation (Mike's
+          request) — clarifies what the headline figures and the Net/Gross
+          toggle actually mean. */}
+      <p className="font-sans text-[10px] md:text-[11px] text-muted leading-snug">
+        <strong className="text-inksoft">Gross</strong> = total order value before discounts &amp; returns.{" "}
+        <strong className="text-inksoft">Net</strong> = gross − discounts − returns
+        {grossToNet != null ? ` (net is currently ${grossToNet}% of gross)` : ""}. Net is the
+        dashboard default; use the Net/Gross toggle to switch the basis for every figure above.
+      </p>
     </div>
   );
 }

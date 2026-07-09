@@ -6,7 +6,6 @@ import FilterBar, { PRESET_LABELS, GRANULARITY_OPTIONS } from "./FilterBar.jsx";
 import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
-import XvieAccelerator from "./XvieAccelerator.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
@@ -415,8 +414,18 @@ export default function Dashboard({ initial }) {
 
         {data && (
           <>
-            <Section title="Actual Vs Goal" detail="Per-product net sales · monthly · Base / Stretch" collapsible>
-              <BudgetVsActual productFamily={data.productFamily} totalNetSales={data.kpis.totalNetSales} channelActuals={{ B2B: data.kpis.b2bNetSales, DTC: data.kpis.dtcNetSales, ADCS: data.kpis.adcsNetSales }} periodLabel={periodLabel} budgetForecast={data.budgetForecast} grossMargin={data.grossMargin} />
+            <Section title="Actual Vs Goal" detail={`Budget / Base / Stretch · by product & channel · ${M} basis`} collapsible>
+              <BudgetVsActual
+                productFamily={data.productFamily}
+                totalNetSales={data.kpis.totalNetSales}
+                totalGrossSales={data.kpis.totalGrossSales}
+                channelActuals={{ B2B: data.kpis.b2bNetSales, DTC: data.kpis.dtcNetSales, ADCS: data.kpis.adcsNetSales }}
+                channelActualsGross={{ B2B: data.kpis.b2bGrossSales, DTC: data.kpis.dtcGrossSales, ADCS: data.kpis.adcsGrossSales }}
+                periodLabel={periodLabel}
+                budgetForecast={data.budgetForecast}
+                grossMargin={data.grossMargin}
+                metric={revMetric}
+              />
             </Section>
 
             <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
@@ -550,14 +559,6 @@ export default function Dashboard({ initial }) {
                 repPerformance={data.repPerformance || []}
                 compare={data.compare}
               />
-            </Section>
-
-            <Section
-              title="XVIE Accelerator"
-              detail="June 2026 promo · 24 vials combined (case = 6, starter = 3) → +2pp gummy rate"
-              collapsible
-            >
-              <XvieAccelerator accelerator={data.xvieAccelerator} />
             </Section>
 
             <Section

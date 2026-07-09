@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 const fmt$ = (n) => {
   if (!n || n === 0) return "$0";
   const sign = n < 0 ? "-" : "";
@@ -83,6 +85,11 @@ function arrow(cur, prior) {
  * brand maroon if unfavorable, muted brown for "no prior data".
  */
 export default function RepPerformance({ repPerformance, compare }) {
+  // Mike (2026-06): "new vs old" drill-down on the unified leaderboard.
+  // Scope is the territory filter — "all" W-2 reps, or just Existing (old)
+  // or just New territories. 1099 reps are ALWAYS excluded regardless.
+  // (Hook stays above the early return to satisfy the rules of hooks.)
+  const [scope, setScope] = useState("all"); // "all" | "Existing" | "New"
   if (!repPerformance || repPerformance.length === 0) return null;
   const priorByRep =
     compare && compare.reps
@@ -93,24 +100,52 @@ export default function RepPerformance({ repPerformance, compare }) {
   // unambiguous. Built once at the top so we don't redo the work per cell.
   const compareLabel = compare ? buildCompareLabel(compare) : null;
 
-  // Mike (2026-06): one stack-ranked leaderboard instead of the three
-  // Existing / New / 1099 sections. Combine all W2 reps — EXCLUDING 1099
-  // reps (territory "1099", the same designation the server stamps from the
-  // canonical REPS registry) — rank by net sales, and keep the top 20.
-  const ranked = repPerformance
-    .filter((sec) => sec.territory !== "1099")
+  // One stack-ranked leaderboard instead of the three Existing / New / 1099
+  // sections (Mike, 2026-06). 1099 reps (territory "1099", the designation the
+  // server stamps from the canonical REPS registry) are ALWAYS excluded. The
+  // scope toggle optionally narrows to just Existing (old) or just New
+  // territories — within the chosen scope we rank by net sales and keep the
+  // top 20, re-ranked 1..N.
+  const w2Sections = repPerformance.filter((sec) => sec.territory !== "1099");
+  const scopedSections =
+    scope === "all"
+      ? w2Sections
+      : w2Sections.filter((sec) => sec.territory === scope);
+  const ranked = scopedSections
     .flatMap((sec) => sec.rows || [])
     .sort((a, b) => (b.net || 0) - (a.net || 0))
     .slice(0, 20)
     .map((r, i) => ({ ...r, rank: i + 1 }));
 
+  // Only offer scope buttons that actually have reps, so the toggle never
+  // shows an empty bucket.
+  const SCOPES = [
+    { key: "all", label: "All W-2" },
+    { key: "Existing", label: "Existing (old)" },
+    { key: "New", label: "New" },
+  ];
+  const scopes = SCOPES.filter(
+    (s) =>
+      s.key === "all" ||
+      w2Sections.some(
+        (sec) => sec.territory === s.key && (sec.rows || []).length > 0
+      )
+  );
+  const scopeName =
+    scope === "all"
+      ? "excl. 1099"
+      : `${SCOPES.find((s) => s.key === scope)?.label} · excl. 1099`;
+
   return (
     <div className="space-y-3 md:space-y-4">
       <RepTable
-        title="Top 20 Reps · Net Sales (excl. 1099)"
+        title={`Top 20 Reps · Net Sales (${scopeName})`}
         rows={ranked}
         priorByRep={priorByRep}
         compareLabel={compareLabel}
+        scopes={scopes}
+        scope={scope}
+        onScope={setScope}
       />
     </div>
   );
@@ -132,7 +167,7 @@ function buildCompareLabel(compare) {
   return `${window} (${fStr} – ${tStr})`;
 }
 
-function RepTable({ title, rows, priorByRep, compareLabel }) {
+function RepTable({ title, rows, priorByRep, compareLabel, scopes, scope, onScope }) {
   // Sum each family's slot for the subtotal row.
   const totals = {
     net: 0,
@@ -189,10 +224,31 @@ function RepTable({ title, rows, priorByRep, compareLabel }) {
 
   return (
     <div className="bg-card border border-rule rounded-xl overflow-hidden">
-      <div className="bg-browndeep text-paper px-4 py-2.5 md:px-5 md:py-3 flex items-baseline justify-between gap-3 flex-wrap">
-        <h3 className="font-display text-base md:text-lg font-semibold leading-tight">
-          {title}
-        </h3>
+      <div className="bg-browndeep text-paper px-4 py-2.5 md:px-5 md:py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h3 className="font-display text-base md:text-lg font-semibold leading-tight">
+            {title}
+          </h3>
+          {scopes && scopes.length > 1 && (
+            <div className="inline-flex rounded-lg overflow-hidden border border-paper/25 shrink-0">
+              {scopes.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => onScope && onScope(s.key)}
+                  aria-pressed={scope === s.key}
+                  className={`px-2.5 py-1 font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] transition-colors ${
+                    scope === s.key
+                      ? "bg-paper text-browndeep font-semibold"
+                      : "text-paper/75 hover:text-paper hover:bg-paper/10"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] opacity-80">
           {rows.length} reps · {fmt$(totals.net)} net · customers shown as <span className="text-paper">N</span> new ·{" "}
           E existing

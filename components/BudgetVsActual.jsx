@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { SCENARIOS, hasScenarioGoals, scenarioGoalFor } from "../lib/scenarioGoals.js";
+import { TIERS, hasScenarioGoals, scenarioGoalFor } from "../lib/scenarioGoals.js";
 
 // Brand palette — restrained, used ONLY to signal ahead / behind pace.
 const AHEAD    = "#F0922E"; // orange — ≥100% of (prorated) target
@@ -33,8 +33,6 @@ function monthLabel(ym) {
   return d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
-// Color for attainment vs a (prorated) target. >=100% favorable, 90–100% on
-// pace, <90% behind. null → neutral gray.
 function paceTone(pct) {
   if (pct == null || !isFinite(pct)) return NEUTRAL;
   if (pct >= 1.0) return AHEAD;
@@ -42,7 +40,6 @@ function paceTone(pct) {
   return BEHIND;
 }
 
-/** +/- N month list around a center month, for the goal-month selector. */
 function monthOffsets(center, before = 3, after = 3) {
   if (!center) return [];
   const [y, m] = center.split("-").map(Number);
@@ -60,55 +57,56 @@ function currentMonth() {
 }
 
 /**
- * Sum the dashboard's productFamily rows into { Gummies, Serum, XVIE, Sachets }
- * net-sales actuals across ALL channels (B2B + ADCS + DTC + any flat value).
+ * Net OR gross actuals by product across all channels, depending on `basis`.
+ * productFamily rows carry both net (B2B/ADCS/DTC) and gross (B2B_gross/…).
  */
-function actualsByProduct(productFamily) {
+function actualsByProduct(productFamily, basis) {
   const totals = { Gummies: 0, Serum: 0, XVIE: 0, Sachets: 0 };
   if (!Array.isArray(productFamily)) return totals;
+  const g = basis === "gross";
   for (const row of productFamily) {
     const f = row?.family;
     if (f && totals[f] !== undefined) {
-      totals[f] +=
-        Number(row.B2B || 0) + Number(row.ADCS || 0) + Number(row.DTC || 0) +
-        Number(row.value || row.net || row.amount || 0);
+      totals[f] += g
+        ? Number(row.B2B_gross || 0) + Number(row.ADCS_gross || 0) + Number(row.DTC_gross || 0)
+        : Number(row.B2B || 0) + Number(row.ADCS || 0) + Number(row.DTC || 0);
     }
   }
   return totals;
 }
 
 /**
- * Clean exec financial view for Actual vs Goal.
+ * Actual-vs-Goal — three target tiers (Budget / Base / Stretch) on the basis
+ * (Gross / Net) chosen by the dashboard's global toggle.
  *
- *   1. ONE "so what" header — window net sales ONCE, with a single pace status
- *      against the GOAL (prorated to the loaded window). Budget + Forecast are
- *      small secondary references.
- *   2. Two breakdowns — BY PRODUCT and BY CHANNEL — each: Actual · Target
- *      (prorated goal) · % to goal · variance.
- *   3. Gross margin as its own section (by product + by channel), PLACEHOLDER
- *      COGS until Sam sends real numbers.
+ * Targets come from the Google Sheet cube (lib/budgetSheet → /api/budget):
+ *   targets.company[channel][product][month][tier][basis]
+ * Base/Stretch NET fall back to the deck scenario goals (lib/scenarioGoals) so
+ * the section still shows real numbers before the sheet is wired live; Budget
+ * and gross targets only ever come from the sheet (else "—").
  *
- * Proration reuses lib/budgetForecast.js (window + day-count fractions on the
- * dashboard payload): B2B prorates by SELLING days, DTC by CALENDAR days. The
- * headline "All" goal is the blend (B2B·sellingFraction + DTC·calendarFraction),
- * so the By-Product and By-Channel Target columns sum EXACTLY to the headline.
- * Scenario Base/Stretch goals, the Sheet-backed Budget and run-rate Forecast are
- * all preserved.
+ * Proration to the loaded window reuses lib/budgetForecast: B2B prorates by
+ * SELLING days, DTC by CALENDAR days, so per-product and per-channel targets
+ * sum exactly to the headline goal.
  */
 export default function BudgetVsActual({
   productFamily,
   totalNetSales,
+  totalGrossSales,
   channelActuals,
+  channelActualsGross,
   periodLabel,
   budgetForecast,
   grossMargin,
+  metric = "net",
 }) {
   const [budgetData, setBudgetData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
-  const [scenario, setScenario] = useState("base"); // "base" | "stretch"
+  const [tier, setTier] = useState("base"); // "budget" | "base" | "stretch"
 
-  const usingScenario = hasScenarioGoals(selectedMonth);
+  const basis = metric === "gross" ? "gross" : "net";
+  const basisLabel = basis === "gross" ? "Gross" : "Net";
 
   useEffect(() => {
     let cancelled = false;
@@ -119,126 +117,107 @@ export default function BudgetVsActual({
     return () => { cancelled = true; };
   }, []);
 
-  const prodActuals = useMemo(() => actualsByProduct(productFamily), [productFamily]);
+  const targets = budgetData?.targets || { company: {}, rep: {} };
 
-  // Proration to the loaded window, reusing the SAME day counts as the
-  // dashboard's budgetForecast payload (lib/budgetForecast.js). Only active when
-  // the window is a sub-month window that sits inside the selected goal month.
-  const pro = useMemo(() => {
+  // Company target $ for (channel, product) at the selected month/tier/basis.
+  // Falls back to the deck scenario goals for NET Base/Stretch only.
+  const coTarget = useMemo(() => {
+    const co = targets.company || {};
+    const pick = (ch, p) => Number(co?.[ch]?.[p]?.[selectedMonth]?.[tier]?.[basis] || 0);
+    return (channel, product) => {
+      let v = channel === "All"
+        ? pick("B2B", product) + pick("DTC", product) + pick("ADCS", product)
+        : pick(channel, product);
+      if (!v && basis === "net" && (tier === "base" || tier === "stretch") && hasScenarioGoals(selectedMonth)) {
+        v = scenarioGoalFor(selectedMonth, tier, product, channel);
+      }
+      return v;
+    };
+  }, [targets, selectedMonth, tier, basis]);
+
+  // Metric-aware actuals.
+  const prodActuals = useMemo(() => actualsByProduct(productFamily, basis), [productFamily, basis]);
+  const channelAct = (basis === "gross" ? channelActualsGross : channelActuals) || {};
+  const grandActualRaw = basis === "gross" ? totalGrossSales : totalNetSales;
+
+  // Month-end RUN-RATE factor — projects the partial-month actual to month-end
+  // at the current selling-day pace. The TARGET is never prorated: it's always
+  // the full-month tier number. % Goal = actual ÷ full target (progress so far);
+  // run-rate = actual × factor; Proj % = run-rate ÷ full target (on-track signal).
+  const rr = useMemo(() => {
     const w = budgetForecast?.window;
     const pr = budgetForecast?.proration;
-    const off = {
-      active: false, sellingFraction: 1, calendarFraction: 1,
-      sellingDaysInWindow: pr?.sellingDaysInWindow ?? null,
-      sellingDaysInMonth: pr?.sellingDaysInMonth ?? null,
-      calendarDaysInWindow: pr?.calendarDaysInWindow ?? null,
-      calendarDaysInMonth: pr?.calendarDaysInMonth ?? null,
-    };
-    if (!w || !pr || !w.proratable || w.ym !== selectedMonth) return off;
-    return {
-      active: true,
-      sellingFraction: pr.sellingFraction,
-      calendarFraction: pr.calendarFraction,
-      sellingDaysInWindow: pr.sellingDaysInWindow,
-      sellingDaysInMonth: pr.sellingDaysInMonth,
-      calendarDaysInWindow: pr.calendarDaysInWindow,
-      calendarDaysInMonth: pr.calendarDaysInMonth,
-    };
+    const swin = pr?.sellingDaysInWindow, smon = pr?.sellingDaysInMonth;
+    const active = !!(w && pr && w.proratable && w.ym === selectedMonth && swin && smon && swin < smon);
+    return { active, factor: active ? smon / swin : 1, sellingDaysInWindow: swin ?? null, sellingDaysInMonth: smon ?? null };
   }, [budgetForecast, selectedMonth]);
+  const rrf = rr.factor;
 
-  const sf = pro.active ? pro.sellingFraction : 1; // B2B / All basis
-  const cf = pro.active ? pro.calendarFraction : 1; // DTC basis
-
-  // Per-product full-month rep-goal sum (fallback when no scenario goals).
-  const repGoalProduct = useMemo(() => {
-    const goalsByRep = budgetData?.repGoals || {};
-    const out = { Gummies: 0, Serum: 0, XVIE: 0 };
-    for (const p of PRODUCTS) {
-      let s = 0;
-      for (const rep of Object.keys(goalsByRep)) s += Number(goalsByRep[rep]?.[p]?.[selectedMonth] || 0);
-      out[p] = s;
-    }
-    return out;
-  }, [budgetData, selectedMonth]);
-
-  // ── BY PRODUCT ──────────────────────────────────────────────────────────
-  // Target prorates each product's B2B slice by selling days and DTC slice by
-  // calendar days, so product targets sum to the headline blend.
+  // ── BY PRODUCT ────────────────────────────────────────────────────────────
   const byProduct = useMemo(() => {
     const rows = PRODUCTS.map((p) => {
       const actual = Number(prodActuals[p] || 0);
-      const target = usingScenario
-        ? scenarioGoalFor(selectedMonth, scenario, p, "B2B") * sf +
-          scenarioGoalFor(selectedMonth, scenario, p, "DTC") * cf
-        : Number(repGoalProduct[p] || 0) * sf;
-      return makeRow(p, actual, target, true);
+      const target = coTarget("B2B", p) + coTarget("DTC", p); // FULL month, not prorated
+      return makeRow(p, actual, target, target > 0, rrf);
     });
     const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
-    const grandActual = totalNetSales != null ? Number(totalNetSales) : trackedActual;
+    const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
     const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     return { rows, otherActual, grandActual };
-  }, [prodActuals, usingScenario, selectedMonth, scenario, sf, cf, repGoalProduct, totalNetSales]);
+  }, [prodActuals, coTarget, rrf, grandActualRaw]);
 
-  // ── BY CHANNEL ──────────────────────────────────────────────────────────
+  // ── BY CHANNEL ────────────────────────────────────────────────────────────
   const byChannel = useMemo(() => {
-    const ca = channelActuals || {};
-    const monthlyB2B = usingScenario
-      ? PRODUCTS.reduce((a, p) => a + scenarioGoalFor(selectedMonth, scenario, p, "B2B"), 0)
-      : PRODUCTS.reduce((a, p) => a + Number(repGoalProduct[p] || 0), 0);
-    const monthlyDTC = usingScenario
-      ? PRODUCTS.reduce((a, p) => a + scenarioGoalFor(selectedMonth, scenario, p, "DTC"), 0)
-      : 0;
-
-    // ADCS (Aesthetic Derm + Cosmetic Surgery) orders SPORADICALLY — lumpy, not
-    // a steady daily cadence — so it is exempt from day-proration and from the
-    // daily-pace (% / behind-pace) framing, which would read wildly off on any
-    // given day. Show its actual cleanly, flagged "sporadic".
-    const adcs = makeRow("ADCS", Number(ca.ADCS || 0), 0, false);
+    const monthlyB2B = PRODUCTS.reduce((a, p) => a + coTarget("B2B", p), 0);
+    const monthlyDTC = PRODUCTS.reduce((a, p) => a + coTarget("DTC", p), 0);
+    const adcs = makeRow("ADCS", Number(channelAct.ADCS || 0), 0, false, 1);
     adcs.sporadic = true;
     const rows = [
-      makeRow("B2B", Number(ca.B2B || 0), monthlyB2B * sf, monthlyB2B > 0),
-      makeRow("DTC", Number(ca.DTC || 0), monthlyDTC * cf, monthlyDTC > 0),
+      makeRow("B2B", Number(channelAct.B2B || 0), monthlyB2B, monthlyB2B > 0, rrf),
+      makeRow("DTC", Number(channelAct.DTC || 0), monthlyDTC, monthlyDTC > 0, rrf),
       adcs,
     ];
     const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
-    const grandActual = totalNetSales != null ? Number(totalNetSales) : trackedActual;
+    const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
     const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     return { rows, otherActual, grandActual };
-  }, [channelActuals, usingScenario, selectedMonth, scenario, sf, cf, repGoalProduct, totalNetSales]);
+  }, [channelAct, coTarget, rrf, grandActualRaw]);
 
-  // ── Headline (so-what) ────────────────────────────────────────────────────
+  // ── Headline ──────────────────────────────────────────────────────────────
   const headline = useMemo(() => {
     const actual = byProduct.grandActual;
-    // Goal = blended prorated target = sum of by-product (== by-channel) targets.
     const goal = byProduct.rows.reduce((a, r) => a + (r.target || 0), 0);
-    return { actual, goal, hasGoal: goal > 0, pct: goal > 0 ? actual / goal : null, variance: actual - goal };
-  }, [byProduct]);
+    const runRate = Math.round(actual * rrf);
+    return {
+      actual, goal, hasGoal: goal > 0,
+      pct: goal > 0 ? actual / goal : null,
+      runRate, projPct: goal > 0 ? runRate / goal : null,
+    };
+  }, [byProduct, rrf]);
 
-  // Full-month goal (un-prorated) for the "of $X monthly" context line.
-  const goalMonthValue = useMemo(() => {
-    if (usingScenario) {
-      return PRODUCTS.reduce(
-        (a, p) => a + scenarioGoalFor(selectedMonth, scenario, p, "B2B") + scenarioGoalFor(selectedMonth, scenario, p, "DTC"),
-        0
-      );
+  // Full-month (un-prorated) totals for ALL three tiers — secondary reference.
+  const tierMonthTotals = useMemo(() => {
+    const co = targets.company || {};
+    const out = {};
+    for (const t of TIERS) {
+      let s = 0;
+      for (const ch of ["B2B", "DTC"]) {
+        for (const p of PRODUCTS) {
+          let v = Number(co?.[ch]?.[p]?.[selectedMonth]?.[t.key]?.[basis] || 0);
+          if (!v && basis === "net" && (t.key === "base" || t.key === "stretch") && hasScenarioGoals(selectedMonth)) {
+            v = scenarioGoalFor(selectedMonth, t.key, p, ch);
+          }
+          s += v;
+        }
+      }
+      out[t.key] = s;
     }
-    return PRODUCTS.reduce((a, p) => a + Number(repGoalProduct[p] || 0), 0);
-  }, [usingScenario, selectedMonth, scenario, repGoalProduct]);
-
-  // Secondary references: Sheet-backed Budget (distinct from the deck Goal) and
-  // the run-rate / sheet Forecast — both prorated to the window.
-  const sheetBudgetMonth = useMemo(
-    () => PRODUCTS.reduce((a, p) => a + Number(budgetData?.budget?.[p]?.[selectedMonth] || 0), 0),
-    [budgetData, selectedMonth]
-  );
-  const sheetBudgetWindow = sheetBudgetMonth * sf;
-  const sc = budgetForecast?.scenarios?.[scenario] || budgetForecast?.scenarios?.base;
-  const forecastWindow = Number(sc?.forecast?.combined || 0);
-  const forecastMonth = Number(sc?.forecast?.monthlyCombined || 0);
-  const forecastSrc = budgetForecast?.forecastSource === "sheet" ? "sheet" : "run-rate";
+    return out;
+  }, [targets, selectedMonth, basis]);
 
   const monthOpts = useMemo(() => monthOffsets(selectedMonth, 3, 3), [selectedMonth]);
-  const scenarioLabel = SCENARIOS.find((s) => s.key === scenario)?.label || "Base";
+  const tierLabel = TIERS.find((t) => t.key === tier)?.label || "Base";
+  const liveMode = budgetData?.mode === "live";
 
   return (
     <div className="space-y-4 md:space-y-5">
@@ -247,9 +226,15 @@ export default function BudgetVsActual({
           Couldn&apos;t load /api/budget: {loadErr}
         </div>
       )}
+      {budgetData && !liveMode && (
+        <div className="rounded-md border border-brown/40 bg-tan/30 px-3 py-2 font-sans text-[11px] text-brown leading-snug">
+          Targets sheet not wired yet — showing the deck Base/Stretch (net) only.
+          Publish the “Company Targets” + “Rep Targets” tabs to web (CSV) and set
+          the env vars to go live with Budget + gross + per-rep numbers.
+        </div>
+      )}
 
-      {/* Controls — goal month + scenario only (channel split lives in the
-          By-Channel breakdown below). */}
+      {/* Controls — goal month + tier. Basis follows the global Gross/Net toggle. */}
       <div className="flex flex-wrap items-center gap-2 md:gap-3">
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold shrink-0">
           Goal month
@@ -272,89 +257,88 @@ export default function BudgetVsActual({
           This month
         </button>
 
-        {usingScenario && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold hidden sm:inline">
-              Goal
-            </span>
-            <ScenarioToggle value={scenario} onChange={setScenario} />
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted font-semibold hidden sm:inline">
+            Target
+          </span>
+          <TierToggle value={tier} onChange={setTier} />
+        </div>
 
         <span className="font-sans text-[10px] md:text-xs text-muted w-full sm:w-auto sm:ml-auto leading-tight">
-          Actuals · {periodLabel || "current dashboard window"}
+          {basisLabel} sales · {periodLabel || "current dashboard window"}
         </span>
       </div>
 
       {/* ── 1 · SO-WHAT HEADER ───────────────────────────────────────────── */}
       <Headline
-        scenarioLabel={usingScenario ? scenarioLabel : null}
+        tierLabel={tierLabel}
+        basisLabel={basisLabel}
         monthName={monthLabel(selectedMonth)}
         actual={headline.actual}
         goal={headline.goal}
-        goalMonth={goalMonthValue}
         hasGoal={headline.hasGoal}
         pct={headline.pct}
-        variance={headline.variance}
-        prorated={pro.active}
-        sellingDaysInWindow={pro.sellingDaysInWindow}
-        sellingDaysInMonth={pro.sellingDaysInMonth}
-        budgetWindow={sheetBudgetWindow}
-        budgetMonth={sheetBudgetMonth}
-        forecastWindow={forecastWindow}
-        forecastMonth={forecastMonth}
-        forecastSrc={forecastSrc}
+        runRate={headline.runRate}
+        projPct={headline.projPct}
+        rrActive={rr.active}
+        sellingDaysInWindow={rr.sellingDaysInWindow}
+        sellingDaysInMonth={rr.sellingDaysInMonth}
+        tierMonthTotals={tierMonthTotals}
+        currentTier={tier}
       />
 
       {/* ── 2 · BREAKDOWNS ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
         <Breakdown
           title="By product"
-          subtitle="Net sales vs prorated goal"
+          subtitle={`Actual + run-rate vs full ${tierLabel.toLowerCase()}`}
           rows={byProduct.rows}
           otherActual={byProduct.otherActual}
           grandActual={byProduct.grandActual}
         />
         <Breakdown
           title="By channel"
-          subtitle="Net sales vs prorated goal"
+          subtitle={`Actual + run-rate vs full ${tierLabel.toLowerCase()}`}
           rows={byChannel.rows}
           otherActual={byChannel.otherActual}
           grandActual={byChannel.grandActual}
           footnote={
-            pro.active
-              ? "B2B prorated by selling days, DTC by calendar days. ADCS orders sporadically — shown at full-period actual, exempt from daily-pace proration."
-              : "ADCS orders sporadically — shown at full-period actual, no daily-pace target."
+            rr.active
+              ? `Run-rate projects month-end at the current pace (${rr.sellingDaysInWindow}/${rr.sellingDaysInMonth} selling days). Targets are full-month, never prorated. ADCS orders sporadically — actual only.`
+              : "Targets are full-month. ADCS orders sporadically — actual only, no target."
           }
         />
       </div>
 
       {/* ── 3 · GROSS MARGIN (separate section) ──────────────────────────── */}
-      <MarginSection grossMargin={grossMargin} prodActuals={prodActuals} />
+      <MarginSection grossMargin={grossMargin} prodActuals={actualsByProduct(productFamily, "net")} />
 
       <div className="font-sans text-[10px] text-muted leading-snug">
-        All figures are net sales (gross − discounts − returns).{" "}
-        <span style={{ color: AHEAD }} className="font-semibold">Orange</span> ≥100% ·{" "}
-        <span style={{ color: NEAR }} className="font-semibold">gray</span> 90–100% (on pace) ·{" "}
-        <span style={{ color: BEHIND }} className="font-semibold">maroon</span> &lt;90%.
-        {usingScenario
-          ? ` Goals are the ${scenarioLabel} targets (B2B + DTC), prorated to the dashboard window.`
-          : " Goals fall back to the Sheet-backed per-rep goal sum, prorated to the dashboard window."}
+        Figures are {basisLabel.toLowerCase()} sales
+        {basis === "net" ? " (gross − discounts − returns)" : " (before discounts & returns)"}.{" "}
+        % Goal = sales-so-far ÷ the full-month {tierLabel} target. Run-rate projects month-end
+        at the current pace; Proj % (color-coded){" "}
+        <span style={{ color: AHEAD }} className="font-semibold">≥100%</span> ·{" "}
+        <span style={{ color: NEAR }} className="font-semibold">90–100%</span> ·{" "}
+        <span style={{ color: BEHIND }} className="font-semibold">&lt;90%</span> is run-rate ÷ target. Nothing is prorated.
+        {!liveMode && " Base/Stretch net fall back to the deck; Budget + gross come from the sheet."}
       </div>
     </div>
   );
 }
 
-// Build a breakdown row with derived pct + variance.
-function makeRow(label, actual, target, hasTarget) {
+function makeRow(label, actual, target, hasTarget, rrFactor = 1) {
   const t = Number(target) || 0;
   const a = Number(actual) || 0;
+  const runRate = Math.round(a * (rrFactor || 1));
   return {
     label,
     actual: a,
     target: hasTarget ? t : null,
     hasTarget: !!hasTarget,
-    pct: hasTarget && t > 0 ? a / t : null,
+    pct: hasTarget && t > 0 ? a / t : null,          // % to goal so far (actual ÷ full target)
+    runRate,                                          // projected month-end at current pace
+    projPct: hasTarget && t > 0 ? runRate / t : null, // run-rate ÷ full target (on-track signal)
     variance: hasTarget ? a - t : null,
   };
 }
@@ -362,16 +346,15 @@ function makeRow(label, actual, target, hasTarget) {
 // ─── 1 · So-what header ─────────────────────────────────────────────────────
 
 function Headline({
-  scenarioLabel, monthName, actual, goal, goalMonth, hasGoal, pct, variance,
-  prorated, sellingDaysInWindow, sellingDaysInMonth,
-  budgetWindow, budgetMonth, forecastWindow, forecastMonth, forecastSrc,
+  tierLabel, basisLabel, monthName, actual, goal, hasGoal, pct, variance,
+  prorated, sellingDaysInWindow, sellingDaysInMonth, tierMonthTotals, currentTier,
 }) {
   const tone = hasGoal ? paceTone(pct) : NEUTRAL;
   const ahead = (variance || 0) >= 0;
   return (
     <div className="rounded-xl border border-rule bg-card px-5 py-4 md:px-6 md:py-5">
       <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted">
-        Net sales · Actual vs Goal{scenarioLabel ? ` · ${scenarioLabel}` : ""} · {monthName}
+        {basisLabel} sales · Actual vs {tierLabel} · {monthName}
       </div>
 
       <div className="mt-1.5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -381,7 +364,7 @@ function Headline({
           </div>
           {hasGoal && (
             <div className="mt-1.5 font-sans text-xs md:text-sm text-muted tabular-nums">
-              vs goal <span className="font-semibold text-inksoft">{fmt$(goal)}</span>
+              vs {tierLabel.toLowerCase()} <span className="font-semibold text-inksoft">{fmt$(goal)}</span>
               {prorated ? " · prorated to window" : ""}
             </div>
           )}
@@ -393,7 +376,7 @@ function Headline({
             style={{ color: tone, backgroundColor: tone + "1A" }}
           >
             <div className="text-lg md:text-xl font-semibold tabular-nums leading-none">
-              {fmtPct(pct)} <span className="text-sm font-medium">to goal</span>
+              {fmtPct(pct)} <span className="text-sm font-medium">to {tierLabel.toLowerCase()}</span>
             </div>
             <div className="mt-1 text-[11px] md:text-xs font-medium tabular-nums">
               {fmt$(Math.abs(variance))} {ahead ? "ahead of" : "behind"} pace
@@ -401,30 +384,28 @@ function Headline({
           </div>
         ) : (
           <div className="self-start rounded-lg px-3.5 py-2.5 font-sans text-sm font-semibold" style={{ color: NEUTRAL, backgroundColor: NEUTRAL + "1A" }}>
-            No goal set
+            No {tierLabel.toLowerCase()} set
           </div>
         )}
       </div>
 
-      {/* Secondary references — small, never full-width boxes. */}
+      {/* Secondary references — all three tiers' full-month totals. */}
       <div className="mt-3 pt-3 border-t border-rule/60 flex flex-wrap items-baseline gap-x-6 gap-y-1 font-sans text-[11px] text-muted">
-        {budgetMonth > 0 && (
-          <span>
-            Budget{prorated ? " (prorated)" : ""}{" "}
-            <span className="font-semibold text-inksoft tabular-nums">{fmt$(budgetWindow)}</span>
-            <span className="text-muted"> · of {fmt$k(budgetMonth)} mo</span>
-          </span>
-        )}
-        {forecastMonth > 0 && (
-          <span>
-            Forecast{prorated ? " (prorated)" : ""}{" "}
-            <span className="font-semibold text-inksoft tabular-nums">{fmt$(forecastWindow)}</span>
-            <span className="text-muted"> · {forecastSrc} · of {fmt$k(forecastMonth)} mo</span>
-          </span>
-        )}
+        {TIERS.map((t) => {
+          const v = Number(tierMonthTotals?.[t.key] || 0);
+          if (!v) return null;
+          const active = t.key === currentTier;
+          return (
+            <span key={t.key}>
+              {t.label}{" "}
+              <span className={`tabular-nums ${active ? "font-semibold text-inksoft" : ""}`}>{fmt$k(v)}</span>
+              <span className="text-muted"> mo</span>
+            </span>
+          );
+        })}
         {prorated && sellingDaysInWindow != null && (
           <span className="sm:ml-auto">
-            {sellingDaysInWindow}/{sellingDaysInMonth} selling days · goal of {fmt$k(goalMonth)} monthly
+            {sellingDaysInWindow}/{sellingDaysInMonth} selling days
           </span>
         )}
       </div>
@@ -448,7 +429,6 @@ function Breakdown({ title, subtitle, rows, otherActual = 0, grandActual = 0, fo
         <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted">{subtitle}</span>
       </div>
 
-      {/* Desktop / tablet table */}
       <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-[11px] md:text-xs font-sans border-collapse">
           <thead>
@@ -507,7 +487,7 @@ function Breakdown({ title, subtitle, rows, otherActual = 0, grandActual = 0, fo
         </table>
       </div>
 
-      {/* Mobile stacked cards — no horizontal scroll */}
+      {/* Mobile stacked cards */}
       <div className="sm:hidden divide-y divide-rule/50">
         {rows.map((r) => (
           <div key={r.label} className="px-4 py-3">
@@ -571,7 +551,6 @@ function MarginSection({ grossMargin, prodActuals }) {
   const bc = grossMargin.byChannel || {};
   const bf = grossMargin.byFamily || {};
 
-  // By product — revenue from the dashboard window actuals, COGS from byFamily.
   const productRows = PRODUCTS.map((p) => {
     const revenue = Number(prodActuals[p] || 0);
     const cogs = Number(bf[p] || 0);
@@ -612,12 +591,50 @@ function MarginSection({ grossMargin, prodActuals }) {
         <MarginTable title="By channel" rows={channelRows} />
       </div>
 
-      {grossMargin.placeholder && (
-        <div className="px-4 py-2 md:px-5 font-sans text-[10px] text-muted leading-snug border-t border-rule/50">
-          {grossMargin.note || "PLACEHOLDER COGS — replace with Sam's COGS in lib/cogs.js."}
+      {/* Contribution waterfall — gross profit less merchant fees & fulfillment.
+          Only when the cost sheet is wired (rates derived from actuals). */}
+      {grossMargin.contribution != null && (
+        <div className="border-t border-rule/50 px-4 py-3 md:px-5">
+          <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold mb-2">
+            Contribution
+          </div>
+          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5 font-sans text-[11px] md:text-xs tabular-nums">
+            <WaterStep label="Gross profit" value={o.grossProfit} />
+            <WaterStep
+              label={`− Merchant fees${grossMargin.feeRatePct != null ? ` (${grossMargin.feeRatePct}%)` : ""}`}
+              value={-(grossMargin.merchantFees || 0)}
+              neg
+            />
+            <WaterStep
+              label={`− Fulfillment${grossMargin.costPerOrder != null ? ` ($${grossMargin.costPerOrder}/order)` : ""}`}
+              value={-(grossMargin.fulfillment || 0)}
+              neg
+            />
+            <span className="font-semibold text-ink">
+              = Contribution{" "}
+              <span className="text-ink">{fmt$(grossMargin.contribution)}</span>
+              {grossMargin.contributionMarginPct != null && (
+                <span className="text-brown"> · {grossMargin.contributionMarginPct}%</span>
+              )}
+            </span>
+          </div>
         </div>
       )}
+
+      <div className="px-4 py-2 md:px-5 font-sans text-[10px] text-muted leading-snug border-t border-rule/50">
+        {grossMargin.placeholder
+          ? (grossMargin.note || "PLACEHOLDER COGS — replace with Sam's COGS in lib/cogs.js.")
+          : "COGS, merchant fees & fulfillment from the Google Sheet (actuals)."}
+      </div>
     </div>
+  );
+}
+
+function WaterStep({ label, value, neg }) {
+  return (
+    <span className="text-muted">
+      {label} <span className={neg ? "text-unfavorable" : "text-inksoft"}>{fmt$(value)}</span>
+    </span>
   );
 }
 
@@ -651,12 +668,12 @@ function MarginTable({ title, rows }) {
   );
 }
 
-// ─── Base / Stretch segmented toggle ────────────────────────────────────────
+// ─── Budget / Base / Stretch segmented toggle ───────────────────────────────
 
-function ScenarioToggle({ value, onChange }) {
+function TierToggle({ value, onChange }) {
   return (
     <div className="inline-flex rounded-md border border-rule overflow-hidden">
-      {SCENARIOS.map((o) => (
+      {TIERS.map((o) => (
         <button
           key={o.key}
           type="button"
@@ -672,8 +689,6 @@ function ScenarioToggle({ value, onChange }) {
   );
 }
 
-// Small "sporadic" chip — marks a channel (ADCS) whose lumpy order cadence
-// makes any daily-pace % misleading, so it's shown at full-period actual only.
 function SporadicTag() {
   return (
     <span className="ml-1.5 align-middle inline-block font-sans text-[8px] md:text-[9px] uppercase tracking-[0.12em] font-semibold text-brown border border-brown/40 rounded px-1 py-0.5">
@@ -686,8 +701,6 @@ function SporadicTag() {
 
 function Th({ children, align = "left", className = "" }) {
   const alignClass = align === "right" ? "text-right" : "text-left";
-  // Tight first-column inset (aligns under the card title), snug numeric cols so
-  // five columns + large variance values fit the card without clipping.
   const padClass = align === "right" ? "px-2 md:px-3" : "pl-4 pr-2 md:pl-5";
   return (
     <th className={`py-2 ${padClass} font-sans text-[10px] uppercase tracking-[0.14em] text-muted font-semibold ${alignClass} ${className}`}>
