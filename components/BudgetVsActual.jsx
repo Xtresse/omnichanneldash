@@ -140,64 +140,60 @@ export default function BudgetVsActual({
   const channelAct = (basis === "gross" ? channelActualsGross : channelActuals) || {};
   const grandActualRaw = basis === "gross" ? totalGrossSales : totalNetSales;
 
-  // Window proration (reuses the dashboard's budgetForecast day-count payload).
-  const pro = useMemo(() => {
+  // Month-end RUN-RATE factor — projects the partial-month actual to month-end
+  // at the current selling-day pace. The TARGET is never prorated: it's always
+  // the full-month tier number. % Goal = actual ÷ full target (progress so far);
+  // run-rate = actual × factor; Proj % = run-rate ÷ full target (on-track signal).
+  const rr = useMemo(() => {
     const w = budgetForecast?.window;
     const pr = budgetForecast?.proration;
-    const off = {
-      active: false, sellingFraction: 1, calendarFraction: 1,
-      sellingDaysInWindow: pr?.sellingDaysInWindow ?? null,
-      sellingDaysInMonth: pr?.sellingDaysInMonth ?? null,
-    };
-    if (!w || !pr || !w.proratable || w.ym !== selectedMonth) return off;
-    return {
-      active: true,
-      sellingFraction: pr.sellingFraction,
-      calendarFraction: pr.calendarFraction,
-      sellingDaysInWindow: pr.sellingDaysInWindow,
-      sellingDaysInMonth: pr.sellingDaysInMonth,
-    };
+    const swin = pr?.sellingDaysInWindow, smon = pr?.sellingDaysInMonth;
+    const active = !!(w && pr && w.proratable && w.ym === selectedMonth && swin && smon && swin < smon);
+    return { active, factor: active ? smon / swin : 1, sellingDaysInWindow: swin ?? null, sellingDaysInMonth: smon ?? null };
   }, [budgetForecast, selectedMonth]);
-
-  const sf = pro.active ? pro.sellingFraction : 1; // B2B basis
-  const cf = pro.active ? pro.calendarFraction : 1; // DTC basis
+  const rrf = rr.factor;
 
   // ── BY PRODUCT ────────────────────────────────────────────────────────────
   const byProduct = useMemo(() => {
     const rows = PRODUCTS.map((p) => {
       const actual = Number(prodActuals[p] || 0);
-      const target = coTarget("B2B", p) * sf + coTarget("DTC", p) * cf;
-      return makeRow(p, actual, target, target > 0);
+      const target = coTarget("B2B", p) + coTarget("DTC", p); // FULL month, not prorated
+      return makeRow(p, actual, target, target > 0, rrf);
     });
     const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
     const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
     const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     return { rows, otherActual, grandActual };
-  }, [prodActuals, coTarget, sf, cf, grandActualRaw]);
+  }, [prodActuals, coTarget, rrf, grandActualRaw]);
 
   // ── BY CHANNEL ────────────────────────────────────────────────────────────
   const byChannel = useMemo(() => {
     const monthlyB2B = PRODUCTS.reduce((a, p) => a + coTarget("B2B", p), 0);
     const monthlyDTC = PRODUCTS.reduce((a, p) => a + coTarget("DTC", p), 0);
-    const adcs = makeRow("ADCS", Number(channelAct.ADCS || 0), 0, false);
+    const adcs = makeRow("ADCS", Number(channelAct.ADCS || 0), 0, false, 1);
     adcs.sporadic = true;
     const rows = [
-      makeRow("B2B", Number(channelAct.B2B || 0), monthlyB2B * sf, monthlyB2B > 0),
-      makeRow("DTC", Number(channelAct.DTC || 0), monthlyDTC * cf, monthlyDTC > 0),
+      makeRow("B2B", Number(channelAct.B2B || 0), monthlyB2B, monthlyB2B > 0, rrf),
+      makeRow("DTC", Number(channelAct.DTC || 0), monthlyDTC, monthlyDTC > 0, rrf),
       adcs,
     ];
     const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
     const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
     const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     return { rows, otherActual, grandActual };
-  }, [channelAct, coTarget, sf, cf, grandActualRaw]);
+  }, [channelAct, coTarget, rrf, grandActualRaw]);
 
   // ── Headline ──────────────────────────────────────────────────────────────
   const headline = useMemo(() => {
     const actual = byProduct.grandActual;
     const goal = byProduct.rows.reduce((a, r) => a + (r.target || 0), 0);
-    return { actual, goal, hasGoal: goal > 0, pct: goal > 0 ? actual / goal : null, variance: actual - goal };
-  }, [byProduct]);
+    const runRate = Math.round(actual * rrf);
+    return {
+      actual, goal, hasGoal: goal > 0,
+      pct: goal > 0 ? actual / goal : null,
+      runRate, projPct: goal > 0 ? runRate / goal : null,
+    };
+  }, [byProduct, rrf]);
 
   // Full-month (un-prorated) totals for ALL three tiers — secondary reference.
   const tierMonthTotals = useMemo(() => {
@@ -282,10 +278,11 @@ export default function BudgetVsActual({
         goal={headline.goal}
         hasGoal={headline.hasGoal}
         pct={headline.pct}
-        variance={headline.variance}
-        prorated={pro.active}
-        sellingDaysInWindow={pro.sellingDaysInWindow}
-        sellingDaysInMonth={pro.sellingDaysInMonth}
+        runRate={headline.runRate}
+        projPct={headline.projPct}
+        rrActive={rr.active}
+        sellingDaysInWindow={rr.sellingDaysInWindow}
+        sellingDaysInMonth={rr.sellingDaysInMonth}
         tierMonthTotals={tierMonthTotals}
         currentTier={tier}
       />
@@ -294,21 +291,21 @@ export default function BudgetVsActual({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
         <Breakdown
           title="By product"
-          subtitle={`${basisLabel} sales vs prorated ${tierLabel.toLowerCase()}`}
+          subtitle={`Actual + run-rate vs full ${tierLabel.toLowerCase()}`}
           rows={byProduct.rows}
           otherActual={byProduct.otherActual}
           grandActual={byProduct.grandActual}
         />
         <Breakdown
           title="By channel"
-          subtitle={`${basisLabel} sales vs prorated ${tierLabel.toLowerCase()}`}
+          subtitle={`Actual + run-rate vs full ${tierLabel.toLowerCase()}`}
           rows={byChannel.rows}
           otherActual={byChannel.otherActual}
           grandActual={byChannel.grandActual}
           footnote={
-            pro.active
-              ? "B2B prorated by selling days, DTC by calendar days. ADCS orders sporadically — shown at full-period actual, exempt from daily-pace proration."
-              : "ADCS orders sporadically — shown at full-period actual, no daily-pace target."
+            rr.active
+              ? `Run-rate projects month-end at the current pace (${rr.sellingDaysInWindow}/${rr.sellingDaysInMonth} selling days). Targets are full-month, never prorated. ADCS orders sporadically — actual only.`
+              : "Targets are full-month. ADCS orders sporadically — actual only, no target."
           }
         />
       </div>
@@ -319,25 +316,29 @@ export default function BudgetVsActual({
       <div className="font-sans text-[10px] text-muted leading-snug">
         Figures are {basisLabel.toLowerCase()} sales
         {basis === "net" ? " (gross − discounts − returns)" : " (before discounts & returns)"}.{" "}
-        <span style={{ color: AHEAD }} className="font-semibold">Orange</span> ≥100% ·{" "}
-        <span style={{ color: NEAR }} className="font-semibold">gray</span> 90–100% (on pace) ·{" "}
-        <span style={{ color: BEHIND }} className="font-semibold">maroon</span> &lt;90%.{" "}
-        Target = the {tierLabel} tier, prorated to the dashboard window.
+        % Goal = sales-so-far ÷ the full-month {tierLabel} target. Run-rate projects month-end
+        at the current pace; Proj % (color-coded){" "}
+        <span style={{ color: AHEAD }} className="font-semibold">≥100%</span> ·{" "}
+        <span style={{ color: NEAR }} className="font-semibold">90–100%</span> ·{" "}
+        <span style={{ color: BEHIND }} className="font-semibold">&lt;90%</span> is run-rate ÷ target. Nothing is prorated.
         {!liveMode && " Base/Stretch net fall back to the deck; Budget + gross come from the sheet."}
       </div>
     </div>
   );
 }
 
-function makeRow(label, actual, target, hasTarget) {
+function makeRow(label, actual, target, hasTarget, rrFactor = 1) {
   const t = Number(target) || 0;
   const a = Number(actual) || 0;
+  const runRate = Math.round(a * (rrFactor || 1));
   return {
     label,
     actual: a,
     target: hasTarget ? t : null,
     hasTarget: !!hasTarget,
-    pct: hasTarget && t > 0 ? a / t : null,
+    pct: hasTarget && t > 0 ? a / t : null,          // % to goal so far (actual ÷ full target)
+    runRate,                                          // projected month-end at current pace
+    projPct: hasTarget && t > 0 ? runRate / t : null, // run-rate ÷ full target (on-track signal)
     variance: hasTarget ? a - t : null,
   };
 }
