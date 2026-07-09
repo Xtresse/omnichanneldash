@@ -6,7 +6,6 @@ import FilterBar, { PRESET_LABELS, GRANULARITY_OPTIONS } from "./FilterBar.jsx";
 import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
-import XvieAccelerator from "./XvieAccelerator.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
@@ -560,14 +559,6 @@ export default function Dashboard({ initial }) {
                 repPerformance={data.repPerformance || []}
                 compare={data.compare}
               />
-            </Section>
-
-            <Section
-              title="XVIE Accelerator"
-              detail="June 2026 promo · 24 vials combined (case = 6, starter = 3) → +2pp gummy rate"
-              collapsible
-            >
-              <XvieAccelerator accelerator={data.xvieAccelerator} />
             </Section>
 
             <Section
