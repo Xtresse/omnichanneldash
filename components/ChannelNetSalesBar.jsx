@@ -112,6 +112,7 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
               error={err}
               gross={c.gross}
               net={c.net}
+              metric={metric}
               goalShare={goalShare}
             />
           );
@@ -123,7 +124,7 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
             <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted">Total</span>
             <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted">{periodLabel}</span>
           </div>
-          <MetricPair loading={loading} error={err} gross={totalGross} net={totalNet} big />
+          <MetricPair loading={loading} error={err} gross={totalGross} net={totalNet} metric={metric} big />
           <div className="font-sans text-[10px] text-muted mt-2 pt-2 border-t border-rule truncate">B2B + DTC + ADCS</div>
         </div>
       </div>
@@ -156,28 +157,32 @@ function MetricToggle({ value, onChange }) {
   );
 }
 
-// Gross + Net stacked pair. `big` = larger type for the Total card.
-function MetricPair({ loading, error, gross, net, big }) {
-  const valCls = big
-    ? "font-display text-xl sm:text-2xl md:text-3xl font-semibold text-ink leading-none tabular-nums"
-    : "font-display text-xl md:text-2xl font-semibold text-ink leading-none tabular-nums";
+// Gross + Net stacked pair. `big` = larger type for the Total card. `metric`
+// (from the Gross/Net toggle) visually emphasizes the selected one — the
+// toggle otherwise only moves the "% of Base goal" bar, which barely shifts
+// since actual and target scale by the same gross↔net ratio, so this is the
+// visible confirmation that the toggle actually did something.
+function MetricPair({ loading, error, gross, net, metric = "net", big }) {
+  const bigCls = big ? "sm:text-2xl md:text-3xl" : "md:text-2xl";
+  const activeCls = `font-display text-xl ${bigCls} font-semibold text-ink leading-none tabular-nums`;
+  const dimCls = `font-display text-base ${big ? "sm:text-lg md:text-xl" : "md:text-lg"} font-medium text-muted leading-none tabular-nums`;
   const show = (v) =>
     loading ? <span className="text-muted">…</span> : error ? <span className="text-base">—</span> : fmt$(v);
   return (
-    <div className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1.5">
+    <div className="mt-1.5 flex flex-wrap items-baseline gap-x-5 gap-y-1.5">
       <div>
         <div className="font-sans text-[9px] uppercase tracking-[0.16em] text-muted">Gross</div>
-        <div className={valCls}>{show(gross)}</div>
+        <div className={metric === "gross" ? activeCls : dimCls}>{show(gross)}</div>
       </div>
       <div>
         <div className="font-sans text-[9px] uppercase tracking-[0.16em] text-muted">Net</div>
-        <div className={valCls}>{show(net)}</div>
+        <div className={metric === "net" ? activeCls : dimCls}>{show(net)}</div>
       </div>
     </div>
   );
 }
 
-function ChannelCard({ label, note, loading, error, gross, net, goalShare }) {
+function ChannelCard({ label, note, loading, error, gross, net, metric, goalShare }) {
   const sharePct = goalShare != null ? Math.max(0, Math.min(1, goalShare)) : 0;
   return (
     <div className="relative bg-card border border-rule rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0
@@ -189,7 +194,7 @@ function ChannelCard({ label, note, loading, error, gross, net, goalShare }) {
       </div>
 
       {/* Gross + Net */}
-      <MetricPair loading={loading} error={error} gross={gross} net={net} />
+      <MetricPair loading={loading} error={error} gross={gross} net={net} metric={metric} />
 
       {/* Share of Base goal */}
       <div className="font-sans text-[11px] md:text-xs text-inksoft mt-2 leading-snug">
