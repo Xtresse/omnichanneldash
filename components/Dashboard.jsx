@@ -361,9 +361,13 @@ export default function Dashboard({ initial }) {
 
         {data && (
           <div className="mb-4 md:mb-6 rounded-xl border border-rule bg-card px-4 py-4 md:px-6 md:py-5">
-            <div className="mb-1.5">
+            <div className="mb-1.5 flex items-center justify-between gap-2 flex-wrap">
               <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted">
                 Executive summary · {periodLabel}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted">Showing</span>
+                <MetricToggle value={revMetric} onChange={setRevMetric} />
               </div>
             </div>
             <div className="flex items-end justify-between gap-x-6 gap-y-3 flex-wrap">
@@ -385,6 +389,17 @@ export default function Dashboard({ initial }) {
                   {data.kpis.totalGrossSales ? `${Math.round((data.kpis.totalNetSales / data.kpis.totalGrossSales) * 100)}%` : "—"}
                 </div>
               </div>
+              {data.grossMargin?.contribution != null && (
+                <div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross Margin</div>
+                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                    {fmtMoney(data.grossMargin.contribution)}
+                    {data.grossMargin.contributionMarginPct != null && (
+                      <span className="text-lg md:text-xl text-brown"> · {data.grossMargin.contributionMarginPct}%</span>
+                    )}
+                  </div>
+                </div>
+              )}
               {(() => {
                 const cur = data.kpis.totalNetSales;
                 const prior = data.compare?.kpis?.totalNetSales;
@@ -400,6 +415,12 @@ export default function Dashboard({ initial }) {
                   </div>
                 );
               })()}
+            </div>
+            <div className="mt-3 pt-3 border-t border-rule/60 font-sans text-[10px] text-muted leading-snug">
+              <span className="font-semibold text-inksoft">Gross → Net</span> = net sales ÷ gross sales (gross = subtotal before discounts/returns; net = gross − discounts − returns).{" "}
+              {data.grossMargin?.contribution != null && (
+                <><span className="font-semibold text-inksoft">Gross Margin</span> = net sales − COGS − merchant fees ({data.grossMargin.feeRatePct}% of net) − fulfillment ({data.grossMargin.fulfillmentPct}% of net).</>
+              )}
             </div>
           </div>
         )}

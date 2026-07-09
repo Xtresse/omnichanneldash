@@ -9,8 +9,8 @@ const NEAR     = "#9A8F80"; // gray  — 90–100% (on pace)
 const BEHIND   = "#5C2F2E"; // maroon — <90% (behind pace)
 const NEUTRAL  = "#9A8F80"; // gray  — no target / unknown
 
-const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lump into "Other" (actuals display only)
-const ALL_PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"]; // for TARGET sums — every product must count
+const PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"]; // the 4 tracked families — "Other" is genuinely-uncategorized SKUs only
+const ALL_PRODUCTS = PRODUCTS; // kept as an alias — TARGET sums loop over every tracked product
 const CHANNELS = ["B2B", "DTC", "ADCS"];
 
 const fmt$ = (n) => {
@@ -581,7 +581,7 @@ function MarginSection({ grossMargin, prodActuals }) {
   return (
     <div className="bg-card border border-rule rounded-xl overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-4 py-3 md:px-5 border-b border-rule/60">
-        <h4 className="font-display text-base md:text-lg font-semibold text-ink">Gross margin</h4>
+        <h4 className="font-display text-base md:text-lg font-semibold text-ink">Gross profit <span className="font-sans text-[10px] font-normal text-muted">(COGS only)</span></h4>
         <div className="flex items-center gap-2">
           <span className="font-display text-base md:text-lg font-semibold text-ink tabular-nums">{fmt$(o.grossProfit)}</span>
           <span className="font-sans text-xs tabular-nums text-brown">{o.grossMarginPct == null ? "—" : `${o.grossMarginPct}%`}</span>
@@ -598,40 +598,39 @@ function MarginSection({ grossMargin, prodActuals }) {
         <MarginTable title="By channel" rows={channelRows} />
       </div>
 
-      {/* Contribution waterfall — gross profit less merchant fees & fulfillment.
-          Only when the cost sheet is wired (rates derived from actuals). */}
-      {grossMargin.contribution != null && (
-        <div className="border-t border-rule/50 px-4 py-3 md:px-5">
-          <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold mb-2">
-            Contribution
-          </div>
-          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5 font-sans text-[11px] md:text-xs tabular-nums">
-            <WaterStep label="Gross profit" value={o.grossProfit} />
-            <WaterStep
-              label={`− Merchant fees${grossMargin.feeRatePct != null ? ` (${grossMargin.feeRatePct}%)` : ""}`}
-              value={-(grossMargin.merchantFees || 0)}
-              neg
-            />
-            <WaterStep
-              label={`− Fulfillment${grossMargin.costPerOrder != null ? ` ($${grossMargin.costPerOrder}/order)` : ""}`}
-              value={-(grossMargin.fulfillment || 0)}
-              neg
-            />
-            <span className="font-semibold text-ink">
-              = Contribution{" "}
-              <span className="text-ink">{fmt$(grossMargin.contribution)}</span>
-              {grossMargin.contributionMarginPct != null && (
-                <span className="text-brown"> · {grossMargin.contributionMarginPct}%</span>
-              )}
-            </span>
-          </div>
+      {/* Full Gross Margin waterfall — gross profit less merchant fees &
+          fulfillment (both flat % of net revenue, Sam 2026-07-09). Always
+          computed, no sheet required. */}
+      <div className="border-t border-rule/50 px-4 py-3 md:px-5">
+        <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold mb-2">
+          Gross Margin (fully loaded)
         </div>
-      )}
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5 font-sans text-[11px] md:text-xs tabular-nums">
+          <WaterStep label="Gross profit" value={o.grossProfit} />
+          <WaterStep
+            label={`− Merchant fees (${grossMargin.feeRatePct}% of net)`}
+            value={-(grossMargin.merchantFees || 0)}
+            neg
+          />
+          <WaterStep
+            label={`− Fulfillment (${grossMargin.fulfillmentPct}% of net)`}
+            value={-(grossMargin.fulfillment || 0)}
+            neg
+          />
+          <span className="font-semibold text-ink">
+            = Gross Margin{" "}
+            <span className="text-ink">{fmt$(grossMargin.contribution)}</span>
+            {grossMargin.contributionMarginPct != null && (
+              <span className="text-brown"> · {grossMargin.contributionMarginPct}%</span>
+            )}
+          </span>
+        </div>
+      </div>
 
       <div className="px-4 py-2 md:px-5 font-sans text-[10px] text-muted leading-snug border-t border-rule/50">
         {grossMargin.placeholder
           ? (grossMargin.note || "PLACEHOLDER COGS — replace with Sam's COGS in lib/cogs.js.")
-          : "COGS, merchant fees & fulfillment from the Google Sheet (actuals)."}
+          : "COGS from lib/cogs.js (or the Google Sheet COGS tab when wired). Merchant fees + fulfillment are flat % of net revenue."}
       </div>
     </div>
   );
