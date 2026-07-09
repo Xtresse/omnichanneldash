@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 // Total Sales by Channel — broken out by channel, showing BOTH gross and net
-// per channel (no toggle). Replaces the old B2B-MTD bar AND the redundant KPI
-// tiles.
+// per channel. Replaces the old B2B-MTD bar AND the redundant KPI tiles.
 //
 // Driven entirely by the selected FilterBar window: the parent Dashboard passes
 // in the `kpis` block (net + gross per channel) for whatever period / Today is
@@ -11,6 +12,17 @@
 //
 // Tie-out: channels sum to Total by construction, for both metrics —
 //   B2B = total − dtc − adcs · DTC = dtc · ADCS = adcs.
+//
+// The Gross/Net toggle picks which basis the "% of Base goal" bar compares
+// against (self-fetches /api/budget for the current month's Base-tier target,
+// same cube components/BudgetVsActual.jsx reads — see lib/budgetSheet.js).
+
+const ALL_PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"];
+
+function currentMonth() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
 
 const fmt$ = (n) =>
   n == null
@@ -26,6 +38,21 @@ const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selected period", error = null }) {
   const err = error;
   const loading = kpis == null && !err;
+  const [metric, setMetric] = useState("net");
+  const [targets, setTargets] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/budget")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && d?.ok !== false) setTargets(d?.targets || null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Both metrics per channel; B2B = total − dtc − adcs so each ties to Total.
   const num = (v) => (kpis ? Number(v || 0) : null);
@@ -37,6 +64,13 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
   const adcsGross = num(kpis?.adcsGrossSales);
   const b2bNet = kpis ? totalNet - dtcNet - adcsNet : null;
   const b2bGross = kpis ? totalGross - dtcGross - adcsGross : null;
+
+  // This month's Base-tier target for a channel, summed across products, at
+  // the toggled basis (gross/net) — same cube BudgetVsActual.jsx's coTarget reads.
+  const ym = currentMonth();
+  const co = targets?.company || {};
+  const baseTarget = (channel) =>
+    ALL_PRODUCTS.reduce((a, p) => a + Number(co?.[channel]?.[p]?.[ym]?.base?.[metric] || 0), 0);
 
   const CHANNELS = [
     { label: "B2B", net: b2bNet, gross: b2bGross, note: "Reps · clinics, med spas, derms" },
@@ -50,9 +84,12 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
         <h2 className="font-display text-lg md:text-xl font-semibold text-ink leading-tight">
           Total Sales by Channel
         </h2>
-        <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted leading-snug">
-          Gross &amp; Net · {periodLabel}
-        </span>
+        <div className="flex items-center gap-2">
+          <MetricToggle value={metric} onChange={setMetric} />
+          <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted leading-snug">
+            {periodLabel}
+          </span>
+        </div>
       </div>
 
       {err && (
@@ -63,7 +100,9 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {CHANNELS.map((c) => {
-          const share = totalNet && totalNet > 0 && c.net != null ? c.net / totalNet : null;
+          const actual = metric === "gross" ? c.gross : c.net;
+          const target = targets ? baseTarget(c.label) : null;
+          const goalShare = target && target > 0 && actual != null ? actual / target : null;
           return (
             <ChannelCard
               key={c.label}
@@ -73,7 +112,7 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
               error={err}
               gross={c.gross}
               net={c.net}
-              share={share}
+              goalShare={goalShare}
             />
           );
         })}
@@ -88,6 +127,31 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
           <div className="font-sans text-[10px] text-muted mt-2 pt-2 border-t border-rule truncate">B2B + DTC + ADCS</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Compact Gross/Net segmented toggle — picks the basis for the "% of Base
+// goal" bar below (mirrors the private MetricToggle in Dashboard.jsx).
+function MetricToggle({ value, onChange }) {
+  const opts = [
+    { k: "gross", label: "Gross" },
+    { k: "net", label: "Net" },
+  ];
+  return (
+    <div className="inline-flex rounded-md border border-rule overflow-hidden">
+      {opts.map((o) => (
+        <button
+          key={o.k}
+          type="button"
+          onClick={() => onChange(o.k)}
+          className={`font-sans text-[10px] md:text-[11px] uppercase tracking-[0.12em] px-2 py-1 min-h-touch sm:min-h-0 ${
+            value === o.k ? "bg-brown text-ink font-semibold" : "bg-paper text-inksoft hover:bg-paper2"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -113,8 +177,8 @@ function MetricPair({ loading, error, gross, net, big }) {
   );
 }
 
-function ChannelCard({ label, note, loading, error, gross, net, share }) {
-  const sharePct = share != null ? Math.max(0, Math.min(1, share)) : 0;
+function ChannelCard({ label, note, loading, error, gross, net, goalShare }) {
+  const sharePct = goalShare != null ? Math.max(0, Math.min(1, goalShare)) : 0;
   return (
     <div className="relative bg-card border border-rule rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0
                     before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-brown">
@@ -127,14 +191,14 @@ function ChannelCard({ label, note, loading, error, gross, net, share }) {
       {/* Gross + Net */}
       <MetricPair loading={loading} error={error} gross={gross} net={net} />
 
-      {/* Share of total net */}
+      {/* Share of Base goal */}
       <div className="font-sans text-[11px] md:text-xs text-inksoft mt-2 leading-snug">
-        {loading || share == null ? (
+        {loading || goalShare == null ? (
           "—"
         ) : (
           <>
-            <span className="tabular-nums font-semibold">{fmtPct(share)}</span>
-            <span className="text-muted"> of total net</span>
+            <span className="tabular-nums font-semibold">{fmtPct(goalShare)}</span>
+            <span className="text-muted"> of Base goal</span>
           </>
         )}
       </div>
@@ -145,7 +209,7 @@ function ChannelCard({ label, note, loading, error, gross, net, share }) {
           <div
             className="h-full rounded-full transition-all"
             style={{ width: `${sharePct * 100}%`, background: "#5C2F2E" }}
-            aria-label={`Share of total net: ${fmtPct(share || 0)}`}
+            aria-label={`Share of Base goal: ${fmtPct(goalShare || 0)}`}
           />
         </div>
       </div>

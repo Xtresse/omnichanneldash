@@ -24,6 +24,7 @@ import RevenueByState from "./charts/RevenueByState.jsx";
 import DiscountUsage from "./charts/DiscountUsage.jsx";
 import FulfillmentSplit from "./charts/FulfillmentSplit.jsx";
 import MarketingPlaceholder from "./charts/MarketingPlaceholder.jsx";
+import B2BAccountGrowth from "./charts/B2BAccountGrowth.jsx";
 
 // Lazy-loaded heavy bits — keep them out of the main bundle so first paint
 // stays snappy. ChatPanel pulls Anthropic SDK + chat UI; OrdersTable can
@@ -393,10 +394,15 @@ export default function Dashboard({ initial }) {
                 <div>
                   <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross Margin</div>
                   <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                    {data.grossMargin.contributionMarginPct != null ? `${data.grossMargin.contributionMarginPct}%` : "—"}
+                  </div>
+                </div>
+              )}
+              {data.grossMargin?.contribution != null && (
+                <div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">Gross Profit</div>
+                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
                     {fmtMoney(data.grossMargin.contribution)}
-                    {data.grossMargin.contributionMarginPct != null && (
-                      <span className="text-lg md:text-xl text-brown"> · {data.grossMargin.contributionMarginPct}%</span>
-                    )}
                   </div>
                 </div>
               )}
@@ -419,7 +425,10 @@ export default function Dashboard({ initial }) {
             <div className="mt-3 pt-3 border-t border-rule/60 font-sans text-[10px] text-muted leading-snug">
               <span className="font-semibold text-inksoft">Gross → Net</span> = net sales ÷ gross sales (gross = subtotal before discounts/returns; net = gross − discounts − returns).{" "}
               {data.grossMargin?.contribution != null && (
-                <><span className="font-semibold text-inksoft">Gross Margin</span> = net sales − COGS − merchant fees ({data.grossMargin.feeRatePct}% of net) − fulfillment ({data.grossMargin.fulfillmentPct}% of net).</>
+                <>
+                  <span className="font-semibold text-inksoft">Gross Profit</span> = net sales − COGS − merchant fees ({data.grossMargin.feeRatePct}% of net) − fulfillment ({data.grossMargin.fulfillmentPct}% of net).{" "}
+                  <span className="font-semibold text-inksoft">Gross Margin</span> = gross profit ÷ net sales.
+                </>
               )}
             </div>
           </div>
@@ -449,7 +458,7 @@ export default function Dashboard({ initial }) {
               />
             </Section>
 
-            <Section title="Top-Line Performance" detail="Tier 1 / 5 charts" collapsible>
+            <Section title="Top-Line Performance" detail="Tier 1 / 6 charts" collapsible>
               {/* Bucket (granularity) lives here — directly above the time-series
                   charts it actually controls — alongside the Gross/Net toggle.
                   Both re-bucket/redraw whenever the date period (or Today) and
@@ -480,6 +489,9 @@ export default function Dashboard({ initial }) {
                 </ChartCell>
                 <ChartCell title={`${M} Sales By Product Family`} subtitle="Gummies · Serum · XVIE · Sachets">
                   <ProductFamily data={data.productFamily} compare={data.compare} metric={revMetric} />
+                </ChartCell>
+                <ChartCell title="B2B Accounts" subtitle="Cumulative distinct accounts/locations, all-time">
+                  <B2BAccountGrowth />
                 </ChartCell>
               </ChartGrid>
             </Section>

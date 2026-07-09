@@ -558,16 +558,24 @@ function MarginSection({ grossMargin, prodActuals }) {
   const bc = grossMargin.byChannel || {};
   const bf = grossMargin.byFamily || {};
 
+  // Fully-loaded = COGS gross profit less merchant fees + fulfillment, both
+  // flat % of net revenue — applied per-row so By Product/By Channel tie out
+  // to the same fully-loaded total shown in the header and the waterfall below.
+  const feeRate = (grossMargin.feeRatePct || 0) / 100;
+  const fulfillRate = (grossMargin.fulfillmentPct || 0) / 100;
+  const fullyLoaded = (revenue, grossProfit) => {
+    const gp = grossProfit - feeRate * revenue - fulfillRate * revenue;
+    return {
+      grossProfit: Math.round(gp),
+      grossMarginPct: revenue > 0 ? Math.round((gp / revenue) * 1000) / 10 : null,
+    };
+  };
+
   const productRows = PRODUCTS.map((p) => {
     const revenue = Number(prodActuals[p] || 0);
     const cogs = Number(bf[p] || 0);
     const gp = revenue - cogs;
-    return {
-      label: p,
-      revenue,
-      grossProfit: Math.round(gp),
-      grossMarginPct: revenue > 0 ? Math.round((gp / revenue) * 1000) / 10 : null,
-    };
+    return { label: p, revenue, ...fullyLoaded(revenue, gp) };
   });
 
   const channelRows = [
@@ -576,15 +584,15 @@ function MarginSection({ grossMargin, prodActuals }) {
     ["ADCS", bc.ADCS],
   ]
     .filter(([, v]) => v && (v.revenue || 0) > 0)
-    .map(([label, v]) => ({ label, revenue: v.revenue, grossProfit: v.grossProfit, grossMarginPct: v.grossMarginPct }));
+    .map(([label, v]) => ({ label, revenue: v.revenue, ...fullyLoaded(v.revenue, v.grossProfit) }));
 
   return (
     <div className="bg-card border border-rule rounded-xl overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-4 py-3 md:px-5 border-b border-rule/60">
-        <h4 className="font-display text-base md:text-lg font-semibold text-ink">Gross profit <span className="font-sans text-[10px] font-normal text-muted">(COGS only)</span></h4>
+        <h4 className="font-display text-base md:text-lg font-semibold text-ink">Gross profit <span className="font-sans text-[10px] font-normal text-muted">(fully loaded)</span></h4>
         <div className="flex items-center gap-2">
-          <span className="font-display text-base md:text-lg font-semibold text-ink tabular-nums">{fmt$(o.grossProfit)}</span>
-          <span className="font-sans text-xs tabular-nums text-brown">{o.grossMarginPct == null ? "—" : `${o.grossMarginPct}%`}</span>
+          <span className="font-display text-base md:text-lg font-semibold text-ink tabular-nums">{fmt$(grossMargin.contribution)}</span>
+          <span className="font-sans text-xs tabular-nums text-brown">{grossMargin.contributionMarginPct == null ? "—" : `${grossMargin.contributionMarginPct}%`}</span>
           {grossMargin.placeholder && (
             <span className="font-sans text-[9px] uppercase tracking-[0.14em] font-semibold text-brown border border-brown/40 rounded px-1.5 py-0.5 whitespace-nowrap">
               Placeholder COGS
@@ -603,7 +611,7 @@ function MarginSection({ grossMargin, prodActuals }) {
           computed, no sheet required. */}
       <div className="border-t border-rule/50 px-4 py-3 md:px-5">
         <div className="font-sans text-[10px] uppercase tracking-[0.16em] text-muted font-semibold mb-2">
-          Gross Margin (fully loaded)
+          Fees &amp; Fulfillment Breakdown
         </div>
         <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5 font-sans text-[11px] md:text-xs tabular-nums">
           <WaterStep label="Gross profit" value={o.grossProfit} />
@@ -618,10 +626,10 @@ function MarginSection({ grossMargin, prodActuals }) {
             neg
           />
           <span className="font-semibold text-ink">
-            = Gross Margin{" "}
+            = Gross Profit{" "}
             <span className="text-ink">{fmt$(grossMargin.contribution)}</span>
             {grossMargin.contributionMarginPct != null && (
-              <span className="text-brown"> · {grossMargin.contributionMarginPct}%</span>
+              <span className="text-brown"> · Gross Margin {grossMargin.contributionMarginPct}%</span>
             )}
           </span>
         </div>
