@@ -9,7 +9,9 @@ const NEAR     = "#9A8F80"; // gray  — 90–100% (on pace)
 const BEHIND   = "#5C2F2E"; // maroon — <90% (behind pace)
 const NEUTRAL  = "#9A8F80"; // gray  — no target / unknown
 
-const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lump into "Other"
+const PRODUCTS = ["Gummies", "Serum", "XVIE"]; // Sachets lump into "Other" (actuals display only)
+const ALL_PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"]; // for TARGET sums — every product must count
+const CHANNELS = ["B2B", "DTC", "ADCS"];
 
 const fmt$ = (n) => {
   const v = Number(n) || 0;
@@ -157,7 +159,9 @@ export default function BudgetVsActual({
   const byProduct = useMemo(() => {
     const rows = PRODUCTS.map((p) => {
       const actual = Number(prodActuals[p] || 0);
-      const target = coTarget("B2B", p) + coTarget("DTC", p); // FULL month, not prorated
+      // FULL month, not prorated. Actuals already roll up B2B+ADCS+DTC
+      // (see actualsByProduct), so the target must too, or % Goal is wrong.
+      const target = coTarget("All", p);
       return makeRow(p, actual, target, target > 0, rrf);
     });
     const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
@@ -168,9 +172,10 @@ export default function BudgetVsActual({
 
   // ── BY CHANNEL ────────────────────────────────────────────────────────────
   const byChannel = useMemo(() => {
-    const monthlyB2B = PRODUCTS.reduce((a, p) => a + coTarget("B2B", p), 0);
-    const monthlyDTC = PRODUCTS.reduce((a, p) => a + coTarget("DTC", p), 0);
-    const adcs = makeRow("ADCS", Number(channelAct.ADCS || 0), 0, false, 1);
+    const monthlyB2B = ALL_PRODUCTS.reduce((a, p) => a + coTarget("B2B", p), 0);
+    const monthlyDTC = ALL_PRODUCTS.reduce((a, p) => a + coTarget("DTC", p), 0);
+    const monthlyADCS = ALL_PRODUCTS.reduce((a, p) => a + coTarget("ADCS", p), 0);
+    const adcs = makeRow("ADCS", Number(channelAct.ADCS || 0), monthlyADCS, monthlyADCS > 0, 1);
     adcs.sporadic = true;
     const rows = [
       makeRow("B2B", Number(channelAct.B2B || 0), monthlyB2B, monthlyB2B > 0, rrf),
@@ -186,14 +191,16 @@ export default function BudgetVsActual({
   // ── Headline ──────────────────────────────────────────────────────────────
   const headline = useMemo(() => {
     const actual = byProduct.grandActual;
-    const goal = byProduct.rows.reduce((a, r) => a + (r.target || 0), 0);
+    // True company total — every channel × every product, not just the
+    // 3 products broken out in the By-product table.
+    const goal = ALL_PRODUCTS.reduce((a, p) => a + coTarget("All", p), 0);
     const runRate = Math.round(actual * rrf);
     return {
       actual, goal, hasGoal: goal > 0,
       pct: goal > 0 ? actual / goal : null,
       runRate, projPct: goal > 0 ? runRate / goal : null,
     };
-  }, [byProduct, rrf]);
+  }, [byProduct, coTarget, rrf]);
 
   // Full-month (un-prorated) totals for ALL three tiers — secondary reference.
   const tierMonthTotals = useMemo(() => {
@@ -201,8 +208,8 @@ export default function BudgetVsActual({
     const out = {};
     for (const t of TIERS) {
       let s = 0;
-      for (const ch of ["B2B", "DTC"]) {
-        for (const p of PRODUCTS) {
+      for (const ch of CHANNELS) {
+        for (const p of ALL_PRODUCTS) {
           let v = Number(co?.[ch]?.[p]?.[selectedMonth]?.[t.key]?.[basis] || 0);
           if (!v && basis === "net" && (t.key === "base" || t.key === "stretch") && hasScenarioGoals(selectedMonth)) {
             v = scenarioGoalFor(selectedMonth, t.key, p, ch);
@@ -448,7 +455,7 @@ function Breakdown({ title, subtitle, rows, otherActual = 0, grandActual = 0, fo
                   {r.sporadic && <SporadicTag />}
                 </Td>
                 <Td align="right" className="font-semibold text-ink">{fmt$(r.actual)}</Td>
-                {r.sporadic ? (
+                {r.sporadic && !r.hasTarget ? (
                   <Td align="right" colSpan={3} className="text-muted italic">full-period actual · no daily pace</Td>
                 ) : (
                   <>
@@ -499,7 +506,7 @@ function Breakdown({ title, subtitle, rows, otherActual = 0, grandActual = 0, fo
               <span className="font-display text-base font-semibold text-ink tabular-nums">{fmt$(r.actual)}</span>
             </div>
             <div className="mt-1 font-sans text-[11px] tabular-nums">
-              {r.sporadic ? (
+              {r.sporadic && !r.hasTarget ? (
                 <span className="text-muted italic">Full-period actual · daily pace n/a</span>
               ) : (
                 <span className="flex items-baseline justify-between gap-2">
