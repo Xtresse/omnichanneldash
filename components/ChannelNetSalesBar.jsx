@@ -40,6 +40,7 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
   const loading = kpis == null && !err;
   const [metric, setMetric] = useState("net");
   const [targets, setTargets] = useState(null);
+  const [mtdKpis, setMtdKpis] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +48,31 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
       .then((r) => r.json())
       .then((d) => {
         if (!cancelled && d?.ok !== false) setTargets(d?.targets || null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Total card's goal bar always compares MTD-to-date vs. the full-month
+  // Base target, independent of whatever window the FilterBar has selected
+  // above — same self-fetch pattern as CumulativeYTD.jsx/AccountAging.jsx.
+  // /api/dashboard has no "mtd" preset (only last_7d/30d/3m/etc — see
+  // ALLOWED_PRESETS in app/api/dashboard/route.js), so pass explicit
+  // from/to for the 1st-of-month → today window, same as FilterBar.jsx's
+  // own MTD quick-select button.
+  useEffect(() => {
+    let cancelled = false;
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const from = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+    const to = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const qs = new URLSearchParams({ from, to, granularity: "month" });
+    fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (!cancelled && j?.ok) setMtdKpis(j.kpis || null);
       })
       .catch(() => {});
     return () => {
@@ -71,6 +97,11 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
   const co = targets?.company || {};
   const baseTarget = (channel) =>
     ALL_PRODUCTS.reduce((a, p) => a + Number(co?.[channel]?.[p]?.[ym]?.base?.[metric] || 0), 0);
+
+  // All-channel Base target + MTD-to-date actual, for the Total card's goal bar.
+  const allTarget = targets ? baseTarget("B2B") + baseTarget("DTC") + baseTarget("ADCS") : null;
+  const mtdActual = mtdKpis ? Number((metric === "gross" ? mtdKpis.totalGrossSales : mtdKpis.totalNetSales) || 0) : null;
+  const totalGoalShare = allTarget && allTarget > 0 && mtdActual != null ? mtdActual / allTarget : null;
 
   const CHANNELS = [
     { label: "B2B", net: b2bNet, gross: b2bGross, note: "Reps · clinics, med spas, derms" },
@@ -125,7 +156,30 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
             <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.16em] text-muted">{periodLabel}</span>
           </div>
           <MetricPair loading={loading} error={err} gross={totalGross} net={totalNet} metric={metric} big />
-          <div className="font-sans text-[10px] text-muted mt-2 pt-2 border-t border-rule truncate">B2B + DTC + ADCS</div>
+
+          <div className="mt-2 pt-2 border-t border-rule font-sans text-[11px] md:text-xs text-inksoft leading-snug">
+            {mtdKpis == null || totalGoalShare == null ? (
+              "—"
+            ) : (
+              <>
+                <span className="tabular-nums font-semibold">{fmt$(mtdActual)}</span>
+                <span className="text-muted"> MTD · </span>
+                <span className="tabular-nums font-semibold">{fmtPct(totalGoalShare)}</span>
+                <span className="text-muted"> of Base goal</span>
+              </>
+            )}
+          </div>
+          <div className="mt-2">
+            <div className="h-1.5 w-full rounded-full bg-paper2 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${Math.max(0, Math.min(1, totalGoalShare || 0)) * 100}%`, background: "#5C2F2E" }}
+                aria-label={`MTD share of Base goal: ${fmtPct(totalGoalShare || 0)}`}
+              />
+            </div>
+          </div>
+
+          <div className="font-sans text-[10px] text-muted leading-snug mt-1.5">B2B + DTC + ADCS</div>
         </div>
       </div>
     </div>
