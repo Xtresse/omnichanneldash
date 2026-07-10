@@ -58,6 +58,24 @@ function currentMonth() {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+// Actual-vs-goal always tracks a whole calendar month, never whatever window
+// the FilterBar happens to have selected (e.g. "Today" against a full-month
+// target reads as a frozen ~0-3% no matter the day's pace). For the current
+// month that's 1st-of-month → today (true MTD); for a past goal month it's
+// that month's full 1st → last day (a closed-book retrospective); a future
+// goal month naturally comes back empty.
+function actualsWindow(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  const pad = (n) => String(n).padStart(2, "0");
+  const from = `${y}-${pad(m)}-01`;
+  if (ym === currentMonth()) {
+    const now = new Date();
+    return { from, to: `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}` };
+  }
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return { from, to: `${y}-${pad(m)}-${pad(lastDay)}` };
+}
+
 /**
  * Net OR gross actuals by product across all channels, depending on `basis`.
  * productFamily rows carry both net (B2B/ADCS/DTC) and gross (B2B_gross/…).
@@ -81,6 +99,13 @@ function actualsByProduct(productFamily, basis) {
  * Actual-vs-Goal — three target tiers (Budget / Base / Stretch) on the basis
  * (Gross / Net) chosen by the dashboard's global toggle.
  *
+ * Actuals are self-fetched (see `monthActuals`/actualsWindow() above) for the
+ * selected Goal month — MTD-to-date if it's the current month, that month's
+ * full close otherwise — NEVER whatever window the top FilterBar has
+ * selected. `productFamily` is still an exception: it's the FilterBar-scoped
+ * prop, used only by the separate Gross Margin section below, which
+ * intentionally follows the page's normal date-picker like every other chart.
+ *
  * Targets come from the Google Sheet cube (lib/budgetSheet → /api/budget):
  *   targets.company[channel][product][month][tier][basis]
  * Base/Stretch NET fall back to the deck scenario goals (lib/scenarioGoals) so
@@ -93,12 +118,6 @@ function actualsByProduct(productFamily, basis) {
  */
 export default function BudgetVsActual({
   productFamily,
-  totalNetSales,
-  totalGrossSales,
-  channelActuals,
-  channelActualsGross,
-  periodLabel,
-  budgetForecast,
   grossMargin,
   metric = "net",
 }) {
@@ -106,6 +125,7 @@ export default function BudgetVsActual({
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [tier, setTier] = useState("base"); // "budget" | "base" | "stretch"
+  const [monthActuals, setMonthActuals] = useState(null); // self-fetched actualsWindow(selectedMonth) payload
 
   const basis = metric === "gross" ? "gross" : "net";
   const basisLabel = basis === "gross" ? "Gross" : "Net";
@@ -118,6 +138,21 @@ export default function BudgetVsActual({
       .catch((e) => { if (!cancelled) setLoadErr(String(e?.message || e)); });
     return () => { cancelled = true; };
   }, []);
+
+  // Actuals for the goal-tracking calcs below (headline, By product, By
+  // channel, run-rate) always come from this self-fetch — MTD-to-date for
+  // the current month, that month's full close for a past month picked from
+  // the Goal-month dropdown — never the FilterBar's selected window.
+  useEffect(() => {
+    let cancelled = false;
+    const { from, to } = actualsWindow(selectedMonth);
+    const qs = new URLSearchParams({ from, to, granularity: "month" });
+    fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => { if (!cancelled && j?.ok) setMonthActuals(j); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [selectedMonth]);
 
   const targets = budgetData?.targets || { company: {}, rep: {} };
 
@@ -137,22 +172,31 @@ export default function BudgetVsActual({
     };
   }, [targets, selectedMonth, tier, basis]);
 
-  // Metric-aware actuals.
-  const prodActuals = useMemo(() => actualsByProduct(productFamily, basis), [productFamily, basis]);
-  const channelAct = (basis === "gross" ? channelActualsGross : channelActuals) || {};
-  const grandActualRaw = basis === "gross" ? totalGrossSales : totalNetSales;
+  // Metric-aware actuals — always the self-fetched MTD/month-close window
+  // above (monthActuals), never the FilterBar-scoped props.
+  const monthProductFamily = monthActuals?.productFamily;
+  const monthKpis = monthActuals?.kpis;
+  const monthBudgetForecast = monthActuals?.budgetForecast;
+  const prodActuals = useMemo(() => actualsByProduct(monthProductFamily, basis), [monthProductFamily, basis]);
+  const channelAct = useMemo(() => {
+    if (!monthKpis) return {};
+    return basis === "gross"
+      ? { B2B: monthKpis.b2bGrossSales, DTC: monthKpis.dtcGrossSales, ADCS: monthKpis.adcsGrossSales }
+      : { B2B: monthKpis.b2bNetSales, DTC: monthKpis.dtcNetSales, ADCS: monthKpis.adcsNetSales };
+  }, [monthKpis, basis]);
+  const grandActualRaw = monthKpis ? (basis === "gross" ? monthKpis.totalGrossSales : monthKpis.totalNetSales) : null;
 
   // Month-end RUN-RATE factor — projects the partial-month actual to month-end
   // at the current selling-day pace. The TARGET is never prorated: it's always
   // the full-month tier number. % Goal = actual ÷ full target (progress so far);
   // run-rate = actual × factor; Proj % = run-rate ÷ full target (on-track signal).
   const rr = useMemo(() => {
-    const w = budgetForecast?.window;
-    const pr = budgetForecast?.proration;
+    const w = monthBudgetForecast?.window;
+    const pr = monthBudgetForecast?.proration;
     const swin = pr?.sellingDaysInWindow, smon = pr?.sellingDaysInMonth;
     const active = !!(w && pr && w.proratable && w.ym === selectedMonth && swin && smon && swin < smon);
     return { active, factor: active ? smon / swin : 1, sellingDaysInWindow: swin ?? null, sellingDaysInMonth: smon ?? null };
-  }, [budgetForecast, selectedMonth]);
+  }, [monthBudgetForecast, selectedMonth]);
   const rrf = rr.factor;
 
   // ── BY PRODUCT ────────────────────────────────────────────────────────────
@@ -272,7 +316,7 @@ export default function BudgetVsActual({
         </div>
 
         <span className="font-sans text-[10px] md:text-xs text-muted w-full sm:w-auto sm:ml-auto leading-tight">
-          {basisLabel} sales · {periodLabel || "current dashboard window"}
+          {basisLabel} sales · {selectedMonth === currentMonth() ? "MTD" : `${monthLabel(selectedMonth)} (closed)`}
         </span>
       </div>
 

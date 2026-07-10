@@ -449,12 +449,6 @@ export default function Dashboard({ initial }) {
             <Section title="Actual Vs Goal" detail={`Budget / Base / Stretch · by product & channel · ${M} basis`} collapsible>
               <BudgetVsActual
                 productFamily={data.productFamily}
-                totalNetSales={data.kpis.totalNetSales}
-                totalGrossSales={data.kpis.totalGrossSales}
-                channelActuals={{ B2B: data.kpis.b2bNetSales, DTC: data.kpis.dtcNetSales, ADCS: data.kpis.adcsNetSales }}
-                channelActualsGross={{ B2B: data.kpis.b2bGrossSales, DTC: data.kpis.dtcGrossSales, ADCS: data.kpis.adcsGrossSales }}
-                periodLabel={periodLabel}
-                budgetForecast={data.budgetForecast}
                 grossMargin={data.grossMargin}
                 metric={revMetric}
               />
