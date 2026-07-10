@@ -439,6 +439,8 @@ export default function Dashboard({ initial }) {
             kpis={data?.kpis || null}
             periodLabel={periodLabel}
             error={!data ? error : null}
+            metric={revMetric}
+            onMetricChange={setRevMetric}
           />
         </div>
 

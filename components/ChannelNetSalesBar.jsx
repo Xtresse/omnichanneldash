@@ -20,6 +20,13 @@ import { useEffect, useState } from "react";
 // full-month target, regardless of the FilterBar window selected above —
 // self-fetches its own 1st-of-month → today window (no "mtd" preset exists
 // on /api/dashboard, see ALLOWED_PRESETS in app/api/dashboard/route.js).
+//
+// `metric`/`onMetricChange` are controlled by the parent's shared `revMetric`
+// state (Dashboard.jsx) — the SAME Gross/Net toggle that drives the
+// Executive Summary, Top-Line Performance charts, and Actual vs Goal. This
+// used to be its own local toggle, which looked identical to those but
+// silently didn't affect anything outside this card — now one toggle
+// anywhere on the page moves everything together.
 
 const ALL_PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"];
 
@@ -39,10 +46,15 @@ const fmt$ = (n) =>
 
 const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 
-export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selected period", error = null }) {
+export default function ChannelNetSalesBar({
+  kpis = null,
+  periodLabel = "Selected period",
+  error = null,
+  metric = "net",
+  onMetricChange = () => {},
+}) {
   const err = error;
   const loading = kpis == null && !err;
-  const [metric, setMetric] = useState("net");
   const [targets, setTargets] = useState(null);
   const [mtdKpis, setMtdKpis] = useState(null);
 
@@ -140,7 +152,7 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
           Total Sales by Channel
         </h2>
         <div className="flex items-center gap-2">
-          <MetricToggle value={metric} onChange={setMetric} />
+          <MetricToggle value={metric} onChange={onMetricChange} />
           <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.14em] text-muted leading-snug">
             {periodLabel}
           </span>
