@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine } from "recharts";
 import { ChartShell, fmtInt } from "./_shared.js";
 
@@ -10,29 +10,14 @@ const TARGET = 7000; // Mike's threshold before considering a sale of the biz.
 // from accountAging (rep-attributed B2B, ADCS excluded; see the acctMap loop
 // in lib/windsor.js) by bucketing each account's firstOrder to a calendar
 // month and running a cumulative count. accountAging is built server-side
-// from the ALL-TIME pull regardless of the requested window, so — same as
-// AccountAging.jsx — this fetches the smallest/cheapest window.
-export default function B2BAccountGrowth() {
-  const [accounts, setAccounts] = useState(null);
-  const [err, setErr] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const qs = new URLSearchParams({ preset: "last_7d", granularity: "month" });
-    fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled) return;
-        if (j.ok && Array.isArray(j.accountAging)) setAccounts(j.accountAging);
-        else setErr(j.error || "No account data");
-      })
-      .catch((e) => {
-        if (!cancelled) setErr(String(e?.message || e));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+// from the ALL-TIME pull regardless of the requested window, so every
+// /api/dashboard response already carries it — this reads Dashboard.jsx's
+// own `data.accountAging` instead of firing a second, duplicate fetch (used
+// to self-fetch preset=last_7d here, identical to AccountAging.jsx's own
+// self-fetch; the two together were part of what pushed concurrent Shopify
+// GraphQL calls over the rate limit on page load, 2026-07-09).
+export default function B2BAccountGrowth({ accountAging = null }) {
+  const accounts = accountAging;
 
   const series = useMemo(() => {
     if (!accounts) return null;
@@ -51,12 +36,6 @@ export default function B2BAccountGrowth() {
   }, [accounts]);
 
   const total = series?.length ? series[series.length - 1].accounts : null;
-
-  if (err) {
-    return (
-      <div className="font-sans text-[11px] text-red-900">Couldn&apos;t load account growth: {err}</div>
-    );
-  }
 
   return (
     <div>

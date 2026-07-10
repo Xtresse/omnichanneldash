@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import FilterBar, { PRESET_LABELS, GRANULARITY_OPTIONS } from "./FilterBar.jsx";
 import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
@@ -135,6 +135,56 @@ export default function Dashboard({ initial }) {
   const [revMetric, setRevMetric] = useState("gross");
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
+
+  // Shared "this month, MTD-to-date" fetch — the single source for every
+  // goal-pace figure on the dashboard (Executive Summary's "% to Base Goal"
+  // tile, Total Sales by Channel's goal bars, and BudgetVsActual's headline
+  // when its Goal-month picker is on the current month). Each of those used
+  // to self-fetch this same window independently, which stacked enough
+  // concurrent Shopify GraphQL calls on page load to trip the rate limit
+  // (real "Throttled" 500s, 2026-07-09) — now fetched once here and passed
+  // down as props.
+  const [execGoalTargets, setExecGoalTargets] = useState(null);
+  const [execGoalMtdFull, setExecGoalMtdFull] = useState(null);
+  const execGoalMtd = execGoalMtdFull?.kpis || null;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/budget")
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d?.ok !== false) setExecGoalTargets(d?.targets || null); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const from = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+    const to = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const qs = new URLSearchParams({ from, to, granularity: "month" });
+    fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => { if (!cancelled && j?.ok) setExecGoalMtdFull(j); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const execGoal = useMemo(() => {
+    if (!execGoalTargets || !execGoalMtd) return null;
+    const now = new Date();
+    const ym = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const co = execGoalTargets.company || {};
+    const products = ["Gummies", "Serum", "XVIE", "Sachets"];
+    const basis = revMetric === "gross" ? "gross" : "net";
+    const target = ["B2B", "DTC", "ADCS"].reduce(
+      (a, ch) => a + products.reduce((b, p) => b + Number(co?.[ch]?.[p]?.[ym]?.base?.[basis] || 0), 0),
+      0
+    );
+    const actual = Number((basis === "gross" ? execGoalMtd.totalGrossSales : execGoalMtd.totalNetSales) || 0);
+    return target > 0 ? { pct: actual / target, actual, target } : null;
+  }, [execGoalTargets, execGoalMtd, revMetric]);
 
   function buildQs(from, to, gran, cmp) {
     const qs = new URLSearchParams({ from, to });
@@ -406,6 +456,14 @@ export default function Dashboard({ initial }) {
                   </div>
                 </div>
               )}
+              {execGoal != null && (
+                <div>
+                  <div className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">% To Base Goal (MTD)</div>
+                  <div className="font-display text-3xl md:text-4xl font-semibold text-ink leading-none tabular-nums">
+                    {Math.round(execGoal.pct * 100)}%
+                  </div>
+                </div>
+              )}
               {(() => {
                 const cur = data.kpis.totalNetSales;
                 const prior = data.compare?.kpis?.totalNetSales;
@@ -441,6 +499,8 @@ export default function Dashboard({ initial }) {
             error={!data ? error : null}
             metric={revMetric}
             onMetricChange={setRevMetric}
+            budgetTargets={execGoalTargets}
+            mtdKpis={execGoalMtd}
           />
         </div>
 
@@ -451,6 +511,7 @@ export default function Dashboard({ initial }) {
                 productFamily={data.productFamily}
                 grossMargin={data.grossMargin}
                 metric={revMetric}
+                sharedCurrentMonthActuals={execGoalMtdFull}
               />
             </Section>
 
@@ -487,7 +548,7 @@ export default function Dashboard({ initial }) {
                   <ProductFamily data={data.productFamily} compare={data.compare} metric={revMetric} />
                 </ChartCell>
                 <ChartCell title="B2B Accounts" subtitle="Cumulative distinct accounts/locations, all-time">
-                  <B2BAccountGrowth />
+                  <B2BAccountGrowth accountAging={data.accountAging} />
                 </ChartCell>
               </ChartGrid>
             </Section>
@@ -609,7 +670,7 @@ export default function Dashboard({ initial }) {
               collapsible
               defaultCollapsed
             >
-              <AccountAging />
+              <AccountAging accountAging={data.accountAging} />
             </Section>
 
             <Section

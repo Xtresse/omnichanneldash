@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 // Total Sales by Channel — broken out by channel, showing BOTH gross and net
 // per channel. Replaces the old B2B-MTD bar AND the redundant KPI tiles.
 //
@@ -14,12 +12,14 @@ import { useEffect, useState } from "react";
 //   B2B = total − dtc − adcs · DTC = dtc · ADCS = adcs.
 //
 // The Gross/Net toggle picks which basis the "% of Base goal" bar compares
-// against (self-fetches /api/budget for the current month's Base-tier target,
-// same cube components/BudgetVsActual.jsx reads — see lib/budgetSheet.js).
-// Every goal bar (per-channel AND Total) is always MTD-to-date vs. the
-// full-month target, regardless of the FilterBar window selected above —
-// self-fetches its own 1st-of-month → today window (no "mtd" preset exists
-// on /api/dashboard, see ALLOWED_PRESETS in app/api/dashboard/route.js).
+// against. Every goal bar (per-channel AND Total) is always MTD-to-date vs.
+// the full-month Base target, regardless of the FilterBar window selected
+// above — via `budgetTargets`/`mtdKpis` props, NOT an independent self-fetch:
+// this component used to self-fetch /api/budget + its own MTD window, which
+// (stacked on top of BudgetVsActual.jsx's and Dashboard.jsx's own equivalent
+// self-fetches) pushed concurrent Shopify GraphQL calls over the rate limit
+// on page load (real "Throttled" 500s, 2026-07-09). Dashboard.jsx now fetches
+// both ONCE and passes them down here.
 //
 // `metric`/`onMetricChange` are controlled by the parent's shared `revMetric`
 // state (Dashboard.jsx) — the SAME Gross/Net toggle that drives the
@@ -52,49 +52,12 @@ export default function ChannelNetSalesBar({
   error = null,
   metric = "net",
   onMetricChange = () => {},
+  budgetTargets = null,
+  mtdKpis = null,
 }) {
   const err = error;
   const loading = kpis == null && !err;
-  const [targets, setTargets] = useState(null);
-  const [mtdKpis, setMtdKpis] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/budget")
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled && d?.ok !== false) setTargets(d?.targets || null);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Total card's goal bar always compares MTD-to-date vs. the full-month
-  // Base target, independent of whatever window the FilterBar has selected
-  // above — same self-fetch pattern as CumulativeYTD.jsx/AccountAging.jsx.
-  // /api/dashboard has no "mtd" preset (only last_7d/30d/3m/etc — see
-  // ALLOWED_PRESETS in app/api/dashboard/route.js), so pass explicit
-  // from/to for the 1st-of-month → today window, same as FilterBar.jsx's
-  // own MTD quick-select button.
-  useEffect(() => {
-    let cancelled = false;
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, "0");
-    const from = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
-    const to = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    const qs = new URLSearchParams({ from, to, granularity: "month" });
-    fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => {
-        if (!cancelled && j?.ok) setMtdKpis(j.kpis || null);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const targets = budgetTargets;
 
   // Both metrics per channel; B2B = total − dtc − adcs so each ties to Total.
   const num = (v) => (kpis ? Number(v || 0) : null);

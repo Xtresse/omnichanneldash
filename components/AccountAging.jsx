@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const fmt$ = (n) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n || 0);
@@ -28,29 +28,18 @@ function buildBuckets() {
 }
 const yearOf = (a) => (a.lastOrder ? Number(String(a.lastOrder).slice(0, 4)) : 0);
 
-export default function AccountAging() {
-  const [data, setData] = useState(null); // accountAging[]
-  const [err, setErr] = useState(null);
+// accountAging is built server-side from the ALL-TIME pull (sharded, cached)
+// regardless of the requested window — every /api/dashboard response carries
+// the same full-history payload no matter which window the FilterBar has
+// selected. So this reads straight from the Dashboard's own already-fetched
+// `data.accountAging` instead of firing its own duplicate request (used to
+// self-fetch preset=last_7d here, which — stacked with every other
+// component's independent self-fetch — was pushing concurrent Shopify
+// GraphQL calls over the rate limit on page load, 2026-07-09).
+export default function AccountAging({ accountAging = null }) {
+  const data = accountAging;
   const [open, setOpen] = useState(null); // expanded bucket key
   const [acct, setAcct] = useState(null); // drilled account (for history)
-
-  useEffect(() => {
-    let cancelled = false;
-    // accountAging is built server-side from the ALL-TIME pull (sharded,
-    // cached) regardless of the requested window, so we ask for the
-    // smallest/cheapest window here — the response is fast and the aging
-    // payload is still full-history with true lifetime $.
-    const qs = new URLSearchParams({ preset: "last_7d", granularity: "month" });
-    fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled) return;
-        if (j.ok && Array.isArray(j.accountAging)) setData(j.accountAging);
-        else setErr(j.error || "No aging data");
-      })
-      .catch((e) => { if (!cancelled) setErr(String(e?.message || e)); });
-    return () => { cancelled = true; };
-  }, []);
 
   const buckets = useMemo(() => buildBuckets(), []);
 
@@ -72,7 +61,6 @@ export default function AccountAging() {
     return { rows, totalAccts, totalNet: data.reduce((s, a) => s + (a.lifetimeNet || 0), 0) };
   }, [data, buckets]);
 
-  if (err) return <div className="rounded-xl border border-rule bg-card p-4 font-sans text-sm text-unfavorable">Couldn’t load aging: {err}</div>;
   if (!summary) return <div className="rounded-xl border border-rule bg-card p-8 text-center font-sans text-sm text-muted">Loading account aging…</div>;
 
   return (

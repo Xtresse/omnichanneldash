@@ -120,15 +120,17 @@ export default function BudgetVsActual({
   productFamily,
   grossMargin,
   metric = "net",
+  sharedCurrentMonthActuals = null, // Dashboard.jsx's shared this-month MTD fetch
 }) {
   const [budgetData, setBudgetData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [tier, setTier] = useState("base"); // "budget" | "base" | "stretch"
-  const [monthActuals, setMonthActuals] = useState(null); // self-fetched actualsWindow(selectedMonth) payload
+  const [ownMonthActuals, setOwnMonthActuals] = useState(null); // self-fetched only for a NON-current selectedMonth
 
   const basis = metric === "gross" ? "gross" : "net";
   const basisLabel = basis === "gross" ? "Gross" : "Net";
+  const onCurrentMonth = selectedMonth === currentMonth();
 
   useEffect(() => {
     let cancelled = false;
@@ -140,19 +142,26 @@ export default function BudgetVsActual({
   }, []);
 
   // Actuals for the goal-tracking calcs below (headline, By product, By
-  // channel, run-rate) always come from this self-fetch — MTD-to-date for
-  // the current month, that month's full close for a past month picked from
-  // the Goal-month dropdown — never the FilterBar's selected window.
+  // channel, run-rate) always come from a self-fetch — MTD-to-date for the
+  // current month, that month's full close for a past month picked from the
+  // Goal-month dropdown — never the FilterBar's selected window. For the
+  // (default, most common) current-month case this reuses Dashboard.jsx's
+  // own shared MTD fetch instead of firing a second, identical one — only an
+  // actual dropdown change to a past month triggers this component's own
+  // fetch, avoiding load on every page view.
   useEffect(() => {
+    if (onCurrentMonth) return; // covered by sharedCurrentMonthActuals instead
     let cancelled = false;
     const { from, to } = actualsWindow(selectedMonth);
     const qs = new URLSearchParams({ from, to, granularity: "month" });
     fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((j) => { if (!cancelled && j?.ok) setMonthActuals(j); })
+      .then((j) => { if (!cancelled && j?.ok) setOwnMonthActuals(j); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [selectedMonth]);
+  }, [selectedMonth, onCurrentMonth]);
+
+  const monthActuals = onCurrentMonth ? sharedCurrentMonthActuals : ownMonthActuals;
 
   const targets = budgetData?.targets || { company: {}, rep: {} };
 
