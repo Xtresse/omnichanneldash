@@ -547,7 +547,7 @@ export default function Dashboard({ initial }) {
                 <ChartCell title={`${M} Sales By Product Family`} subtitle="Gummies · Serum · XVIE · Sachets">
                   <ProductFamily data={data.productFamily} compare={data.compare} metric={revMetric} />
                 </ChartCell>
-                <ChartCell title="B2B Accounts" subtitle="Cumulative distinct accounts/locations, all-time">
+                <ChartCell title="B2B Accounts" subtitle="Cumulative total + new accounts added per month">
                   <B2BAccountGrowth accountAging={data.accountAging} />
                 </ChartCell>
               </ChartGrid>
