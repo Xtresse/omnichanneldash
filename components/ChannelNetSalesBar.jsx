@@ -16,6 +16,10 @@ import { useEffect, useState } from "react";
 // The Gross/Net toggle picks which basis the "% of Base goal" bar compares
 // against (self-fetches /api/budget for the current month's Base-tier target,
 // same cube components/BudgetVsActual.jsx reads — see lib/budgetSheet.js).
+// Every goal bar (per-channel AND Total) is always MTD-to-date vs. the
+// full-month target, regardless of the FilterBar window selected above —
+// self-fetches its own 1st-of-month → today window (no "mtd" preset exists
+// on /api/dashboard, see ALLOWED_PRESETS in app/api/dashboard/route.js).
 
 const ALL_PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"];
 
@@ -98,6 +102,26 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
   const baseTarget = (channel) =>
     ALL_PRODUCTS.reduce((a, p) => a + Number(co?.[channel]?.[p]?.[ym]?.base?.[metric] || 0), 0);
 
+  // Every goal bar (per-channel AND Total) always compares MTD-to-date vs.
+  // the full-month Base target — never whatever window the FilterBar has
+  // selected above. Otherwise e.g. "Today" actuals against a full-month
+  // target reads as a near-frozen ~0-3% no matter what happens that day.
+  const mtdNum = (v) => (mtdKpis ? Number(v || 0) : null);
+  const mtdTotalNet = mtdNum(mtdKpis?.totalNetSales);
+  const mtdTotalGross = mtdNum(mtdKpis?.totalGrossSales);
+  const mtdDtcNet = mtdNum(mtdKpis?.dtcNetSales);
+  const mtdDtcGross = mtdNum(mtdKpis?.dtcGrossSales);
+  const mtdAdcsNet = mtdNum(mtdKpis?.adcsNetSales);
+  const mtdAdcsGross = mtdNum(mtdKpis?.adcsGrossSales);
+  const mtdB2bNet = mtdKpis ? mtdTotalNet - mtdDtcNet - mtdAdcsNet : null;
+  const mtdB2bGross = mtdKpis ? mtdTotalGross - mtdDtcGross - mtdAdcsGross : null;
+
+  const mtdByChannel = {
+    B2B: { net: mtdB2bNet, gross: mtdB2bGross },
+    DTC: { net: mtdDtcNet, gross: mtdDtcGross },
+    ADCS: { net: mtdAdcsNet, gross: mtdAdcsGross },
+  };
+
   // All-channel Base target + MTD-to-date actual, for the Total card's goal bar.
   const allTarget = targets ? baseTarget("B2B") + baseTarget("DTC") + baseTarget("ADCS") : null;
   const mtdActual = mtdKpis ? Number((metric === "gross" ? mtdKpis.totalGrossSales : mtdKpis.totalNetSales) || 0) : null;
@@ -131,9 +155,10 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {CHANNELS.map((c) => {
-          const actual = metric === "gross" ? c.gross : c.net;
+          const mtdRaw = mtdByChannel[c.label];
+          const mtdChannelActual = mtdRaw ? (metric === "gross" ? mtdRaw.gross : mtdRaw.net) : null;
           const target = targets ? baseTarget(c.label) : null;
-          const goalShare = target && target > 0 && actual != null ? actual / target : null;
+          const goalShare = target && target > 0 && mtdChannelActual != null ? mtdChannelActual / target : null;
           return (
             <ChannelCard
               key={c.label}
@@ -144,6 +169,7 @@ export default function ChannelNetSalesBar({ kpis = null, periodLabel = "Selecte
               gross={c.gross}
               net={c.net}
               metric={metric}
+              mtdActual={mtdChannelActual}
               goalShare={goalShare}
             />
           );
@@ -236,7 +262,7 @@ function MetricPair({ loading, error, gross, net, metric = "net", big }) {
   );
 }
 
-function ChannelCard({ label, note, loading, error, gross, net, metric, goalShare }) {
+function ChannelCard({ label, note, loading, error, gross, net, metric, mtdActual, goalShare }) {
   const sharePct = goalShare != null ? Math.max(0, Math.min(1, goalShare)) : 0;
   return (
     <div className="relative bg-card border border-rule rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0
@@ -250,12 +276,14 @@ function ChannelCard({ label, note, loading, error, gross, net, metric, goalShar
       {/* Gross + Net */}
       <MetricPair loading={loading} error={error} gross={gross} net={net} metric={metric} />
 
-      {/* Share of Base goal */}
+      {/* MTD share of Base goal — always MTD, regardless of the FilterBar window above */}
       <div className="font-sans text-[11px] md:text-xs text-inksoft mt-2 leading-snug">
         {loading || goalShare == null ? (
           "—"
         ) : (
           <>
+            <span className="tabular-nums font-semibold">{fmt$(mtdActual)}</span>
+            <span className="text-muted"> MTD · </span>
             <span className="tabular-nums font-semibold">{fmtPct(goalShare)}</span>
             <span className="text-muted"> of Base goal</span>
           </>
