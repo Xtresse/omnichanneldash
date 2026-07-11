@@ -37,8 +37,22 @@ const ALLOWED_PRESETS = new Set([
 ]);
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const RELATIVE_DATE = /^today(-(\d+))?$/;
+const DAY_MS = 86400000;
 const ALLOWED_GRANULARITY = new Set(["auto", "day", "week", "biweek", "month"]);
 const ALLOWED_COMPARE = new Set(["off", "prior", "yoy"]);
+
+// Accepts an absolute YYYY-MM-DD or a relative token ("today", "today-N").
+// Returns null for anything else so callers can distinguish "not provided"
+// from "malformed" instead of silently drifting onto a different window.
+function resolveDateParam(value) {
+  if (!value) return null;
+  if (ISO_DATE.test(value)) return value;
+  const m = RELATIVE_DATE.exec(value);
+  if (!m) return null;
+  const offsetDays = m[2] ? parseInt(m[2], 10) : 0;
+  return new Date(Date.now() - offsetDays * DAY_MS).toISOString().slice(0, 10);
+}
 
 export async function GET(request) {
   const url = new URL(request.url);
@@ -50,9 +64,23 @@ export async function GET(request) {
   const compareParam = url.searchParams.get("compare");
   const compareMode = ALLOWED_COMPARE.has(compareParam) ? compareParam : "off";
 
+  const fromResolved = resolveDateParam(fromParam);
+  const toResolved = resolveDateParam(toParam);
+
   let queryParams;
-  if (fromParam && toParam && ISO_DATE.test(fromParam) && ISO_DATE.test(toParam)) {
-    queryParams = { from: fromParam, to: toParam };
+  if (fromResolved && toResolved) {
+    queryParams = { from: fromResolved, to: toResolved };
+  } else if (fromParam || toParam) {
+    // A from/to was attempted but didn't resolve — fail loudly instead of
+    // silently substituting a different (much wider) preset window, which
+    // previously made `to=today` quietly return ~last_3m data.
+    return NextResponse.json(
+      {
+        ok: false,
+        error: `Invalid from/to. Use YYYY-MM-DD or "today"/"today-N". Got from=${fromParam ?? ""} to=${toParam ?? ""}`,
+      },
+      { status: 400 }
+    );
   } else {
     const preset = ALLOWED_PRESETS.has(presetParam) ? presetParam : "last_3m";
     queryParams = { preset };
