@@ -10,6 +10,8 @@ TARGETS=(
   "$ROOT/Sales-Rep-Dashboards/lib/xtresseCore.js"
   "$ROOT/CRO_Tracker/lib/xtresseCore.js"
   "$ROOT/xtresse-orders-tracker/lib/xtresseCore.js"
+  "$ROOT/xtresse-ops-tracker/lib/xtresseCore.js"
+  "$ROOT/xtresse-finance-tracker/lib/xtresseCore.js"
 )
 for t in "${TARGETS[@]}"; do
   mkdir -p "$(dirname "$t")"
