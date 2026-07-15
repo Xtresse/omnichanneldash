@@ -102,10 +102,10 @@ export async function GET() {
   const windows = warmWindows();
   const results = await mapLimit(windows, 4, async (w) => {
     const queryParams = { from: w.from, to: w.to };
-    // EXACT same cache key format as app/api/dashboard/route.js (v2 bump
-    // 2026-07-15 with the classifyOrderChannel b2b-beats-hasDtcSku fix).
+    // EXACT same cache key format as app/api/dashboard/route.js (v3 bump
+    // 2026-07-15 — canonical classifyChannel unification; see that route).
     const cacheKey =
-      "dash:v2:" + JSON.stringify({ q: queryParams, granularity, compareMode });
+      "dash:v3:" + JSON.stringify({ q: queryParams, granularity, compareMode });
     try {
       const raw = await fetchWindsorRows(queryParams);
       const data = buildDashboardData(raw, { ...queryParams, granularity }, allTimeRows);

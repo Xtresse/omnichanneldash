@@ -95,11 +95,12 @@ export async function GET(request) {
       : null;
 
   // Stable cache signature for this exact view (window + granularity + compare).
-  // v2 (2026-07-15): classifyOrderChannel fix (b2b/rep tags beat hasDtcSku) —
-  // key bump orphans every pre-fix KV payload so no stale DTC number survives
-  // the deploy (KV is cross-deploy; FRESH_MS would've served it up to 60 min).
+  // v3 (2026-07-15): key bumps orphan pre-fix KV payloads (KV is cross-deploy;
+  // FRESH_MS would otherwise serve them up to 60 min). v2 = b2b-beats-hasDtcSku
+  // fix; v3 = channel decision delegated to the canonical classifyChannel
+  // (which also un-broke the JSON-encoded discount-code B2B patterns).
   const cacheKey =
-    "dash:v2:" +
+    "dash:v3:" +
     JSON.stringify({ q: queryParams, granularity, compareMode });
 
   // Recompute the payload from source (window pull + the CACHED all-time pull,
