@@ -11,10 +11,11 @@
 // Tie-out: channels sum to Total by construction, for both metrics —
 //   B2B = total − dtc − adcs · DTC = dtc · ADCS = adcs.
 //
-// The Gross/Net toggle picks which basis the "% of Base goal" bar compares
-// against. Every goal bar (per-channel AND Total) is always MTD-to-date vs.
-// the full-month Base target, regardless of the FilterBar window selected
-// above — via `budgetTargets`/`mtdKpis` props, NOT an independent self-fetch:
+// The Gross/Net toggle picks which basis the goal tiers compare against.
+// Each channel (and the Total) shows all three tiers — Budget / Base /
+// Stretch — as MTD-to-date actual vs. the full-month target, regardless of
+// the FilterBar window selected above, via `budgetTargets`/`mtdKpis` props
+// (NOT an independent self-fetch):
 // this component used to self-fetch /api/budget + its own MTD window, which
 // (stacked on top of BudgetVsActual.jsx's and Dashboard.jsx's own equivalent
 // self-fetches) pushed concurrent Shopify GraphQL calls over the rate limit
@@ -50,6 +51,25 @@ const fmt$ = (n) =>
 
 const fmtPct = (n) => `${Math.round((n || 0) * 100)}%`;
 
+// Compact money for the tier targets so three fit on one card line.
+const fmt$K = (n) => {
+  if (n == null) return "—";
+  const a = Math.abs(n);
+  if (a >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+  if (a >= 1e3) return `$${Math.round(n / 1e3)}K`;
+  return `$${Math.round(n)}`;
+};
+
+// The three goal tiers from the budget sheet (lib/budgetSheet TARGET_TIERS),
+// each its own distinct brand shade. NOT monotonic — e.g. B2B July Budget
+// ($1.19M) is higher than its Stretch ($1.15M) — so each tier is shown with
+// its own % and bar rather than one ordered progress bar.
+const TIER_ROWS = [
+  { key: "budget", label: "Budget", color: "#8A7359" },
+  { key: "base", label: "Base", color: "#5C2F2E" },
+  { key: "stretch", label: "Stretch", color: "#C49A4F" },
+];
+
 export default function ChannelNetSalesBar({
   kpis = null,
   periodLabel = "Selected period",
@@ -75,12 +95,24 @@ export default function ChannelNetSalesBar({
   const b2bNet = kpis ? totalNet - dtcNet - adcsNet : null;
   const b2bGross = kpis ? totalGross - dtcGross - adcsGross : null;
 
-  // This month's Base-tier target for a channel, summed across products, at
-  // the toggled basis (gross/net) — same cube BudgetVsActual.jsx's coTarget reads.
+  // This month's target for a channel+tier, summed across products, at the
+  // toggled basis (gross/net) — same cube BudgetVsActual.jsx's coTarget reads.
   const ym = currentMonth();
   const co = targets?.company || {};
-  const baseTarget = (channel) =>
-    ALL_PRODUCTS.reduce((a, p) => a + Number(co?.[channel]?.[p]?.[ym]?.base?.[metric] || 0), 0);
+  const tierTarget = (channel, tier) =>
+    ALL_PRODUCTS.reduce((a, p) => a + Number(co?.[channel]?.[p]?.[ym]?.[tier]?.[metric] || 0), 0);
+  // { budget, base, stretch } dollar targets for a channel (null when the
+  // sheet isn't loaded). Total = sum of the three channels per tier, so the
+  // Total card's tiers tie to the sum of the channel cards by construction.
+  const channelTargets = (channel) =>
+    targets ? { budget: tierTarget(channel, "budget"), base: tierTarget(channel, "base"), stretch: tierTarget(channel, "stretch") } : null;
+  const totalTargets = targets
+    ? {
+        budget: tierTarget("B2B", "budget") + tierTarget("DTC", "budget") + tierTarget("ADCS", "budget"),
+        base: tierTarget("B2B", "base") + tierTarget("DTC", "base") + tierTarget("ADCS", "base"),
+        stretch: tierTarget("B2B", "stretch") + tierTarget("DTC", "stretch") + tierTarget("ADCS", "stretch"),
+      }
+    : null;
 
   // Every goal bar (per-channel AND Total) always compares MTD-to-date vs.
   // the full-month Base target — never whatever window the FilterBar has
@@ -102,10 +134,8 @@ export default function ChannelNetSalesBar({
     ADCS: { net: mtdAdcsNet, gross: mtdAdcsGross },
   };
 
-  // All-channel Base target + MTD-to-date actual, for the Total card's goal bar.
-  const allTarget = targets ? baseTarget("B2B") + baseTarget("DTC") + baseTarget("ADCS") : null;
+  // All-channel MTD-to-date actual, for the Total card's goal tiers.
   const mtdActual = mtdKpis ? Number((metric === "gross" ? mtdKpis.totalGrossSales : mtdKpis.totalNetSales) || 0) : null;
-  const totalGoalShare = allTarget && allTarget > 0 && mtdActual != null ? mtdActual / allTarget : null;
 
   const CHANNELS = [
     { label: "B2B", net: b2bNet, gross: b2bGross, note: "Reps · clinics, med spas, derms" },
@@ -137,8 +167,6 @@ export default function ChannelNetSalesBar({
         {CHANNELS.map((c) => {
           const mtdRaw = mtdByChannel[c.label];
           const mtdChannelActual = mtdRaw ? (metric === "gross" ? mtdRaw.gross : mtdRaw.net) : null;
-          const target = targets ? baseTarget(c.label) : null;
-          const goalShare = target && target > 0 && mtdChannelActual != null ? mtdChannelActual / target : null;
           return (
             <ChannelCard
               key={c.label}
@@ -150,7 +178,7 @@ export default function ChannelNetSalesBar({
               net={c.net}
               metric={metric}
               mtdActual={mtdChannelActual}
-              goalShare={goalShare}
+              tierTargets={channelTargets(c.label)}
               windowIsMtd={windowIsMtd}
             />
           );
@@ -164,32 +192,7 @@ export default function ChannelNetSalesBar({
           </div>
           <MetricPair loading={loading} error={err} gross={totalGross} net={totalNet} metric={metric} big />
 
-          <div className="mt-2 pt-2 border-t border-rule font-sans text-[11px] md:text-xs text-inksoft leading-snug">
-            {mtdKpis == null || totalGoalShare == null ? (
-              "—"
-            ) : windowIsMtd ? (
-              <>
-                <span className="tabular-nums font-semibold">{fmtPct(totalGoalShare)}</span>
-                <span className="text-muted"> of Base goal</span>
-              </>
-            ) : (
-              <>
-                <span className="tabular-nums font-semibold">{fmt$(mtdActual)}</span>
-                <span className="text-muted"> MTD · </span>
-                <span className="tabular-nums font-semibold">{fmtPct(totalGoalShare)}</span>
-                <span className="text-muted"> of Base goal</span>
-              </>
-            )}
-          </div>
-          <div className="mt-2">
-            <div className="h-1.5 w-full rounded-full bg-paper2 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${Math.max(0, Math.min(1, totalGoalShare || 0)) * 100}%`, background: "#5C2F2E" }}
-                aria-label={`MTD share of Base goal: ${fmtPct(totalGoalShare || 0)}`}
-              />
-            </div>
-          </div>
+          <GoalTiers mtdActual={mtdActual} targets={totalTargets} loading={mtdKpis == null} windowIsMtd={windowIsMtd} />
 
           <div className="font-sans text-[10px] text-muted leading-snug mt-1.5">B2B + DTC + ADCS</div>
         </div>
@@ -225,8 +228,8 @@ function MetricToggle({ value, onChange }) {
 
 // Gross + Net stacked pair. `big` = larger type for the Total card. `metric`
 // (from the Gross/Net toggle) visually emphasizes the selected one — the
-// toggle otherwise only moves the "% of Base goal" bar, which barely shifts
-// since actual and target scale by the same gross↔net ratio, so this is the
+// toggle otherwise only moves the goal-tier %s, which barely shift since
+// actual and target scale by the same gross↔net ratio, so this is the
 // visible confirmation that the toggle actually did something.
 function MetricPair({ loading, error, gross, net, metric = "net", big }) {
   const bigCls = big ? "sm:text-2xl md:text-3xl" : "md:text-2xl";
@@ -248,8 +251,7 @@ function MetricPair({ loading, error, gross, net, metric = "net", big }) {
   );
 }
 
-function ChannelCard({ label, note, loading, error, gross, net, metric, mtdActual, goalShare, windowIsMtd }) {
-  const sharePct = goalShare != null ? Math.max(0, Math.min(1, goalShare)) : 0;
+function ChannelCard({ label, note, loading, error, gross, net, metric, mtdActual, tierTargets, windowIsMtd }) {
   return (
     <div className="relative bg-card border border-rule rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0
                     before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-brown">
@@ -262,37 +264,55 @@ function ChannelCard({ label, note, loading, error, gross, net, metric, mtdActua
       {/* Gross + Net */}
       <MetricPair loading={loading} error={error} gross={gross} net={net} metric={metric} />
 
-      {/* MTD share of Base goal — always MTD, regardless of the FilterBar window above */}
-      <div className="font-sans text-[11px] md:text-xs text-inksoft mt-2 leading-snug">
-        {loading || goalShare == null ? (
-          "—"
-        ) : windowIsMtd ? (
-          <>
-            <span className="tabular-nums font-semibold">{fmtPct(goalShare)}</span>
-            <span className="text-muted"> of Base goal</span>
-          </>
-        ) : (
-          <>
-            <span className="tabular-nums font-semibold">{fmt$(mtdActual)}</span>
-            <span className="text-muted"> MTD · </span>
-            <span className="tabular-nums font-semibold">{fmtPct(goalShare)}</span>
-            <span className="text-muted"> of Base goal</span>
-          </>
-        )}
-      </div>
-
-      {/* Share bar */}
-      <div className="mt-2 pt-2 border-t border-rule/60">
-        <div className="h-1.5 w-full rounded-full bg-paper2 overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${sharePct * 100}%`, background: "#5C2F2E" }}
-            aria-label={`Share of Base goal: ${fmtPct(goalShare || 0)}`}
-          />
-        </div>
-      </div>
+      {/* MTD-to-date actual vs all three goal tiers (Budget / Base / Stretch) */}
+      <GoalTiers mtdActual={mtdActual} targets={tierTargets} loading={loading} windowIsMtd={windowIsMtd} />
 
       <div className="font-sans text-[10px] text-muted leading-snug mt-1.5">{note}</div>
+    </div>
+  );
+}
+
+// Budget / Base / Stretch, each with its own MTD-to-date % and mini-bar. The
+// dollar target sits inline. On a non-MTD FilterBar window, the MTD-to-date
+// actual (what the % is computed from) is shown once above the tiers, since
+// it differs from the card's headline window number; on MTD it's redundant
+// with the headline so it's omitted.
+function GoalTiers({ mtdActual, targets, loading, windowIsMtd }) {
+  if (loading || mtdActual == null || !targets) {
+    return <div className="mt-2 pt-2 border-t border-rule/60 font-sans text-[11px] text-muted">—</div>;
+  }
+  return (
+    <div className="mt-2 pt-2 border-t border-rule/60">
+      {!windowIsMtd && (
+        <div className="font-sans text-[10px] text-muted leading-snug mb-1.5">
+          <span className="tabular-nums font-semibold text-inksoft">{fmt$(mtdActual)}</span> MTD-to-date
+        </div>
+      )}
+      <div className="flex flex-col gap-1.5">
+        {TIER_ROWS.map((t) => {
+          const target = Number(targets[t.key] || 0);
+          const share = target > 0 ? mtdActual / target : null;
+          const pct = share != null ? Math.max(0, Math.min(1, share)) : 0;
+          return (
+            <div key={t.key}>
+              <div className="flex items-baseline justify-between gap-2 font-sans text-[10px] md:text-[11px] leading-tight">
+                <span className="uppercase tracking-[0.1em] text-muted">{t.label}</span>
+                <span className="tabular-nums">
+                  <span className="font-semibold text-ink">{share == null ? "—" : fmtPct(share)}</span>
+                  <span className="text-muted"> of {fmt$K(target)}</span>
+                </span>
+              </div>
+              <div className="mt-0.5 h-1 w-full rounded-full bg-paper2 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${pct * 100}%`, background: t.color }}
+                  aria-label={`${t.label} goal: ${share == null ? "—" : fmtPct(share)} of ${fmt$K(target)}`}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
