@@ -31,8 +31,12 @@
 const ALL_PRODUCTS = ["Gummies", "Serum", "XVIE", "Sachets"];
 
 function currentMonth() {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  // Pacific (shop tz) — matches how revenue is bucketed and the FilterBar's
+  // "today()". A UTC month key can roll to next month a few hours early near
+  // a month boundary and read the wrong month's Base target.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit",
+  }).format(new Date());
 }
 
 const fmt$ = (n) =>
@@ -54,6 +58,7 @@ export default function ChannelNetSalesBar({
   onMetricChange = () => {},
   budgetTargets = null,
   mtdKpis = null,
+  windowIsMtd = false,
 }) {
   const err = error;
   const loading = kpis == null && !err;
@@ -146,6 +151,7 @@ export default function ChannelNetSalesBar({
               metric={metric}
               mtdActual={mtdChannelActual}
               goalShare={goalShare}
+              windowIsMtd={windowIsMtd}
             />
           );
         })}
@@ -161,6 +167,11 @@ export default function ChannelNetSalesBar({
           <div className="mt-2 pt-2 border-t border-rule font-sans text-[11px] md:text-xs text-inksoft leading-snug">
             {mtdKpis == null || totalGoalShare == null ? (
               "—"
+            ) : windowIsMtd ? (
+              <>
+                <span className="tabular-nums font-semibold">{fmtPct(totalGoalShare)}</span>
+                <span className="text-muted"> of Base goal</span>
+              </>
             ) : (
               <>
                 <span className="tabular-nums font-semibold">{fmt$(mtdActual)}</span>
@@ -237,7 +248,7 @@ function MetricPair({ loading, error, gross, net, metric = "net", big }) {
   );
 }
 
-function ChannelCard({ label, note, loading, error, gross, net, metric, mtdActual, goalShare }) {
+function ChannelCard({ label, note, loading, error, gross, net, metric, mtdActual, goalShare, windowIsMtd }) {
   const sharePct = goalShare != null ? Math.max(0, Math.min(1, goalShare)) : 0;
   return (
     <div className="relative bg-card border border-rule rounded-xl px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4 overflow-hidden min-w-0
@@ -255,6 +266,11 @@ function ChannelCard({ label, note, loading, error, gross, net, metric, mtdActua
       <div className="font-sans text-[11px] md:text-xs text-inksoft mt-2 leading-snug">
         {loading || goalShare == null ? (
           "—"
+        ) : windowIsMtd ? (
+          <>
+            <span className="tabular-nums font-semibold">{fmtPct(goalShare)}</span>
+            <span className="text-muted"> of Base goal</span>
+          </>
         ) : (
           <>
             <span className="tabular-nums font-semibold">{fmt$(mtdActual)}</span>

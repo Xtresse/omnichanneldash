@@ -148,6 +148,18 @@ export default function Dashboard({ initial }) {
   const [execGoalMtdFull, setExecGoalMtdFull] = useState(null);
   const execGoalMtd = execGoalMtdFull?.kpis || null;
 
+  // When the selected window IS the current month-to-date, every MTD goal
+  // figure (the channel cards' bars AND the Executive "% to Base Goal" tile)
+  // must be driven by the SAME payload as the headline — otherwise the two
+  // independent fetches of the identical MTD window drift a few $k apart
+  // (recent orders still settling / separate cache states) and the card
+  // shows a big headline number and a slightly-different "MTD" number right
+  // below it, reading as "the numbers don't tie" (Mike, 2026-07-16). The
+  // standalone execGoalMtd fetch is only needed when the user is on some
+  // OTHER window (Today, Last 90d, …) but still wants monthly goal pace.
+  const windowIsMtd = activePreset === "mtd";
+  const mtdKpis = windowIsMtd && data?.kpis ? data.kpis : execGoalMtd;
+
   useEffect(() => {
     let cancelled = false;
     fetch("/api/budget")
@@ -159,10 +171,16 @@ export default function Dashboard({ initial }) {
 
   useEffect(() => {
     let cancelled = false;
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, "0");
-    const from = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
-    const to = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    // Pacific-anchored month-to-date — MUST match FilterBar's "today()" (shop
+    // tz) so this window is byte-identical to the FilterBar MTD preset. A
+    // browser-local anchor drifts a full day for any non-PT viewer (e.g. an
+    // ET-based CEO after 9pm PT), pulling a different set of orders and
+    // de-syncing the goal bars from the headline.
+    const [py, pm, pd] = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(new Date()).split("-");
+    const from = `${py}-${pm}-01`;
+    const to = `${py}-${pm}-${pd}`;
     const qs = new URLSearchParams({ from, to, granularity: "month" });
     fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
       .then((r) => r.json())
@@ -172,9 +190,13 @@ export default function Dashboard({ initial }) {
   }, []);
 
   const execGoal = useMemo(() => {
-    if (!execGoalTargets || !execGoalMtd) return null;
-    const now = new Date();
-    const ym = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    if (!execGoalTargets || !mtdKpis) return null;
+    // Pacific (shop tz) month key — matches how revenue is bucketed and the
+    // FilterBar's "today()"; a UTC key can roll to next month a few hours
+    // early near a month boundary and read the wrong month's target.
+    const ym = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit",
+    }).format(new Date());
     const co = execGoalTargets.company || {};
     const products = ["Gummies", "Serum", "XVIE", "Sachets"];
     const basis = revMetric === "gross" ? "gross" : "net";
@@ -182,9 +204,9 @@ export default function Dashboard({ initial }) {
       (a, ch) => a + products.reduce((b, p) => b + Number(co?.[ch]?.[p]?.[ym]?.base?.[basis] || 0), 0),
       0
     );
-    const actual = Number((basis === "gross" ? execGoalMtd.totalGrossSales : execGoalMtd.totalNetSales) || 0);
+    const actual = Number((basis === "gross" ? mtdKpis.totalGrossSales : mtdKpis.totalNetSales) || 0);
     return target > 0 ? { pct: actual / target, actual, target } : null;
-  }, [execGoalTargets, execGoalMtd, revMetric]);
+  }, [execGoalTargets, mtdKpis, revMetric]);
 
   function buildQs(from, to, gran, cmp) {
     const qs = new URLSearchParams({ from, to });
@@ -500,7 +522,8 @@ export default function Dashboard({ initial }) {
             metric={revMetric}
             onMetricChange={setRevMetric}
             budgetTargets={execGoalTargets}
-            mtdKpis={execGoalMtd}
+            mtdKpis={mtdKpis}
+            windowIsMtd={windowIsMtd}
           />
         </div>
 
