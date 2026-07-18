@@ -303,23 +303,36 @@ export default function Dashboard({ initial }) {
   // correct, just for the wrong day (Mike, 2026-07-18: "Today" showed Jul 17).
   //
   // Client state seeds from those defaults and never re-checks, so it stays
-  // wrong until the range is changed by hand. On mount, re-resolve today in the
-  // shop timezone and refetch if the baked-in date disagrees. Done in an effect
+  // wrong until the range is changed by hand. Re-resolve today in the shop
+  // timezone and refetch whenever the loaded range disagrees. Done in an effect
   // (not a lazy useState initializer) to keep the hydration render identical to
   // SSR — same reasoning as the ?compare= reconciliation below.
+  //
+  // Runs on mount AND on an interval, because there are two ways to end up on
+  // the wrong day and the mount check only catches the first:
+  //   1. stale ISR render (above) — caught at mount;
+  //   2. a tab left open across midnight — the day rolls but the loaded window
+  //      doesn't, so it silently keeps showing yesterday until reloaded.
+  // The interval is a cheap string compare; it only refetches on an actual day
+  // change, and self-cancels once the preset is no longer "today".
   useEffect(() => {
-    if (activePreset !== "today") return;
-    const shopToday = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
-    }).format(new Date());
-    if (customFrom === shopToday && customTo === shopToday) return;
-    setCustomFrom(shopToday);
-    setCustomTo(shopToday);
-    startTransition(() =>
-      loadFromUrl(buildQs(shopToday, shopToday, granularity, compareMode))
-    );
+    if (activePreset !== "today") return undefined;
+    const check = () => {
+      const shopToday = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date());
+      if (customFrom === shopToday && customTo === shopToday) return;
+      setCustomFrom(shopToday);
+      setCustomTo(shopToday);
+      startTransition(() =>
+        loadFromUrl(buildQs(shopToday, shopToday, granularity, compareMode))
+      );
+    };
+    check();
+    const id = setInterval(check, 60000);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activePreset, customFrom, customTo, granularity, compareMode]);
 
   // Re-render every 30s so the "refreshed N ago" label stays accurate
   // even when the user is just looking at the dashboard.
