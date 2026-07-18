@@ -294,6 +294,33 @@ export default function Dashboard({ initial }) {
     }
   }
 
+  // ---- Stale-SSR date correction ----
+  // app/page.jsx is ISR-cached (revalidate = 300) and bakes shopToday() into
+  // `initial.defaults`. Next serves the STALE page to the first visitor after
+  // the window expires and regenerates in the background — so the first person
+  // to open the dashboard in the morning gets yesterday's render, with
+  // yesterday's date wired into the "Today" preset. The numbers are internally
+  // correct, just for the wrong day (Mike, 2026-07-18: "Today" showed Jul 17).
+  //
+  // Client state seeds from those defaults and never re-checks, so it stays
+  // wrong until the range is changed by hand. On mount, re-resolve today in the
+  // shop timezone and refetch if the baked-in date disagrees. Done in an effect
+  // (not a lazy useState initializer) to keep the hydration render identical to
+  // SSR — same reasoning as the ?compare= reconciliation below.
+  useEffect(() => {
+    if (activePreset !== "today") return;
+    const shopToday = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(new Date());
+    if (customFrom === shopToday && customTo === shopToday) return;
+    setCustomFrom(shopToday);
+    setCustomTo(shopToday);
+    startTransition(() =>
+      loadFromUrl(buildQs(shopToday, shopToday, granularity, compareMode))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Re-render every 30s so the "refreshed N ago" label stays accurate
   // even when the user is just looking at the dashboard.
   const [, setTick] = useState(0);
