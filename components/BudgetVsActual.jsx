@@ -208,6 +208,30 @@ export default function BudgetVsActual({
   }, [monthBudgetForecast, selectedMonth]);
   const rrf = rr.factor;
 
+  // ── Month-shape projection factors (final-week-lift) ───────────────────────
+  // The payload's monthShape calibration (fraction of the month's net that
+  // historically lands by this day-of-month, per channel — see
+  // lib/monthShapeForecast) gives a truer month-end projection than the flat
+  // selling-day run-rate: factor = 1 / fraction, per channel. A company-blended
+  // factor keeps the by-product table and headline reconciled to the by-channel
+  // projection. Falls back to the run-rate factor (rrf) when the window isn't
+  // MTD or there isn't enough history. (Scott Stepe's final-week-lift ask.)
+  const msFrac = monthBudgetForecast?.monthShape || null;
+  const chanFactor = (ch) => {
+    const fr = rr.active && msFrac && msFrac[ch] ? Number(msFrac[ch].fraction) : 0;
+    return fr > 0 ? 1 / fr : rrf;
+  };
+  const blendedFactor = useMemo(() => {
+    const b = Number(channelAct.B2B || 0), d = Number(channelAct.DTC || 0), a = Number(channelAct.ADCS || 0);
+    const tot = b + d + a;
+    if (!tot) return rrf;
+    const finish = b * chanFactor("B2B") + d * chanFactor("DTC") + a * 1; // ADCS: no projection
+    return finish / tot;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelAct, rrf, msFrac, rr.active]);
+  const usingMonthShape =
+    rr.active && !!(msFrac && ((msFrac.B2B && msFrac.B2B.fraction) || (msFrac.DTC && msFrac.DTC.fraction)));
+
   // ── BY PRODUCT ────────────────────────────────────────────────────────────
   const byProduct = useMemo(() => {
     const rows = PRODUCTS.map((p) => {
@@ -215,13 +239,13 @@ export default function BudgetVsActual({
       // FULL month, not prorated. Actuals already roll up B2B+ADCS+DTC
       // (see actualsByProduct), so the target must too, or % Goal is wrong.
       const target = coTarget("All", p);
-      return makeRow(p, actual, target, target > 0, rrf);
+      return makeRow(p, actual, target, target > 0, blendedFactor);
     });
     const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
     const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
     const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     return { rows, otherActual, grandActual };
-  }, [prodActuals, coTarget, rrf, grandActualRaw]);
+  }, [prodActuals, coTarget, blendedFactor, grandActualRaw]);
 
   // ── BY CHANNEL ────────────────────────────────────────────────────────────
   const byChannel = useMemo(() => {
@@ -234,15 +258,16 @@ export default function BudgetVsActual({
     // monthly target like every other channel.
     const adcs = makeRow("ADCS", Number(channelAct.ADCS || 0), monthlyADCS, monthlyADCS > 0, 1);
     const rows = [
-      makeRow("B2B", Number(channelAct.B2B || 0), monthlyB2B, monthlyB2B > 0, rrf),
-      makeRow("DTC", Number(channelAct.DTC || 0), monthlyDTC, monthlyDTC > 0, rrf),
+      makeRow("B2B", Number(channelAct.B2B || 0), monthlyB2B, monthlyB2B > 0, chanFactor("B2B")),
+      makeRow("DTC", Number(channelAct.DTC || 0), monthlyDTC, monthlyDTC > 0, chanFactor("DTC")),
       adcs,
     ];
     const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
     const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
     const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     return { rows, otherActual, grandActual };
-  }, [channelAct, coTarget, rrf, grandActualRaw]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelAct, coTarget, rrf, msFrac, rr.active, grandActualRaw]);
 
   // ── Headline ──────────────────────────────────────────────────────────────
   const headline = useMemo(() => {
@@ -250,13 +275,13 @@ export default function BudgetVsActual({
     // True company total — every channel × every product, not just the
     // 3 products broken out in the By-product table.
     const goal = ALL_PRODUCTS.reduce((a, p) => a + coTarget("All", p), 0);
-    const runRate = Math.round(actual * rrf);
+    const runRate = Math.round(actual * blendedFactor);
     return {
       actual, goal, hasGoal: goal > 0,
       pct: goal > 0 ? actual / goal : null,
       runRate, projPct: goal > 0 ? runRate / goal : null,
     };
-  }, [byProduct, coTarget, rrf]);
+  }, [byProduct, coTarget, blendedFactor]);
 
   // Full-month (un-prorated) totals for ALL three tiers — secondary reference.
   const tierMonthTotals = useMemo(() => {
@@ -354,19 +379,21 @@ export default function BudgetVsActual({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
         <Breakdown
           title="By product"
-          subtitle={`Actual + run-rate vs full ${tierLabel.toLowerCase()}`}
+          subtitle={`Actual + ${usingMonthShape ? "month-shape proj." : "run-rate"} vs full ${tierLabel.toLowerCase()}`}
           rows={byProduct.rows}
           otherActual={byProduct.otherActual}
           grandActual={byProduct.grandActual}
         />
         <Breakdown
           title="By channel"
-          subtitle={`Actual + run-rate vs full ${tierLabel.toLowerCase()}`}
+          subtitle={`Actual + ${usingMonthShape ? "month-shape proj." : "run-rate"} vs full ${tierLabel.toLowerCase()}`}
           rows={byChannel.rows}
           otherActual={byChannel.otherActual}
           grandActual={byChannel.grandActual}
           footnote={
-            rr.active
+            usingMonthShape
+              ? `Projection = month-to-date ÷ the share of the month that has historically landed by day ${msFrac?.B2B?.dayOfMonth ?? ""} (avg of the last ${msFrac?.B2B?.samples ?? ""} closed months — captures the final-week lift; B2B ${msFrac?.B2B?.fraction ? Math.round(msFrac.B2B.fraction * 100) + "%" : "—"} in by then). Targets are full-month, never prorated.`
+              : rr.active
               ? `Run-rate projects month-end at the current pace (${rr.sellingDaysInWindow}/${rr.sellingDaysInMonth} selling days). Targets are full-month, never prorated.`
               : "Targets are full-month, never prorated."
           }

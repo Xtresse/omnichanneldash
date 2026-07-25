@@ -100,7 +100,7 @@ export async function GET(request) {
   // fix; v3 = channel decision delegated to the canonical classifyChannel
   // (which also un-broke the JSON-encoded discount-code B2B patterns).
   const cacheKey =
-    "dash:v3:" +
+    "dash:v4:" +
     JSON.stringify({ q: queryParams, granularity, compareMode });
 
   // Recompute the payload from source (window pull + the CACHED all-time pull,

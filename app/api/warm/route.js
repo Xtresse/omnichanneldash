@@ -105,7 +105,7 @@ export async function GET() {
     // EXACT same cache key format as app/api/dashboard/route.js (v3 bump
     // 2026-07-15 — canonical classifyChannel unification; see that route).
     const cacheKey =
-      "dash:v3:" + JSON.stringify({ q: queryParams, granularity, compareMode });
+      "dash:v4:" + JSON.stringify({ q: queryParams, granularity, compareMode });
     try {
       const raw = await fetchWindsorRows(queryParams);
       const data = buildDashboardData(raw, { ...queryParams, granularity }, allTimeRows);
