@@ -23,7 +23,7 @@ import {
 import { fetchAllTimeRowsCached } from "@/lib/allTimeCache.js";
 import { setCachedData } from "@/lib/dataCache.js";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 export const dynamic = "force-dynamic"; // the warmer must always run
 
 // ── Pacific-anchored date helpers (mirror components/FilterBar.jsx) ──────────
