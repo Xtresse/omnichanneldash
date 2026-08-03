@@ -6,6 +6,7 @@ import FilterBar, { PRESET_LABELS, GRANULARITY_OPTIONS } from "./FilterBar.jsx";
 import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
+import RepLeaderboard from "./RepLeaderboard.jsx";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
@@ -669,37 +670,58 @@ export default function Dashboard({ initial }) {
 
             <Section
               title="Sales By Rep"
-              detail={`B2B reps · ${(data.repsList?.length || 0).toLocaleString()} on roster`}
+              detail="Stack-Ranked Leaderboard · MTD / QTD / YTD · Trend Lines Below"
               collapsible
-              defaultCollapsed
             >
-              <ChartGrid>
-                <ChartCell title="Net Sales By Rep" subtitle={`${G} trend · click chips to toggle`}>
-                  <RepTrendChart
-                    data={data.repSalesMonthly || []}
-                    reps={data.repsList || []}
-                    valueType="currency"
-                    compare={data.compare}
-                    priorKey="repSalesMonthly"
-                  />
-                </ChartCell>
-                <ChartCell title="New Gummy Accounts By Rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
-                  <RepTrendChart
-                    data={data.repNewAccountsMonthly || []}
-                    reps={data.repsList || []}
-                    valueType="count"
-                    compare={data.compare}
-                    priorKey="repNewAccountsMonthly"
-                  />
-                </ChartCell>
-              </ChartGrid>
-              <div className="mt-3 md:mt-4">
+              {/* Lead with the stack-ranked leaderboard (Mike, 2026-08-03) —
+                  the multi-line rep trend chart was unreadable with every rep
+                  on it. Same server-side net-sales attribution, just ranked
+                  top-to-bottom with a bar per rep. Trend lines stay available
+                  below as a collapsed secondary view. */}
+              <RepLeaderboard
+                repPerformance={data.repPerformance || []}
+                rangeFrom={customFrom}
+                rangeTo={customTo}
+              />
+
+              <SubBlock
+                title="Rep Trend Lines"
+                detail={`${G} trend · secondary view`}
+                className="mt-3 md:mt-4"
+              >
+                <ChartGrid>
+                  <ChartCell title="Net Sales By Rep" subtitle={`${G} trend · click chips to toggle`}>
+                    <RepTrendChart
+                      data={data.repSalesMonthly || []}
+                      reps={data.repsList || []}
+                      valueType="currency"
+                      compare={data.compare}
+                      priorKey="repSalesMonthly"
+                    />
+                  </ChartCell>
+                  <ChartCell title="New Gummy Accounts By Rep" subtitle={`First-order tagged · gummies · per ${Gunit}, by rep`}>
+                    <RepTrendChart
+                      data={data.repNewAccountsMonthly || []}
+                      reps={data.repsList || []}
+                      valueType="count"
+                      compare={data.compare}
+                      priorKey="repNewAccountsMonthly"
+                    />
+                  </ChartCell>
+                </ChartGrid>
+              </SubBlock>
+
+              <SubBlock
+                title="Rep Detail Table"
+                detail="Product mix · new vs existing accounts"
+                className="mt-3 md:mt-4"
+              >
                 <RepPerformance
                   repPerformance={data.repPerformance || []}
                   compare={data.compare}
                   metric={revMetric}
                 />
-              </div>
+              </SubBlock>
             </Section>
 
             <Section
@@ -827,6 +849,39 @@ function Section({ title, detail, children, collapsible = false, defaultCollapse
       </div>
       {!collapsed && children}
     </section>
+  );
+}
+
+// Collapsed-by-default sub-section inside a Section. Used to demote the rep
+// trend lines / detail table beneath the stack-ranked leaderboard without
+// losing them — one compact cream bar with a Show/Hide affordance, and the
+// children don't mount (or fetch/render Recharts) until expanded.
+function SubBlock({ title, detail, children, className = "", defaultCollapsed = true }) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        onClick={() => setCollapsed((c) => !c)}
+        aria-expanded={!collapsed}
+        className="w-full bg-paper2 border border-rule rounded-md px-3 py-1.5 md:px-4 md:py-2 flex items-center justify-between gap-2 hover:border-tan transition-colors text-left"
+      >
+        <span className="flex items-baseline gap-2 min-w-0">
+          <span className="font-display text-sm md:text-base font-semibold text-ink leading-tight">
+            {title}
+          </span>
+          {detail && (
+            <span className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.14em] text-muted truncate">
+              {detail}
+            </span>
+          )}
+        </span>
+        <span className="shrink-0 font-sans text-[10px] uppercase tracking-[0.16em] text-inksoft border border-rule rounded px-2 py-0.5">
+          {collapsed ? "Show" : "Hide"}
+        </span>
+      </button>
+      {!collapsed && <div className="mt-3 md:mt-4">{children}</div>}
+    </div>
   );
 }
 
