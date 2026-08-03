@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  FAMILIES,
+  aggregateRep,
+  isPresidentsClubEligible,
+} from "@/lib/repMetrics.js";
+
 /**
  * President's Club — rep leaderboard ranked by weighted sales.
  *
@@ -34,63 +40,14 @@ const FAVORABLE = "#F0922E";
 const UNFAVORABLE = "#5C2F2E";
 const NEUTRAL = "#9A8F80";
 
-const FIRST_TIME_WEIGHT = 0.6;
-const RETURNING_WEIGHT = 0.4;
-
-// Product families to break out in the leaderboard. Order matches the
-// leadership dashboard's column order so tie-out is visual.
-const FAMILIES = [
-  { key: "Gummies", label: "Gummies" },
-  { key: "Serum", label: "Serum" },
-  { key: "XVIE", label: "XVIE" },
-  { key: "Sachets", label: "Sachets" },
-];
-
-/**
- * Collapse a repPerformance row's productMix into:
- *   - per-family newDollars / existingDollars / totals (for the
- *     leaderboard table's product columns)
- *   - rolled-up firstTime / returning / total / weighted (for ranking)
- *
- * Tie-out: the per-family totals here match the omnichannel Sales-by-rep
- * table's hover tooltips ("New: N units · $X / Existing: ...") and the
- * leadership dashboard's product columns. Leadership shows the New/Returning
- * split for Gummies only; this component shows the split for all four
- * families so the weighted-sales math is fully transparent.
- */
-function aggregateRep(r) {
-  const mix = r.productMix || {};
-  let firstTime = 0;
-  let returning = 0;
-  const families = {};
-  for (const f of FAMILIES) {
-    const slot = mix[f.key] || {};
-    const fNew = slot.newDollars || 0;
-    const fRet = slot.existingDollars || 0;
-    firstTime += fNew;
-    returning += fRet;
-    families[f.key] = {
-      firstTime: Math.round(fNew),
-      returning: Math.round(fRet),
-      total: Math.round(fNew + fRet),
-      newUnits: slot.newUnits || 0,
-      existingUnits: slot.existingUnits || 0,
-    };
-  }
-  const total = firstTime + returning;
-  const weighted =
-    firstTime * FIRST_TIME_WEIGHT + returning * RETURNING_WEIGHT;
-  return {
-    rep: r.rep,
-    region: r.region,
-    territory: r.territory,
-    families,
-    firstTime: Math.round(firstTime),
-    returning: Math.round(returning),
-    total: Math.round(total),
-    weighted: Math.round(weighted),
-  };
-}
+// Weights, family order, the per-rep aggregator and the eligibility rules all
+// live in lib/repMetrics.js now — the stack-ranked President's Club leaderboard
+// above this table ranks on the SAME aggregateRep(), so the two can't drift.
+// Tie-out: the per-family totals match the omnichannel Sales-by-rep table's
+// hover tooltips ("New: N units · $X / Existing: ...") and the leadership
+// dashboard's product columns. Leadership shows the New/Returning split for
+// Gummies only; this table shows it for all four families so the
+// weighted-sales math is fully transparent.
 
 /**
  * Flatten repPerformance (grouped by territory) into one ranked list.
@@ -100,9 +57,10 @@ function aggregateRep(r) {
  *     1099 contractor reps (Lexi Cavaliere, Jim & Anne Weeks,
  *     Sevi McCutcheon, Krista Taylor, Ryan Masa) are excluded.
  *   - Active sales reps only — managers and former reps who no longer
- *     carry a quota are excluded by name (PC_EXCLUDED_REPS below).
- *     Their historical orders still attribute to them in the rep
- *     table for accounting, but they don't show in the leaderboard.
+ *     carry a quota are excluded by name (PC_EXCLUDED_REPS in
+ *     lib/repMetrics.js). Their historical orders still attribute to them
+ *     in the rep table for accounting, but they don't show in the
+ *     leaderboard.
  *   - B2B sales only — guaranteed upstream because rep attribution in
  *     classifyOrderChannel() only fires when the order's channel resolves
  *     to "B2B" (ADCS orders are flagged "__EXCLUDE__" and never reach
@@ -111,23 +69,13 @@ function aggregateRep(r) {
  * Reps with zero weighted sales drop to the bottom but are still shown
  * so the user can see who's on the W-2 roster but hasn't qualified yet.
  */
-const ELIGIBLE_TERRITORIES = new Set(["Existing", "New"]);
-
-// Reps in REPS for historical-attribution purposes but NOT eligible for
-// President's Club (managers, former reps without a quota, etc.).
-const PC_EXCLUDED_REPS = new Set([
-  "Julie Fetter",   // now a manager
-  "Becky Curry",    // now a manager
-]);
-
 function flattenAndRank(repPerformance) {
   if (!repPerformance) return [];
   const flat = [];
   for (const sec of repPerformance) {
     const territory = sec.territory;
-    if (!ELIGIBLE_TERRITORIES.has(territory)) continue;
     for (const r of sec.rows || []) {
-      if (PC_EXCLUDED_REPS.has(r.rep)) continue;
+      if (!isPresidentsClubEligible(r, territory)) continue;
       flat.push(aggregateRep({ ...r, territory }));
     }
   }

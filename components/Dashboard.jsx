@@ -7,6 +7,11 @@ import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
 import RepLeaderboard from "./RepLeaderboard.jsx";
+import {
+  SALES_BY_REP_METRICS,
+  PRESIDENTS_CLUB_METRICS,
+  isPresidentsClubEligible,
+} from "@/lib/repMetrics.js";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
@@ -679,6 +684,9 @@ export default function Dashboard({ initial }) {
                   top-to-bottom with a bar per rep. Trend lines stay available
                   below as a collapsed secondary view. */}
               <RepLeaderboard
+                title="Rep Leaderboard"
+                metrics={SALES_BY_REP_METRICS}
+                defaultMetric="net"
                 repPerformance={data.repPerformance || []}
                 rangeFrom={customFrom}
                 rangeTo={customTo}
@@ -726,14 +734,36 @@ export default function Dashboard({ initial }) {
 
             <Section
               title="President's Club"
-              detail="W-2 reps · B2B only · First-Time 60% / Returning 40%"
+              detail="Stack-Ranked · MTD / QTD / YTD · W-2 Only · First-Time 60% / Returning 40%"
               collapsible
               defaultCollapsed
             >
-              <PresidentsClub
+              {/* Same leaderboard component as Sales By Rep, so every rep
+                  comparison on the dashboard reads identically. Eligibility is
+                  pinned to the President's Club rules (W-2 territories only,
+                  managers excluded), which is why the scope chips are off. */}
+              <RepLeaderboard
+                title="President's Club"
+                metrics={PRESIDENTS_CLUB_METRICS}
+                defaultMetric="weighted"
+                rowFilter={isPresidentsClubEligible}
+                showScope={false}
+                scopeNote="W-2 Reps Only · Managers Excluded"
                 repPerformance={data.repPerformance || []}
-                compare={data.compare}
+                rangeFrom={customFrom}
+                rangeTo={customTo}
               />
+
+              <SubBlock
+                title="President's Club Detail"
+                detail="Per-family first-time / returning split"
+                className="mt-3 md:mt-4"
+              >
+                <PresidentsClub
+                  repPerformance={data.repPerformance || []}
+                  compare={data.compare}
+                />
+              </SubBlock>
             </Section>
 
             <Section
