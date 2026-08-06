@@ -6,6 +6,30 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "dtc-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/samsood/Documents/GitHub/DTC_Dashboard", "--", "-p", "3460"],
+      "port": 3460
+    },
+    {
+      "name": "xvie-ship-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/samsood/Documents/GitHub/xvie-shipping-dashboard", "--", "-p", "3458"],
+      "port": 3458
+    },
+    {
+      "name": "rep-dash-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/samsood/Documents/GitHub/Sales-Rep-Dashboards", "--", "-p", "3457"],
+      "port": 3457
+    },
+    {
+      "name": "influencer-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/samsood/Documents/GitHub/xtresse-influencer-dash", "--", "-p", "3459"],
+      "port": 3459
     }
   ]
 }
