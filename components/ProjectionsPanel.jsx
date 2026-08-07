@@ -42,6 +42,14 @@ function monthOptions(back = 6, fwd = 12) {
   return out;
 }
 const cleanNum = (v) => (v === "" || v == null || Number.isNaN(Number(v)) ? 0 : Number(v));
+// Currency display: "$1,210,796" (whole dollars). Blank for empty/zero so the
+// nothing-here rows stay clean. parseMoney strips back to a plain number.
+const fmtMoney = (n) =>
+  n === "" || n == null || Number(n) === 0 || Number.isNaN(Number(n)) ? "" : `$${Math.round(Number(n)).toLocaleString("en-US")}`;
+const parseMoney = (s) => {
+  const d = String(s).replace(/[^0-9]/g, "");
+  return d === "" ? "" : Number(d);
+};
 
 export default function ProjectionsPanel() {
   const [month, setMonth] = useState(currentYm());
@@ -158,7 +166,7 @@ export default function ProjectionsPanel() {
       {msg && <div className="text-xs mb-3" style={{ color: msg.startsWith("Error") ? "var(--unfavorable)" : "var(--favorable)" }}>{msg}</div>}
 
       <div className="rounded-xl border border-rule bg-card overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: 820, borderCollapse: "collapse" }}>
+        <table className="w-full text-sm" style={{ minWidth: 1180, borderCollapse: "collapse" }}>
           <thead>
             <tr className="text-[10px] uppercase tracking-[0.1em] text-muted">
               <th className="text-left font-semibold px-3 py-2 sticky left-0 bg-card">Channel / Product</th>
@@ -200,15 +208,17 @@ function FragmentChannel({ ch, PRODUCTS, cellVal, setCell, isOverridden, revertR
             {["budget", "base", "stretch"].map((t) =>
               ["gross", "net"].map((b) => {
                 const v = cellVal(ch, p, t, b);
-                const differs = Number(v) !== Number(sheetVal(ch, p, t, b));
+                const sv = sheetVal(ch, p, t, b);
+                const differs = Number(v || 0) !== Number(sv || 0);
                 return (
-                  <td key={`${t}_${b}`} className="px-1 py-0.5 text-right">
+                  <td key={`${t}_${b}`} className="px-1.5 py-1 text-right">
                     <input
-                      type="number"
-                      value={v === 0 ? "" : v}
-                      placeholder={String(Math.round(sheetVal(ch, p, t, b)) || 0)}
-                      onChange={(e) => setCell(ch, p, t, b, e.target.value)}
-                      className="w-20 text-right rounded border px-1.5 py-1 text-[13px] tabular-nums bg-paper2"
+                      type="text"
+                      inputMode="numeric"
+                      value={fmtMoney(v)}
+                      placeholder={sv ? fmtMoney(sv) : "—"}
+                      onChange={(e) => setCell(ch, p, t, b, parseMoney(e.target.value))}
+                      className="w-36 text-right rounded-md border px-3 py-2 text-sm tabular-nums bg-paper2 focus:outline-none transition-colors"
                       style={{ borderColor: differs ? "var(--brown)" : "var(--rule)", color: "var(--ink)" }}
                     />
                   </td>
