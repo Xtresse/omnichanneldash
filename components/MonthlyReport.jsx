@@ -264,6 +264,11 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
       curGross: gOf(cur), mom: growth(gOf(cur), gOf(prev)), qoq: growth(curQ, priorQ),
       yoy: growth(gOf(cur), gOf(yoy)), curQ, priorQ,
     };
+    // Per-channel gross MoM (from the same monthly series) — for the DTC and
+    // B2B/rep sections. cur/prev buckets carry B2B_gross/DTC_gross/ADCS_gross.
+    const chGrossMoM = (ch) => growth(Number(cur?.[`${ch}_gross`] || 0), Number(prev?.[`${ch}_gross`] || 0));
+    const dtcMoM = chGrossMoM("DTC");
+    const b2bMoM = chGrossMoM("B2B");
 
     // §3 — new + cumulative accounts (B2B, rep-attributed), from accountAging
     // (all-time in every payload, so prior-month is a calendar lookup — no trend).
@@ -303,6 +308,7 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
     return {
       kpis, matrix, grand, growthRow, newInMonth, cumulative, newPrev, nvr, dtc,
       topNet, topNew, xvieAll, serumAll, newXvie, newSerum,
+      dtcMoM, b2bMoM,
       growthReady: trendOk, growthFailed: !!(trend && trend.__error),
       isMtd: ym === currentYm,
     };
@@ -450,7 +456,7 @@ function ReportBody({ m, ym, hasTargets }) {
         <Section n={2} title="Growth" note="Gross">
           <div className="grid grid-cols-3 gap-1.5">
             <Stat label="MoM" value={gv(m.growthRow.mom)} color={gc(m.growthRow.mom)} />
-            <Stat label="QoQ" value={gv(m.growthRow.qoq)} color={gc(m.growthRow.qoq)} sub={m.growthReady ? `${usdK(m.growthRow.curQ)} vs ${usdK(m.growthRow.priorQ)} QTD` : null} />
+            <Stat label="QoQ" value={gv(m.growthRow.qoq)} color={gc(m.growthRow.qoq)} sub={m.growthReady ? "quarter-to-date" : null} />
             <Stat label="YoY" value={gv(m.growthRow.yoy)} color={gc(m.growthRow.yoy)} />
           </div>
         </Section>
@@ -494,12 +500,13 @@ function ReportBody({ m, ym, hasTargets }) {
 
       {/* §5 DTC scorecard */}
       <Section n={5} title="DTC Performance" note="B2B-grade breakout">
-        <div className="grid grid-cols-5 gap-1.5 mb-1.5">
+        <div className="grid grid-cols-6 gap-1.5 mb-1.5">
           <Stat label="DTC Gross" value={usdK(m.dtc.gross)} color="var(--xt-dtc)" />
           <Stat label="DTC Net" value={usdK(m.dtc.net)} />
           <Stat label="Orders" value={num(m.dtc.orders)} />
           <Stat label="AOV" value={usd(m.dtc.aov)} />
           <Stat label="vs Base" value={m.dtc.attain == null ? "—" : pct0(m.dtc.attain)} color={m.dtc.attain >= 100 ? "var(--xt-favorable)" : "var(--xt-partial)"} />
+          <Stat label="MoM" value={gv(m.dtcMoM)} color={gc(m.dtcMoM)} sub="gross vs prior" />
         </div>
         {m.dtc.byProduct.length > 0 && (
           <div className="font-sans text-[10px] text-[color:var(--xt-ink-soft)]">
@@ -512,6 +519,9 @@ function ReportBody({ m, ym, hasTargets }) {
 
       {/* §6 top reps */}
       <Section n={6} title="Top Reps" note="This month">
+        <div className="mb-2" style={{ maxWidth: 220 }}>
+          <Stat label="B2B / Rep Channel MoM" value={gv(m.b2bMoM)} color={gc(m.b2bMoM)} sub="gross vs prior month" />
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <div className="font-sans text-[9px] uppercase tracking-[0.1em] text-[color:var(--xt-muted)] mb-1">By Net Sales</div>
