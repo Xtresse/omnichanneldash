@@ -1,0 +1,424 @@
+territory,company,city,state,zip,current_rep,rep_tier,orders,net_sales,last_order,first_order,status,tier
+DC / NoVA,McLean Dermatology & Skincare Center,McLean,VA,22101,Jim & Anne Weeks,1099,17,149546.25,2026-03-30,2025-06-25,CLAIMED (stays w/ rep),1
+DC / NoVA,MI Skin Dermatology Center,Washington,DC,20036,Jim & Anne Weeks,1099,16,41715.0,2026-06-04,2024-10-04,CLAIMED (stays w/ rep),1
+DC / NoVA,"AllPhases Dermatology, LLC",Alexandria,VA,22310,Jim & Anne Weeks,1099,11,19901.25,2026-06-17,2025-06-05,CLAIMED (stays w/ rep),1
+DC / NoVA,Ella Esthetics,Alexandria,VA,22302,Jim & Anne Weeks,1099,3,14394.0,2026-04-14,2025-11-14,CLAIMED (stays w/ rep),1
+DC / NoVA,Luxe Dermatology,McLean,VA,22102,Jim & Anne Weeks,1099,5,9776.25,2026-05-28,2025-05-30,CLAIMED (stays w/ rep),1
+DC / NoVA,19th Street Dermatology,Washington,DC,20036,,,3,9236.25,2025-12-08,2025-05-21,OPEN (1099 white space),1
+DC / NoVA,SkinDC,Arlington,VA,22209,Jim & Anne Weeks,1099,4,8442.0,2026-05-13,2025-11-07,CLAIMED (stays w/ rep),1
+DC / NoVA,National Center for Plastic Surgery,McLean,VA,22102,,,4,7897.5,2026-02-03,2025-03-31,OPEN (1099 white space),1
+DC / NoVA,Center for Dermatology & Dermatologic Surgery,Washington,DC,20037,Jim & Anne Weeks,1099,3,5062.5,2026-04-14,2025-05-14,CLAIMED (stays w/ rep),1
+DC / NoVA,Peel Haus Aesthetics and Plastic Surgery,Washington,DC,20003,Jim & Anne Weeks,1099,3,4893.75,2026-02-17,2025-05-23,CLAIMED (stays w/ rep),1
+DC / NoVA,Washington Institute of Dermatologic Laser Surgery,Washington,DC,20005,Jim & Anne Weeks,1099,4,3618.0,2026-05-12,2025-09-11,CLAIMED (stays w/ rep),1
+DC / NoVA,Creative Aesthetics,Haymarket,VA,20169,Jim & Anne Weeks,1099,2,3375.0,2026-05-16,2025-12-08,CLAIMED (stays w/ rep),1
+DC / NoVA,"Emily Porter Gerson MD, LLC",Washington,DC,20016,,,2,3375.0,2026-04-02,2025-11-13,OPEN (1099 white space),1
+DC / NoVA,"Melda Isaac, MD",Washington,DC,20036,Jim & Anne Weeks,1099,1,3195.0,2026-04-23,2026-04-23,CLAIMED (stays w/ rep),1
+DC / NoVA,Great Many,Washington,DC,20036,,,1,1837.5,2026-04-09,2026-04-09,OPEN (1099 white space),1
+DC / NoVA,Gazelle Dastouri,Sterling,VA,20164,Jim & Anne Weeks,1099,1,1687.5,2026-04-23,2026-04-23,CLAIMED (stays w/ rep),1
+DC / NoVA,May Aesthetics,Stone Ridge,VA,20105,Jim & Anne Weeks,1099,1,1687.5,2025-11-17,2025-11-17,CLAIMED (stays w/ rep),1
+DC / NoVA,Weight Benefits,Leesburg,VA,20176,,,1,1687.5,2026-02-03,2026-02-03,OPEN (1099 white space),1
+DC / NoVA,Z Aesthetics,Chantilly,VA,20151,Lexi Cavaliere,1099,1,1687.5,2026-06-05,2026-06-05,CLAIMED (stays w/ rep),1
+DC / NoVA,Custom Beauty Med Studio,Washington,DC,20003,,,1,1518.75,2025-12-10,2025-12-10,OPEN (1099 white space),1
+DC / NoVA,"Saisei Medspa, LLC",Sterling,VA,20164,,,1,1518.75,2026-01-15,2026-01-15,OPEN (1099 white space),1
+DC / NoVA,Skin Deep Concierge Medicine,Warrenton,VA,20186,,,1,1518.75,2025-11-17,2025-11-17,OPEN (1099 white space),1
+DC / NoVA,It's a Secret Med Spa,Washington,DC,20007,,,1,1507.5,2026-04-02,2026-04-02,OPEN (1099 white space),1
+DC / NoVA,Advanced Plastic Surgery,Washington,DC,20037,,,1,1206.0,2025-11-14,2025-11-14,OPEN (1099 white space),1
+Dallas (DFW),Dallas Associated Dermatologists,Plano,TX,75024,Jamie Bergeron,Existing,17,52312.5,2026-06-02,2025-01-17,CLAIMED (stays w/ rep),1
+Dallas (DFW),Savanna Boda Aesthetics,Southlake,TX,76092,Jamie Bergeron,Existing,11,45945.0,2026-05-19,2025-11-18,CLAIMED (stays w/ rep),1
+Dallas (DFW),Signature Dermatology & Aesthetics,Plano,TX,75024,Jamie Bergeron,Existing,20,45562.5,2026-06-10,2025-07-31,CLAIMED (stays w/ rep),1
+Dallas (DFW),Blackburn Woolfolk Dermatology,Irving,TX,75038,Jamie Bergeron,Existing,11,41643.0,2026-03-18,2025-02-13,CLAIMED (stays w/ rep),1
+Dallas (DFW),Lam Facial Plastics,Plano,TX,75093,Jamie Bergeron,Existing,10,38242.5,2026-04-24,2025-03-07,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dermatology Office,Dallas,TX,75209,Jamie Bergeron,Existing,14,26471.25,2026-06-17,2025-02-06,CLAIMED (stays w/ rep),1
+Dallas (DFW),Steven Camp MD Plastic Surgery & Aesthetics,Fort Worth,TX,76107,Jamie Bergeron,Existing,11,25282.5,2026-06-11,2025-06-19,CLAIMED (stays w/ rep),1
+Dallas (DFW),Revival Dermatology,Dallas,TX,75225,Jamie Bergeron,Existing,10,25035.0,2026-04-15,2024-10-31,CLAIMED (stays w/ rep),1
+Dallas (DFW),Bare Dermatology,Frisco,TX,75033,Jamie Bergeron,Existing,10,21217.5,2026-04-20,2025-01-21,CLAIMED (stays w/ rep),1
+Dallas (DFW),Total Med Solutions,Plano,TX,75093,Jamie Bergeron,Existing,2,18975.0,2026-04-20,2026-03-25,CLAIMED (stays w/ rep),1
+Dallas (DFW),Northeast Tarrant Dermatology,Hurst,TX,76054,Jamie Bergeron,Existing,8,18861.75,2026-04-23,2025-02-17,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dallas Center for Dermatology and Aesthetics,Dallas,TX,75225,Jamie Bergeron,Existing,7,17842.5,2026-05-29,2025-09-30,CLAIMED (stays w/ rep),1
+Dallas (DFW),Legacy Dermatology,Frisco,TX,75034,Jamie Bergeron,Existing,7,17842.5,2026-03-13,2025-01-23,CLAIMED (stays w/ rep),1
+Dallas (DFW),Bespoke Health & Beauty,Rockwall,TX,75032,Jamie Bergeron,Existing,10,17152.5,2026-06-15,2024-12-09,CLAIMED (stays w/ rep),1
+Dallas (DFW),Feminology MD,Dallas,TX,75225,Julie Fetter,Existing,5,16976.25,2025-12-19,2024-12-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Plastic Surgery Center of Dallas,Dallas,TX,75240,Jamie Bergeron,Existing,7,16387.5,2026-05-27,2024-11-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Las Colinas Dermatology,Irving,TX,75063,Jamie Bergeron,Existing,9,16357.5,2026-04-02,2024-11-26,CLAIMED (stays w/ rep),1
+Dallas (DFW),North Dallas Dermatology Associates,Dallas,TX,75231,Jamie Bergeron,Existing,9,15187.5,2026-06-03,2025-09-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Savanna Boda Aesthetics,Lewisville,TX,75067,Julie Fetter,Existing,5,14467.5,2025-11-04,2025-08-29,CLAIMED (stays w/ rep),1
+Dallas (DFW),RX MD Solutions,Plano,TX,75024,Jamie Bergeron,Existing,7,13440.0,2026-04-24,2024-10-17,CLAIMED (stays w/ rep),1
+Dallas (DFW),Sara Greer,Southlake,TX,76092,Jamie Bergeron,Existing,5,12960.0,2026-06-04,2025-09-11,CLAIMED (stays w/ rep),1
+Dallas (DFW),Arlington Center for Dermatology,Arlington,TX,76011,Jamie Bergeron,Existing,2,12663.0,2026-02-18,2025-10-24,CLAIMED (stays w/ rep),1
+Dallas (DFW),Body Lounge,Dallas,TX,75205,Jamie Bergeron,Existing,7,11643.75,2026-03-12,2024-09-10,CLAIMED (stays w/ rep),1
+Dallas (DFW),SkinRX,Southlake,TX,76092,Jamie Bergeron,Existing,7,11643.75,2026-03-12,2025-06-12,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dallas Associated Dermatologists Preston Royal (N. Dallas),Dallas,TX,75230,Julie Fetter,Existing,6,10125.0,2025-12-29,2025-06-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dallas Associated Dermatologists-Preston Royal 2,Dallas,TX,75230,Jamie Bergeron,Existing,6,10125.0,2026-05-26,2025-04-21,CLAIMED (stays w/ rep),1
+Dallas (DFW),It's a Secret Med Spa,Irving,TX,75062,Jamie Bergeron,Existing,3,10125.0,2026-04-13,2025-11-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Platinum Dermatology Partners,Southlake,TX,76092,Jamie Bergeron,Existing,6,10125.0,2026-03-16,2025-08-28,CLAIMED (stays w/ rep),1
+Dallas (DFW),Signature Dermatology & Aesthetics-Grapevine,Grapevine,TX,76051,Jamie Bergeron,Existing,5,10125.0,2026-02-20,2025-02-13,CLAIMED (stays w/ rep),1
+Dallas (DFW),DermaLuxe Essentials at McGuiness Dermatology & Plastic Surgery,Plano,TX,75024,Jamie Bergeron,Existing,6,10068.75,2026-06-05,2025-09-12,CLAIMED (stays w/ rep),1
+Dallas (DFW),North Texas Plastic Surgery,Southlake,TX,76092,Jamie Bergeron,Existing,4,9765.0,2026-06-16,2026-03-06,CLAIMED (stays w/ rep),1
+Dallas (DFW),Plano Womens Healthcare,Plano,TX,75075,Jamie Bergeron,Existing,5,9625.5,2026-02-19,2025-04-18,CLAIMED (stays w/ rep),1
+Dallas (DFW),Mindful Dermatology,Dallas,TX,75231,Jamie Bergeron,Existing,3,9405.0,2026-04-22,2026-03-10,CLAIMED (stays w/ rep),1
+Dallas (DFW),Beautiful Aesthetics,Frisco,TX,75036,Jamie Bergeron,Existing,6,9138.75,2026-03-24,2025-06-09,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dermatology Associates of Uptown Cedar Hill,Cedar Hill,TX,75104,Jamie Bergeron,Existing,5,8437.5,2026-03-26,2025-01-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),United Dermatology,Mansfield,TX,76063,Jamie Bergeron,Existing,5,8437.5,2026-05-14,2025-02-11,CLAIMED (stays w/ rep),1
+Dallas (DFW),US Derm Partners,Dallas,TX,75230,Jamie Bergeron,Existing,3,8437.5,2026-04-27,2025-10-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),Renew Beauty Med Spa,Dallas,TX,75225,Jamie Bergeron,Existing,4,8310.0,2026-05-27,2026-02-09,CLAIMED (stays w/ rep),1
+Dallas (DFW),SkinWerx,Arlington,TX,76001,Jamie Bergeron,Existing,5,8268.75,2026-06-11,2025-09-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Essential Dermatology,Bedford,TX,76022,Jamie Bergeron,Existing,4,8257.5,2026-05-27,2025-09-18,CLAIMED (stays w/ rep),1
+Dallas (DFW),Abbott Aesthetics,Dallas,TX,75209,Jamie Bergeron,Existing,5,7282.5,2026-04-15,2024-11-12,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dermatology & Skin Cancer Center,Waxahachie,TX,75165,Jamie Bergeron,Existing,5,6900.0,2026-04-16,2025-08-20,CLAIMED (stays w/ rep),1
+Dallas (DFW),Freckled Skin Studio,Rockwall,TX,75087,Jamie Bergeron,Existing,5,6802.5,2026-04-28,2026-02-26,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dermatology & Skin Surgery Institute,Frisco,TX,75034,Jamie Bergeron,Existing,4,6750.0,2026-04-03,2025-02-04,CLAIMED (stays w/ rep),1
+Dallas (DFW),Facial Cosmetic and Wellness Center,Weatherford,TX,76086,Jamie Bergeron,Existing,4,6750.0,2026-04-07,2025-06-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),North Texas Plastic and Reconstructive Surgery,Allen,TX,75013,Julie Fetter,Existing,4,6581.25,2026-02-03,2025-04-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),Youthful Magnolia,Fort Worth,TX,76104,Jamie Bergeron,Existing,4,6581.25,2026-03-18,2025-09-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Skinfinity,Dallas,TX,75209,Jamie Bergeron,Existing,4,6496.87,2026-05-21,2024-10-20,CLAIMED (stays w/ rep),1
+Dallas (DFW),Natalie Barton MD,Dallas,TX,75231,Jamie Bergeron,Existing,2,6390.0,2026-02-23,2025-10-10,CLAIMED (stays w/ rep),1
+Dallas (DFW),Original Skin DFW,Plano,TX,75093,Jamie Bergeron,Existing,5,6082.5,2026-06-16,2025-07-14,CLAIMED (stays w/ rep),1
+Dallas (DFW),Bare Aesthetics Dallas,Dallas,TX,75219,Julie Fetter,Existing,2,6070.5,2026-01-12,2025-07-01,CLAIMED (stays w/ rep),1
+Dallas (DFW),LV Skin Aesthetics,Frisco,TX,75035,Jamie Bergeron,Existing,4,5763.75,2026-03-04,2025-04-25,CLAIMED (stays w/ rep),1
+Dallas (DFW),Regenerative Skincare,McKinney,TX,75070,Jamie Bergeron,Existing,4,5763.75,2026-06-09,2026-02-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),Renew Beauty Med Spa,Frisco,TX,75034,Jamie Bergeron,Existing,3,5752.5,2026-05-20,2026-02-27,CLAIMED (stays w/ rep),1
+Dallas (DFW),Revived Aesthetics,Plano,TX,75093,Jamie Bergeron,Existing,3,5595.0,2026-06-15,2025-04-26,CLAIMED (stays w/ rep),1
+Dallas (DFW),Fine Line Aesthetics,Frisco,TX,75034,Jamie Bergeron,Existing,3,5437.5,2026-04-06,2026-02-25,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dee Martinez MD,Dallas,TX,75224,Jamie Bergeron,Existing,3,5062.5,2026-06-10,2024-09-16,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dermatology & Skin Cancer Center,McKinney,TX,75071,Julie Fetter,Existing,3,5062.5,2025-06-10,2025-03-04,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dermatology & Skin Cancer Center,Denton,TX,76210,Jamie Bergeron,Existing,3,5062.5,2026-03-04,2024-11-21,CLAIMED (stays w/ rep),1
+Dallas (DFW),Innovative Dermatology,Plano,TX,75025,Julie Fetter,Existing,3,5062.5,2025-12-19,2025-02-20,CLAIMED (stays w/ rep),1
+Dallas (DFW),Intentional Dermatology,Dallas,TX,75240,Jamie Bergeron,Existing,3,5062.5,2026-06-02,2025-07-28,CLAIMED (stays w/ rep),1
+Dallas (DFW),Molly Warthan MD PLLC,Fort Worth,TX,76109,Jamie Bergeron,Existing,3,5062.5,2026-05-26,2025-12-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),Tarrant Plastic Surgery,Keller,TX,76248,Jamie Bergeron,Existing,3,5062.5,2026-06-02,2025-09-29,CLAIMED (stays w/ rep),1
+Dallas (DFW),Spa in the City,Dallas,TX,75209,Julie Fetter,Existing,3,4893.75,2026-01-12,2024-09-06,CLAIMED (stays w/ rep),1
+Dallas (DFW),The Brow Shaping Queen,Frisco,TX,75034,Jamie Bergeron,Existing,3,4893.75,2026-03-10,2025-02-27,CLAIMED (stays w/ rep),1
+Dallas (DFW),Cernero Surgery,Denison,TX,75020,Julie Fetter,Existing,2,4882.5,2025-11-18,2025-10-07,CLAIMED (stays w/ rep),1
+Dallas (DFW),Greer Dermatology,Southlake,TX,76092,Jamie Bergeron,Existing,3,4882.5,2026-02-05,2025-07-09,CLAIMED (stays w/ rep),1
+Dallas (DFW),Legacy OB/GYN,Frisco,TX,75034,Jamie Bergeron,Existing,2,4882.5,2026-04-15,2025-12-17,CLAIMED (stays w/ rep),1
+Dallas (DFW),Refreshingly New,Waxahachie,TX,75165,Jamie Bergeron,Existing,2,4882.5,2026-04-10,2026-02-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),Eleven Wellness,Dallas,TX,75225,Julie Fetter,Existing,3,4809.37,2025-08-04,2024-12-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),DermaLuxe Essentials at McGuiness Dermatology & Plastic Surgery,Prosper,TX,75078,Jamie Bergeron,Existing,3,4803.75,2026-03-27,2025-09-24,CLAIMED (stays w/ rep),1
+Dallas (DFW),Frisco Body Contouring,Frisco,TX,75034,Jamie Bergeron,Existing,3,4245.0,2026-06-16,2026-01-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Skyn Lab,Dallas,TX,75248,Jamie Bergeron,Existing,3,3750.0,2026-04-07,2025-12-10,CLAIMED (stays w/ rep),1
+Dallas (DFW),It's a Secret Med Spa,Dallas,TX,75204,Jamie Bergeron,Existing,3,3597.0,2026-06-08,2026-01-06,CLAIMED (stays w/ rep),1
+Dallas (DFW),The Pearl Med Spa,Coppell,TX,75019,Jamie Bergeron,Existing,3,3525.0,2026-05-15,2026-03-17,CLAIMED (stays w/ rep),1
+Dallas (DFW),Bayside Dermatology,Granbury,TX,76048,Jamie Bergeron,Existing,2,3375.0,2026-03-09,2025-02-18,CLAIMED (stays w/ rep),1
+Dallas (DFW),Belle Visage Medical Aesthetics,Burleson,TX,76028,Jamie Bergeron,Existing,2,3375.0,2026-05-19,2026-01-16,CLAIMED (stays w/ rep),1
+Dallas (DFW),DALLAS ASSOCIATED DERMATOLOGISTS - PRESTON ROYAL 2,Dallas,TX,75230,Jamie Bergeron,Existing,2,3375.0,2026-02-27,2025-12-29,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dallas Associated Dermatologists Preston Royal 2,Dallas,TX,75230,Julie Fetter,Existing,2,3375.0,2025-12-01,2025-06-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dallas Associated Dermatologists-Las Colinas,Irving,TX,75039,Julie Fetter,Existing,2,3375.0,2025-09-08,2025-04-21,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dallas Associated Dermatology,Plano,TX,75024,Julie Fetter,Existing,1,3375.0,2024-11-19,2024-11-19,CLAIMED (stays w/ rep),1
+Dallas (DFW),Eleven Wellness,Dallas,TX,75231,Jamie Bergeron,Existing,2,3375.0,2026-06-02,2025-11-04,CLAIMED (stays w/ rep),1
+Dallas (DFW),Epiphany Dermatology,Coppell,TX,75019,Jamie Bergeron,Existing,2,3375.0,2026-06-16,2025-09-25,CLAIMED (stays w/ rep),1
+Dallas (DFW),Gustovich Dermatology,Frisco,TX,75033,Jamie Bergeron,Existing,2,3375.0,2026-03-31,2026-01-13,CLAIMED (stays w/ rep),1
+Dallas (DFW),K Dermatology,Richardson,TX,75080,Jamie Bergeron,Existing,2,3375.0,2026-06-08,2026-03-18,CLAIMED (stays w/ rep),1
+Dallas (DFW),KAMcare Health and Wellness,Plano,TX,75024,Julie Fetter,Existing,2,3375.0,2025-07-14,2025-01-27,CLAIMED (stays w/ rep),1
+Dallas (DFW),Serenity Gynecology,Grapevine,TX,76051,Jamie Bergeron,Existing,2,3375.0,2026-05-27,2025-12-04,CLAIMED (stays w/ rep),1
+Dallas (DFW),The Skin Trend,Plano,TX,75075,Jamie Bergeron,Existing,2,3375.0,2026-03-11,2025-11-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),Skin Elite,Bedford,TX,76021,Jamie Bergeron,Existing,1,3307.5,2026-03-23,2026-03-23,CLAIMED (stays w/ rep),1
+Dallas (DFW),Avia Medical Spa,Carrollton,TX,75010,Jamie Bergeron,Existing,2,3206.25,2026-03-10,2025-09-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),Issil Beauty Spa,Frisco,TX,75035,Julie Fetter,Existing,2,3206.25,2026-01-21,2025-07-09,CLAIMED (stays w/ rep),1
+Dallas (DFW),Midtowne Wellness & Aesthetics,Ovilla,TX,75154,Jamie Bergeron,Existing,2,3206.25,2026-04-17,2025-12-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),Miss Esthetics,McKinney,TX,75070,Julie Fetter,Existing,2,3206.25,2026-02-03,2025-11-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Monarch Dermatology,Fort Worth,TX,76244,Julie Fetter,Existing,2,3206.25,2025-10-31,2025-05-12,CLAIMED (stays w/ rep),1
+Dallas (DFW),Tarrant Plastic Surgery,Fort Worth,TX,76104,Jamie Bergeron,Existing,2,3206.25,2026-05-29,2025-12-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dermatology Center of McKinney,McKinney,TX,75071,Julie Fetter,Existing,1,3195.0,2024-12-05,2024-12-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Plano Women's Healthcare,Plano,TX,75075,Jamie Bergeron,Existing,1,3195.0,2026-04-22,2026-04-22,CLAIMED (stays w/ rep),1
+Dallas (DFW),"Skin Damsel, LLC",Dallas,TX,75244,Julie Fetter,Existing,1,3195.0,2026-02-03,2026-02-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),McGuiness Dermatology & Plastic Surgery-Flower Mound,Flower Mound,TX,75028,Jamie Bergeron,Existing,2,3116.25,2026-03-27,2025-11-04,CLAIMED (stays w/ rep),1
+Dallas (DFW),Haute Beauty Aesthetics,Allen,TX,75013,Julie Fetter,Existing,2,3037.5,2025-09-30,2025-05-22,CLAIMED (stays w/ rep),1
+Dallas (DFW),MySkinCare LLC,McKinney,TX,75071,Jamie Bergeron,Existing,1,2707.5,2026-03-04,2026-03-04,CLAIMED (stays w/ rep),1
+Dallas (DFW),Preparations Skin Spa,Richardson,TX,75080,Jamie Bergeron,Existing,2,2538.75,2026-06-11,2025-12-16,CLAIMED (stays w/ rep),1
+Dallas (DFW),It's a Secret Med Spa,Frisco,TX,75034,Jamie Bergeron,Existing,2,2247.0,2026-06-08,2026-06-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),It's a Secret Med Spa,Fort Worth,TX,76107,Jamie Bergeron,Existing,2,2247.0,2026-06-03,2026-03-31,CLAIMED (stays w/ rep),1
+Dallas (DFW),It's a Secret Med Spa,Fort Worth,TX,76244,Jamie Bergeron,Existing,2,2247.0,2026-06-03,2026-03-31,CLAIMED (stays w/ rep),1
+Dallas (DFW),Rebel Institute of Health,Frisco,TX,75034,Jamie Bergeron,Existing,1,2062.5,2026-03-02,2026-03-02,CLAIMED (stays w/ rep),1
+Dallas (DFW),11:11 Aesthetics & Wellness,Grand Prairie,TX,75054,Jamie Bergeron,Existing,1,1837.5,2026-04-01,2026-04-01,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dermatology & Skin Cancer Center,Allen,TX,75013,Jamie Bergeron,Existing,2,1837.5,2026-04-16,2025-12-17,CLAIMED (stays w/ rep),1
+Dallas (DFW),FAC Aesthetics,Argyle,TX,76226,Jamie Bergeron,Existing,1,1837.5,2026-03-26,2026-03-26,CLAIMED (stays w/ rep),1
+Dallas (DFW),MVI Solutions,Gainesville,TX,76240,Jamie Bergeron,Existing,1,1837.5,2026-04-20,2026-04-20,CLAIMED (stays w/ rep),1
+Dallas (DFW),Restoration Dermatology,Frisco,TX,75033,Jamie Bergeron,Existing,1,1837.5,2026-06-08,2026-06-08,CLAIMED (stays w/ rep),1
+Dallas (DFW),Zerrudo Injectables Academy,McKinney,TX,75072,Jamie Bergeron,Existing,2,1837.5,2026-05-18,2026-05-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),(no company),McKinney,TX,75071,Julie Fetter,Existing,1,1687.5,2025-08-04,2025-08-04,CLAIMED (stays w/ rep),1
+Dallas (DFW),4Ever Young,Flower Mound,TX,75022,Julie Fetter,Existing,1,1687.5,2024-11-22,2024-11-22,CLAIMED (stays w/ rep),1
+Dallas (DFW),Aya Medspa,Dallas,TX,75205,Julie Fetter,Existing,1,1687.5,2025-12-16,2025-12-16,CLAIMED (stays w/ rep),1
+Dallas (DFW),Bare Dermatology,Rockwall,TX,75032,Julie Fetter,Existing,1,1687.5,2025-02-27,2025-02-27,CLAIMED (stays w/ rep),1
+Dallas (DFW),Buying Time,Fort Worth,TX,76111,Julie Fetter,Existing,1,1687.5,2025-12-11,2025-12-11,CLAIMED (stays w/ rep),1
+Dallas (DFW),Charleston House Gynecology,Dallas,TX,75204,Jamie Bergeron,Existing,1,1687.5,2026-04-20,2026-04-20,CLAIMED (stays w/ rep),1
+Dallas (DFW),Constantine Plastic Surgery,Dallas,TX,75231,Julie Fetter,Existing,1,1687.5,2024-10-11,2024-10-11,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dallas Associated Dermatologists,Dallas,TX,75230,Julie Fetter,Existing,1,1687.5,2025-03-17,2025-03-17,CLAIMED (stays w/ rep),1
+Dallas (DFW),Dauwe Plastic Surgery,Dallas,TX,75230,Jamie Bergeron,Existing,1,1687.5,2026-02-05,2026-02-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Destiny Drip Bar,Southlake,TX,76092,Jamie Bergeron,Existing,1,1687.5,2026-04-08,2026-04-08,CLAIMED (stays w/ rep),1
+Dallas (DFW),DLS Aesthetics by Doretta,Dallas,TX,75230,Julie Fetter,Existing,1,1687.5,2024-09-13,2024-09-13,CLAIMED (stays w/ rep),1
+Dallas (DFW),Ederra Zara,Richland Hills,TX,76118,Julie Fetter,Existing,1,1687.5,2025-12-15,2025-12-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),EpiCentre Skin Care & Laser Center,Dallas,TX,75231,Jamie Bergeron,Existing,1,1687.5,2026-04-08,2026-04-08,CLAIMED (stays w/ rep),1
+Dallas (DFW),Epiphany Dermatology,Southlake,TX,76092,Julie Fetter,Existing,1,1687.5,2025-09-25,2025-09-25,CLAIMED (stays w/ rep),1
+Dallas (DFW),EverBeam Aesthetics,Addison,TX,75001,Julie Fetter,Existing,1,1687.5,2025-11-19,2025-11-19,CLAIMED (stays w/ rep),1
+Dallas (DFW),EverOak Dermatology & Aesthetics Center,Celina,TX,75009,Jamie Bergeron,Existing,1,1687.5,2026-05-12,2026-05-12,CLAIMED (stays w/ rep),1
+Dallas (DFW),EverOak Dermatology & Aesthetics Center,The Colony,TX,75056,Jamie Bergeron,Existing,1,1687.5,2026-02-04,2026-02-04,CLAIMED (stays w/ rep),1
+Dallas (DFW),For Your Skin,Rockwall,TX,75087,Jamie Bergeron,Existing,1,1687.5,2026-06-15,2026-06-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),Haus of Wellness,Bartonville,TX,76226,Julie Fetter,Existing,1,1687.5,2025-10-24,2025-10-24,CLAIMED (stays w/ rep),1
+Dallas (DFW),Hayes Clinic & Spa,Paris,TX,75460,Jamie Bergeron,Existing,1,1687.5,2026-06-05,2026-06-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Kairos Aesthetic Medicine,Irving,TX,75063,Jamie Bergeron,Existing,1,1687.5,2026-06-15,2026-06-15,CLAIMED (stays w/ rep),1
+Dallas (DFW),KAYO Aesthetics,Fort Worth,TX,76109,Jamie Bergeron,Existing,1,1687.5,2026-03-20,2026-03-20,CLAIMED (stays w/ rep),1
+Dallas (DFW),Laser Bar,Dallas,TX,75208,Julie Fetter,Existing,1,1687.5,2024-10-22,2024-10-22,CLAIMED (stays w/ rep),1
+Dallas (DFW),Le Monet Med Spa,Lucas,TX,75002,Julie Fetter,Existing,1,1687.5,2025-04-26,2025-04-26,CLAIMED (stays w/ rep),1
+Dallas (DFW),Preferred Dermatology,Greenville,TX,75401,Jamie Bergeron,Existing,1,1687.5,2026-03-02,2026-03-02,CLAIMED (stays w/ rep),1
+Dallas (DFW),Signature Dermatology & Aesthetics-Rockwall,Rockwall,TX,75032,Jamie Bergeron,Existing,1,1687.5,2026-05-22,2026-05-22,CLAIMED (stays w/ rep),1
+Dallas (DFW),"Syringe Aesthetics, LLC",Dallas,TX,75218,Jamie Bergeron,Existing,1,1687.5,2026-02-13,2026-02-13,CLAIMED (stays w/ rep),1
+Dallas (DFW),The Filling Station,Denton,TX,76210,Jamie Bergeron,Existing,1,1687.5,2026-03-02,2026-03-02,CLAIMED (stays w/ rep),1
+Dallas (DFW),Ultimate Skin Source,Dallas,TX,75231,Julie Fetter,Existing,1,1687.5,2025-02-10,2025-02-10,CLAIMED (stays w/ rep),1
+Dallas (DFW),Vibrant Life Mobile Aesthetics and Wellness,Glenn Heights,TX,75154,Julie Fetter,Existing,1,1687.5,2025-11-18,2025-11-18,CLAIMED (stays w/ rep),1
+Dallas (DFW),Wellskin Med Spa,Dallas,TX,75225,Jamie Bergeron,Existing,1,1687.5,2026-05-11,2026-05-11,CLAIMED (stays w/ rep),1
+Dallas (DFW),McGuiness Dermatology & Plastic Surgery,Prosper,TX,75078,Jamie Bergeron,Existing,1,1518.75,2026-06-05,2026-06-05,CLAIMED (stays w/ rep),1
+Dallas (DFW),Shots With Shaina,Blue Ridge,TX,75424,Lexi Cavaliere,1099,1,1518.75,2025-09-25,2025-09-25,CLAIMED (stays w/ rep),1
+Dallas (DFW),Skin Envy & IV Bar,Corsicana,TX,75110,Julie Fetter,Existing,1,1518.75,2026-02-03,2026-02-03,CLAIMED (stays w/ rep),1
+Dallas (DFW),Truly U Aesthetics and Wellness Studio,Weatherford,TX,76085,Julie Fetter,Existing,1,1518.75,2025-12-01,2025-12-01,CLAIMED (stays w/ rep),1
+Dallas (DFW),Village Aesthetics,Plano,TX,75024,Julie Fetter,Existing,1,1518.75,2025-12-19,2025-12-19,CLAIMED (stays w/ rep),1
+Dallas (DFW),Anusha Roy,Frisco,TX,75035,,,1,0.0,2026-03-19,2026-03-19,OPEN (1099 white space),1
+Dallas (DFW),Jamie Bergeron,Allen,TX,75013,,,3,0.0,2026-04-13,2026-03-27,OPEN (1099 white space),1
+Dallas (DFW),Undrdog Surface Products,Frisco,TX,75036,,,1,0.0,2024-06-20,2024-06-20,OPEN (1099 white space),1
+Long Island / Queens,Redefining Health Medicine,Roslyn,NY,11576,Sonia Mace,Existing,6,10125.0,2026-04-21,2025-04-15,CLAIMED (stays w/ rep),1
+Long Island / Queens,Epoch Dermatology,Garden City,NY,11530,,,1,9112.5,2025-09-19,2025-09-19,OPEN (1099 white space),1
+Long Island / Queens,Beauty BOMB Aesthetics,Smithtown,NY,11787,Sonia Mace,Existing,3,5988.75,2026-04-17,2025-05-23,CLAIMED (stays w/ rep),1
+Long Island / Queens,Gold Coast Dermatology,Commack,NY,11725,Sonia Mace,Existing,3,4893.75,2026-04-30,2025-02-26,CLAIMED (stays w/ rep),1
+Long Island / Queens,Skinfluence,Dix Hills,NY,11746,Sonia Mace,Existing,4,4824.0,2026-05-14,2025-10-14,CLAIMED (stays w/ rep),1
+Long Island / Queens,We Drive Health,Albertson,NY,11507,Sonia Mace,Existing,2,3375.0,2026-03-27,2025-12-16,CLAIMED (stays w/ rep),1
+Long Island / Queens,NYBRA Plastic Surgery,Great Neck,NY,11021,Sonia Mace,Existing,1,2301.75,2026-05-29,2026-05-29,CLAIMED (stays w/ rep),1
+Long Island / Queens,Erin Negron,Smithtown,NY,11787,Sonia Mace,Existing,1,1687.5,2026-04-24,2026-04-24,CLAIMED (stays w/ rep),1
+Long Island / Queens,Loveyourskinbyev,Valley Stream,NY,11581,,,1,1687.5,2025-08-25,2025-08-25,OPEN (1099 white space),1
+Long Island / Queens,Port MD Medical Wellness,Port Jefferson,NY,11777,,,1,1687.5,2025-03-28,2025-03-28,OPEN (1099 white space),1
+Long Island / Queens,Revivaluxe Aesthetics and Wellness,Garden City,NY,11530,Sonia Mace,Existing,1,1687.5,2026-03-10,2026-03-10,CLAIMED (stays w/ rep),1
+Long Island / Queens,Vixsthetics,Merrick,NY,11566,Sonia Mace,Existing,1,1687.5,2026-03-31,2026-03-31,CLAIMED (stays w/ rep),1
+Long Island / Queens,Samukh Sood,Garden City,NY,11530,,,5,869.0,2026-04-23,2026-03-27,OPEN (1099 white space),1
+Nevada (Las Vegas),Vivida Dermatology,Las Vegas,NV,89148,James Tuckett,New,3,6322.5,2026-04-27,2026-02-03,CLAIMED (stays w/ rep),1
+Nevada (Las Vegas),Skin Cancer & Dermatology Institute,Reno,NV,89509,Denisse Schimelpfening,Existing,2,3375.0,2025-10-28,2025-09-08,CLAIMED (stays w/ rep),1
+Nevada (Las Vegas),SLS Aesthetics LV,Henderson,NV,89044,James Tuckett,New,2,3375.0,2026-06-02,2025-10-29,CLAIMED (stays w/ rep),1
+Nevada (Las Vegas),United Dermpartners,Reno,NV,89509,James Tuckett,New,2,3375.0,2026-03-20,2026-01-13,CLAIMED (stays w/ rep),1
+Nevada (Las Vegas),Velvaere Aesthetics,Henderson,NV,89012,James Tuckett,New,1,2062.5,2026-03-16,2026-03-16,CLAIMED (stays w/ rep),1
+Nevada (Las Vegas),Christen Bryant,Las Vegas,NV,89145,Denisse Schimelpfening,Existing,1,1687.5,2025-06-03,2025-06-03,CLAIMED (stays w/ rep),1
+Nevada (Las Vegas),Hall and Wrye Plastic Surgeons and Medical Spa,Reno,NV,89511,,,1,1687.5,2024-10-01,2024-10-01,OPEN (1099 white space),1
+Nevada (Las Vegas),Limitless Longevity,Henderson,NV,89012,James Tuckett,New,1,1687.5,2026-03-06,2026-03-06,CLAIMED (stays w/ rep),1
+Nevada (Las Vegas),Vitality Forever,Las Vegas,NV,89113,Becky Curry,Existing,1,1687.5,2024-08-09,2024-08-09,CLAIMED (stays w/ rep),1
+Nevada (Las Vegas),Elever Aesthetics and Wellness,Henderson,NV,89002,Denisse Schimelpfening,Existing,1,1587.5,2025-12-29,2025-12-29,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Skin Beautiful Rx,Powell,OH,43065,Sherry Quinn,Existing,12,59389.5,2026-05-29,2026-01-09,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Revital Medical Aesthetics,Westlake,OH,44145,Sherry Quinn,Existing,2,13567.5,2025-09-25,2025-07-25,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Pura Vida Wellness,Mentor,OH,44060,Sherry Quinn,Existing,7,12663.0,2026-04-02,2025-06-03,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Queen City Dermatology,Cincinnati,OH,45249,Sherry Quinn,Existing,6,10125.0,2026-06-05,2025-08-22,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),ADA Aesthetics l Dermatology Associates,Perrysburg,OH,43551,Sherry Quinn,Existing,6,9956.25,2026-06-02,2024-12-06,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Lucy's Laser & Med Spa,Mentor,OH,44060,Sherry Quinn,Existing,3,8077.5,2026-03-18,2025-07-23,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Cincinnati Skin Center,Cincinnati,OH,45236,Sherry Quinn,Existing,4,7920.0,2026-05-27,2025-10-28,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Allied Dermatology,Akron,OH,44333,Sherry Quinn,Existing,4,6581.25,2026-04-08,2025-01-06,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Jenerous Hydration,Dover,OH,44622,Sherry Quinn,Existing,2,6557.81,2026-06-10,2026-05-22,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Mitchell Dermatolgy,Perrysburg,OH,43551,Sherry Quinn,Existing,4,6412.5,2026-01-23,2025-03-28,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Columbus Aesthetics and Plastic Surgery,Upper Arlington,OH,43220,Sherry Quinn,Existing,5,6367.5,2026-06-02,2025-08-27,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Megs Med Spa,Willoughby,OH,44094,Sherry Quinn,Existing,2,6210.0,2026-03-20,2025-06-17,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Columbus Aesthetics and Plastic Surgery,Gahanna,OH,43230,Sherry Quinn,Existing,4,6052.5,2026-04-13,2025-08-27,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Kelly Gericke,Archbold,OH,43502,Sherry Quinn,Existing,4,5175.0,2026-05-29,2025-07-18,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Cosmopolitan Dermatology,Shaker Heights,OH,44122,Sherry Quinn,Existing,3,5062.5,2026-04-29,2025-12-17,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Parker Skin & Aesthetic Clinic,Beachwood,OH,44122,Sherry Quinn,Existing,3,5062.5,2026-06-02,2025-09-30,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),The Concierge Clinic,Brecksville,OH,44141,Sherry Quinn,Existing,3,5062.5,2026-06-04,2026-02-05,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Willow Boutique Med Spa,Avon,OH,44011,Sherry Quinn,Existing,3,5062.5,2026-04-30,2025-08-11,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Apex Dermatology of Mayfield Heights,Mayfield Heights,OH,44124,Sherry Quinn,Existing,3,4882.5,2026-06-17,2026-03-05,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),The Standard Med Spa,North Royalton,OH,44133,Sherry Quinn,Existing,2,4732.5,2026-04-23,2026-04-13,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Ada Aesthetics,Perrysburg,OH,43551,Sherry Quinn,Existing,2,3375.0,2025-06-09,2025-03-24,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Docere Med Spa,Strongsville,OH,44136,Sherry Quinn,Existing,2,3375.0,2026-06-09,2025-12-03,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Revive Wellness Group,Perrysburg,OH,43551,Sherry Quinn,Existing,2,3375.0,2026-04-22,2026-02-11,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),The Facebar,Columbus,OH,43230,Sherry Quinn,Existing,3,3375.0,2026-03-23,2025-11-20,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),B Radiant Wellness,Newcomerstown,OH,43832,Sherry Quinn,Existing,1,3345.0,2026-04-07,2026-04-07,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Apex Dermatology,Canton,OH,44718,Sherry Quinn,Existing,2,3195.0,2026-04-02,2025-11-21,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Apex Skin Medina,Medina,OH,44256,Sherry Quinn,Existing,2,3195.0,2026-06-17,2026-03-05,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Apex Dermatology,Mayfield Heights,OH,44124,Sherry Quinn,Existing,2,2941.88,2025-11-21,2025-08-27,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Undynable Wellness and Aesthetics,Toledo,OH,43606,Sherry Quinn,Existing,1,2719.13,2026-04-30,2026-04-30,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Aesthete Skin Studio,Westerville,OH,43082,Sherry Quinn,Existing,1,1687.5,2026-05-22,2026-05-22,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Apex Dermatology Concord,Concord Township,OH,44077,Sherry Quinn,Existing,1,1687.5,2026-04-10,2026-04-10,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Cleer Skin Aesthetics,Greenville,OH,45331,Sherry Quinn,Existing,1,1687.5,2026-01-12,2026-01-12,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Cleveland Health Group,Independence,OH,44131,Sherry Quinn,Existing,1,1687.5,2026-01-29,2026-01-29,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Em + Zen Aesthetic Medicine,Upper Arlington,OH,43221,Sherry Quinn,Existing,1,1687.5,2026-03-05,2026-03-05,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Emerald Aesthetics,Dublin,OH,43017,Sherry Quinn,Existing,1,1687.5,2026-03-05,2026-03-05,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Glow Bar Aesthetics,Broadview Heights,OH,44147,Sherry Quinn,Existing,1,1687.5,2025-12-05,2025-12-05,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),"Refined Aesthetics, LLC",Hudson,OH,44236,Sherry Quinn,Existing,1,1687.5,2025-12-15,2025-12-15,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Rocky River Med Spa,Rocky River,OH,44116,Sherry Quinn,Existing,1,1687.5,2026-03-19,2026-03-19,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Youthology Med Spa,Warren,OH,44483,Sherry Quinn,Existing,1,1687.5,2026-04-06,2026-04-06,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Onsite Medical,Sugarcreek,OH,44681,Sherry Quinn,Existing,1,1518.75,2025-06-02,2025-06-02,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Peace Love Tox,Chagrin Falls,OH,44022,,,1,1518.75,2025-01-10,2025-01-10,OPEN (1099 white space),1
+Ohio (Columbus/Cleveland),Apex Dermatology,Lorain,OH,44053,Sherry Quinn,Existing,1,1507.5,2025-11-21,2025-11-21,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Apex Skin Hudson,Hudson,OH,44236,Sherry Quinn,Existing,1,1507.5,2026-03-05,2026-03-05,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Juvly Aesthetics-Cincinnati,Cincinnati,OH,45209,Sherry Quinn,Existing,1,1507.5,2026-05-18,2026-05-18,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Juvly Aesthetics-Cleveland,Cleveland,OH,44113,Sherry Quinn,Existing,1,1507.5,2026-05-18,2026-05-18,CLAIMED (stays w/ rep),1
+Ohio (Columbus/Cleveland),Juvly Aesthetics-Downtown Columbus,Columbus,OH,43215,Sherry Quinn,Existing,1,1507.5,2026-05-18,2026-05-18,CLAIMED (stays w/ rep),1
+Brooklyn / Staten Island,Osei-Tutu Dermatology & Hair Restoration,Brooklyn,NY,11226,Sonia Mace,Existing,8,13443.75,2026-03-12,2024-10-22,CLAIMED (stays w/ rep),2
+Brooklyn / Staten Island,Khrom Aesthetics,Brooklyn,NY,11235,Sonia Mace,Existing,4,6581.25,2026-02-23,2025-03-13,CLAIMED (stays w/ rep),2
+Brooklyn / Staten Island,IACT MedSpa,Staten Island,NY,10314,,,1,1687.5,2025-08-20,2025-08-20,OPEN (1099 white space),2
+Brooklyn / Staten Island,Sunrise Medical Center,Brooklyn,NY,11220,Dia Lamport,Existing,1,1687.5,2025-11-05,2025-11-05,CLAIMED (stays w/ rep),2
+Brooklyn / Staten Island,Vanguard Dermatology,Staten Island,NY,10314,Sonia Mace,Existing,1,1687.5,2026-06-09,2026-06-09,CLAIMED (stays w/ rep),2
+Brooklyn / Staten Island,Vedette Beauty & Skincare,Brooklyn,NY,11210,Sonia Mace,Existing,1,1687.5,2026-02-03,2026-02-03,CLAIMED (stays w/ rep),2
+Houston / South Texas,321 Skin Glow Med Spa,Conroe,TX,77385,Lexi Cavaliere,1099,10,48650.25,2026-05-12,2025-08-31,CLAIMED (stays w/ rep),2
+Houston / South Texas,Bellaire Dermatology,Bellaire,TX,77401,Lexi Cavaliere,1099,17,32710.5,2026-06-03,2024-10-24,CLAIMED (stays w/ rep),2
+Houston / South Texas,Therapy Hair Studio,Houston,TX,77027,Lexi Cavaliere,1099,5,15648.75,2026-02-03,2024-12-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Westlake Dermatology,Austin,TX,78746,Lexi Cavaliere,1099,5,14895.0,2026-05-18,2025-08-01,CLAIMED (stays w/ rep),2
+Houston / South Texas,C2 AESTHETICS,Leander,TX,78641,Lexi Cavaliere,1099,8,13500.0,2026-05-21,2024-11-07,CLAIMED (stays w/ rep),2
+Houston / South Texas,The SkinMD,SAN ANTONIO,TX,78249,Lexi Cavaliere,1099,5,12640.5,2025-12-22,2025-02-13,CLAIMED (stays w/ rep),2
+Houston / South Texas,Texas Dermatology,San Antonio,TX,78218,Lexi Cavaliere,1099,7,11812.5,2026-04-22,2025-05-27,CLAIMED (stays w/ rep),2
+Houston / South Texas,Skin Parlor,Austin,TX,78745,Lexi Cavaliere,1099,6,11463.75,2026-03-10,2025-02-10,CLAIMED (stays w/ rep),2
+Houston / South Texas,Houston Dermatology Associates,Houston,TX,77030,Lexi Cavaliere,1099,6,11272.5,2026-05-12,2025-07-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Cinco Ranch Dermatology,Katy,TX,77494,Lexi Cavaliere,1099,5,10320.75,2026-05-27,2025-01-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Sanova Dermatology,Bee Cave,TX,78738,Lexi Cavaliere,1099,6,10125.0,2026-04-09,2025-06-20,CLAIMED (stays w/ rep),2
+Houston / South Texas,The One Med Spa,McAllen,TX,78501,Lexi Cavaliere,1099,2,9045.0,2026-04-28,2025-11-25,CLAIMED (stays w/ rep),2
+Houston / South Texas,Complete Dermatology: Dr. Baumgardener & Dr. Wolf,Shenandoah,TX,77384,Lexi Cavaliere,1099,5,8437.5,2026-02-03,2025-01-31,CLAIMED (stays w/ rep),2
+Houston / South Texas,Four Seasons OBGYN+MedSpa,San Antonio,TX,78229,Lexi Cavaliere,1099,5,8437.5,2026-05-14,2025-04-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,830 Wellness,Kerrville,TX,78028,Lexi Cavaliere,1099,5,8268.75,2026-04-20,2025-09-05,CLAIMED (stays w/ rep),2
+Houston / South Texas,River Oaks Galleria Med Spa,Houston,TX,77027,Lexi Cavaliere,1099,5,8268.75,2026-04-15,2025-09-24,CLAIMED (stays w/ rep),2
+Houston / South Texas,The Doctors Office,San Antonio,TX,78232,Lexi Cavaliere,1099,3,8077.5,2026-05-18,2025-09-23,CLAIMED (stays w/ rep),2
+Houston / South Texas,Village Dermatology,Houston,TX,77063,Lexi Cavaliere,1099,3,8077.5,2026-04-28,2025-04-10,CLAIMED (stays w/ rep),2
+Houston / South Texas,Hassler Dermatology,Houston,TX,77008,Lexi Cavaliere,1099,3,7917.75,2026-02-03,2025-02-25,CLAIMED (stays w/ rep),2
+Houston / South Texas,SKIN BY DEEP ROOTS,Cedar Park,TX,78613,Lexi Cavaliere,1099,4,7898.0,2025-05-12,2024-09-25,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Skin by Deep Roots, Cedar Park",Cedar Park,TX,78613,Lexi Cavaliere,1099,5,7620.0,2026-06-09,2025-09-10,CLAIMED (stays w/ rep),2
+Houston / South Texas,Rejuvenate Austin,Austin,TX,78703,Lexi Cavaliere,1099,3,7396.5,2026-05-14,2025-03-14,CLAIMED (stays w/ rep),2
+Houston / South Texas,Hydration Station,Fredericksburg,TX,78624,Lexi Cavaliere,1099,5,7113.75,2026-06-04,2025-08-28,CLAIMED (stays w/ rep),2
+Houston / South Texas,Alive and Well,Austin,TX,78736,Julie Fetter,Existing,4,6750.0,2025-12-22,2025-05-15,CLAIMED (stays w/ rep),2
+Houston / South Texas,Bulverde Med Spa,Bulverde,TX,78163,Lexi Cavaliere,1099,4,6750.0,2026-05-20,2025-10-06,CLAIMED (stays w/ rep),2
+Houston / South Texas,Fresh Aesthetics,Austin,TX,78746,Lexi Cavaliere,1099,4,6750.0,2026-05-15,2025-08-27,CLAIMED (stays w/ rep),2
+Houston / South Texas,REFINE AESTHETICS,Austin,TX,78701,Lexi Cavaliere,1099,4,6750.0,2025-09-04,2024-10-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Saxon MD Facial Plastic Surgery,Austin,TX,78737,Lexi Cavaliere,1099,4,6750.0,2026-03-04,2025-06-18,CLAIMED (stays w/ rep),2
+Houston / South Texas,Mindful Skin Dermatology,San Antonio,TX,78216,Lexi Cavaliere,1099,2,6210.0,2026-06-11,2026-05-22,CLAIMED (stays w/ rep),2
+Houston / South Texas,Oceanside Aesthetics & Wellness,Corpus Christi,TX,78418,Lexi Cavaliere,1099,5,5932.5,2026-06-12,2025-11-25,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Sonder Aesthetics, LLC",Beaumont,TX,77701,Lexi Cavaliere,1099,4,5763.75,2026-05-28,2025-11-26,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Advanced Dermatology,  a Forefront Dermatology Practice",Sugar Land,TX,77478,Lexi Cavaliere,1099,3,5062.5,2026-04-14,2025-11-12,CLAIMED (stays w/ rep),2
+Houston / South Texas,Beyond Healthy MD,Austin,TX,78746,Lexi Cavaliere,1099,3,5062.5,2026-04-15,2025-06-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,BODY TONIC,Austin,TX,78746,Lexi Cavaliere,1099,3,5062.5,2025-08-27,2024-09-13,CLAIMED (stays w/ rep),2
+Houston / South Texas,Muse Medspa,Austin,TX,78746,Lexi Cavaliere,1099,3,5062.5,2026-02-24,2025-06-06,CLAIMED (stays w/ rep),2
+Houston / South Texas,Nova Aesthetics,San Antonio,TX,78216,Lexi Cavaliere,1099,3,5062.5,2026-04-22,2025-11-19,CLAIMED (stays w/ rep),2
+Houston / South Texas,Rooted Femme,Austin,TX,78756,Lexi Cavaliere,1099,3,5062.5,2026-03-24,2025-05-06,CLAIMED (stays w/ rep),2
+Houston / South Texas,San Antonio Med Spa,San Antonio,TX,78257,Lexi Cavaliere,1099,3,5062.5,2026-04-10,2025-09-19,CLAIMED (stays w/ rep),2
+Houston / South Texas,Skin Envy,Austin,TX,78745,Lexi Cavaliere,1099,3,5062.5,2026-04-29,2024-12-20,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Rêve Dermatology & Aesthetics, LLC",The Woodlands,TX,77380,Lexi Cavaliere,1099,3,4893.75,2026-03-13,2025-03-24,CLAIMED (stays w/ rep),2
+Houston / South Texas,WaxPro Esthetics,Willis,TX,77318,Lexi Cavaliere,1099,3,4893.75,2026-06-05,2025-10-24,CLAIMED (stays w/ rep),2
+Houston / South Texas,Barbarino Surgical Arts,Austin,TX,78746,Lexi Cavaliere,1099,3,4809.37,2025-09-30,2024-11-18,CLAIMED (stays w/ rep),2
+Houston / South Texas,Generational Beauty Medspa,The Woodlands,TX,77381,Lexi Cavaliere,1099,2,4713.75,2026-02-03,2025-12-04,CLAIMED (stays w/ rep),2
+Houston / South Texas,Mederna Aesthetics and Wellness-Attn: Hilda Banegas,Houston,TX,77007,Lexi Cavaliere,1099,3,4563.0,2025-10-20,2025-02-14,CLAIMED (stays w/ rep),2
+Houston / South Texas,Bay Area Aesthetics,Webster,TX,77598,Becky Curry,Existing,1,4522.5,2024-08-21,2024-08-21,CLAIMED (stays w/ rep),2
+Houston / South Texas,Glamour Plastic Surgery and Med Spa,Bellaire,TX,77401,Lexi Cavaliere,1099,1,4070.25,2026-03-04,2026-03-04,CLAIMED (stays w/ rep),2
+Houston / South Texas,Skin 101 Spring,Spring,TX,77379,Lexi Cavaliere,1099,1,4070.25,2024-11-22,2024-11-22,CLAIMED (stays w/ rep),2
+Houston / South Texas,SKN Houston,Houston,TX,77006,Lexi Cavaliere,1099,1,4070.25,2025-01-25,2025-01-25,CLAIMED (stays w/ rep),2
+Houston / South Texas,Attract Aesthetics,Austin,TX,78745,Lexi Cavaliere,1099,1,4021.5,2026-04-21,2026-04-21,CLAIMED (stays w/ rep),2
+Houston / South Texas,REvIVe MedSpa & Wellness,Friendswood,TX,77546,Lexi Cavaliere,1099,3,3491.39,2026-04-16,2026-02-27,CLAIMED (stays w/ rep),2
+Houston / South Texas,Advanced Dermatology-A Forefront Derm Practice,Houston,TX,77084,Lexi Cavaliere,1099,2,3375.0,2026-04-03,2026-02-19,CLAIMED (stays w/ rep),2
+Houston / South Texas,Ann Webb Skin Clinic,Austin,TX,78759,Lexi Cavaliere,1099,2,3375.0,2026-02-26,2025-10-22,CLAIMED (stays w/ rep),2
+Houston / South Texas,AUSTIN PLASTIC SURGERY INSTITUTE,West Lake Hills,TX,78746,Lexi Cavaliere,1099,2,3375.0,2025-04-16,2024-11-08,CLAIMED (stays w/ rep),2
+Houston / South Texas,Kingwood Skin Essentials & Med Spa,Kingwood,TX,77339,Lexi Cavaliere,1099,2,3375.0,2025-08-31,2025-04-29,CLAIMED (stays w/ rep),2
+Houston / South Texas,LaVraie Beaute',Boerne,TX,78006,Lexi Cavaliere,1099,2,3375.0,2026-04-20,2025-11-17,CLAIMED (stays w/ rep),2
+Houston / South Texas,Micallef Plastic Surgery,Shavano Park,TX,78249,Lexi Cavaliere,1099,2,3375.0,2026-04-01,2025-10-15,CLAIMED (stays w/ rep),2
+Houston / South Texas,"O Young, MD",Kerrville,TX,78028,Lexi Cavaliere,1099,2,3375.0,2026-05-15,2025-10-31,CLAIMED (stays w/ rep),2
+Houston / South Texas,Pure Med Aesthetics,Edinburg,TX,78539,Lexi Cavaliere,1099,2,3375.0,2026-04-21,2026-03-05,CLAIMED (stays w/ rep),2
+Houston / South Texas,Rae Anne Aesthetics,Spring,TX,77379,Lexi Cavaliere,1099,2,3375.0,2025-07-30,2025-03-11,CLAIMED (stays w/ rep),2
+Houston / South Texas,Sanova Dermatology-Pflugerville,Pflugerville,TX,78660,Lexi Cavaliere,1099,2,3375.0,2026-05-22,2025-11-19,CLAIMED (stays w/ rep),2
+Houston / South Texas,Saving Face,Austin,TX,78701,Lexi Cavaliere,1099,2,3375.0,2025-12-18,2025-09-26,CLAIMED (stays w/ rep),2
+Houston / South Texas,Seeker Professional Aesthetics,Austin,TX,78758,Lexi Cavaliere,1099,2,3375.0,2026-03-20,2025-12-09,CLAIMED (stays w/ rep),2
+Houston / South Texas,Sparkle Beauty & Wellness,Weslaco,TX,78599,Lexi Cavaliere,1099,2,3375.0,2026-05-21,2026-01-05,CLAIMED (stays w/ rep),2
+Houston / South Texas,The Limmer Hair Transplant Center,San Antonio,TX,78213,Lexi Cavaliere,1099,2,3375.0,2026-04-21,2025-09-03,CLAIMED (stays w/ rep),2
+Houston / South Texas,Beauty Dare Aesthetics,Laredo,TX,78046,Lexi Cavaliere,1099,2,3206.25,2026-02-06,2025-07-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,"RenewedYou, LLC",Corpus Christi,TX,78414,Lexi Cavaliere,1099,2,3206.25,2026-04-02,2025-07-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Revolution Aesthetics and Wellness,Magnolia,TX,77354,Lexi Cavaliere,1099,2,3206.25,2026-02-03,2025-06-10,CLAIMED (stays w/ rep),2
+Houston / South Texas,Unbothered Beauty Medspa,Huntsville,TX,77340,Lexi Cavaliere,1099,2,3206.25,2026-04-29,2026-02-05,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Monarch Master Injectors, Inc.",Baytown,TX,77523,Lexi Cavaliere,1099,1,3195.0,2025-09-30,2025-09-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Alchemy Beauty,Austin,TX,78756,Lexi Cavaliere,1099,1,3037.5,2026-04-29,2026-04-29,CLAIMED (stays w/ rep),2
+Houston / South Texas,Kare Infusion Center & Aesthetics,Beaumont,TX,77706,Lexi Cavaliere,1099,2,3037.5,2025-09-26,2025-03-26,CLAIMED (stays w/ rep),2
+Houston / South Texas,Posh Tox Glow,Portland,TX,78374,Lexi Cavaliere,1099,2,3037.5,2025-11-18,2025-07-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Complete Skin MD,Sugar Land,TX,77479,Lexi Cavaliere,1099,1,2875.5,2026-02-25,2026-02-25,CLAIMED (stays w/ rep),2
+Houston / South Texas,Medspa at Villagio,Katy,TX,77450,Lexi Cavaliere,1099,1,2868.75,2024-12-30,2024-12-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Austin Plastic & Reconstructive Surgery,Austin,TX,78705,Lexi Cavaliere,1099,1,2557.5,2026-04-06,2026-04-06,CLAIMED (stays w/ rep),2
+Houston / South Texas,Best Life Healthcare,Dickinson,TX,77539,Lexi Cavaliere,1099,1,1837.5,2026-03-27,2026-03-27,CLAIMED (stays w/ rep),2
+Houston / South Texas,COR Aesthetics,Round Rock,TX,78665,Lexi Cavaliere,1099,1,1837.5,2026-06-03,2026-06-03,CLAIMED (stays w/ rep),2
+Houston / South Texas,The Aligne Method Aesthetics and Wellness,Shepherd,TX,77371,Lexi Cavaliere,1099,1,1837.5,2026-05-26,2026-05-26,CLAIMED (stays w/ rep),2
+Houston / South Texas,Ace Plastic Surgery,Boerne,TX,78006,Lexi Cavaliere,1099,1,1687.5,2026-03-10,2026-03-10,CLAIMED (stays w/ rep),2
+Houston / South Texas,Advanced Dermatology-A Forefront Derm Practice,Pearland,TX,77584,Lexi Cavaliere,1099,1,1687.5,2026-02-10,2026-02-10,CLAIMED (stays w/ rep),2
+Houston / South Texas,Alive and Well-Retail Team,Bee Cave,TX,78738,Lexi Cavaliere,1099,1,1687.5,2026-05-12,2026-05-12,CLAIMED (stays w/ rep),2
+Houston / South Texas,Aura Wellness & Aesthetics,San Antonio,TX,78232,Lexi Cavaliere,1099,1,1687.5,2026-06-12,2026-06-12,CLAIMED (stays w/ rep),2
+Houston / South Texas,Austin Med Spa,Austin,TX,78703,Lexi Cavaliere,1099,1,1687.5,2024-11-07,2024-11-07,CLAIMED (stays w/ rep),2
+Houston / South Texas,AUVEAU MEDSPA,Austin,TX,78746,Lexi Cavaliere,1099,1,1687.5,2024-10-18,2024-10-18,CLAIMED (stays w/ rep),2
+Houston / South Texas,B+A Medical Aesthetics,Cedar Park,TX,78613,Lexi Cavaliere,1099,1,1687.5,2026-05-29,2026-05-29,CLAIMED (stays w/ rep),2
+Houston / South Texas,B+A Medical Surgeons,Cedar Park,TX,78613,Lexi Cavaliere,1099,1,1687.5,2026-05-29,2026-05-29,CLAIMED (stays w/ rep),2
+Houston / South Texas,Belavie Wellness Clinic,McAllen,TX,78504,Lexi Cavaliere,1099,1,1687.5,2026-05-29,2026-05-29,CLAIMED (stays w/ rep),2
+Houston / South Texas,Belle Ame Aesthetics,La Vernia,TX,78121,Lexi Cavaliere,1099,1,1687.5,2025-12-24,2025-12-24,CLAIMED (stays w/ rep),2
+Houston / South Texas,Complete Dermatology: Dr. Baumgardener & Dr. Wolf,Sugar Land,TX,77479,Lexi Cavaliere,1099,1,1687.5,2026-06-04,2026-06-04,CLAIMED (stays w/ rep),2
+Houston / South Texas,Elara Aesthetics,Boerne,TX,78006,Lexi Cavaliere,1099,1,1687.5,2026-02-13,2026-02-13,CLAIMED (stays w/ rep),2
+Houston / South Texas,Ella Medical Aesthetics,West Lake Hills,TX,78746,Lexi Cavaliere,1099,1,1687.5,2025-05-15,2025-05-15,CLAIMED (stays w/ rep),2
+Houston / South Texas,Emerald Aesthetics and Wellness,Houston,TX,77079,Lexi Cavaliere,1099,1,1687.5,2025-02-04,2025-02-04,CLAIMED (stays w/ rep),2
+Houston / South Texas,Glow Up Drip Spa,Seabrook,TX,77586,Lexi Cavaliere,1099,1,1687.5,2025-01-20,2025-01-20,CLAIMED (stays w/ rep),2
+Houston / South Texas,Good Medicine,New Braunfels,TX,78130,Lexi Cavaliere,1099,1,1687.5,2025-11-23,2025-11-23,CLAIMED (stays w/ rep),2
+Houston / South Texas,HAPPY BODY ATX,Austin,TX,78738,Lexi Cavaliere,1099,1,1687.5,2024-12-02,2024-12-02,CLAIMED (stays w/ rep),2
+Houston / South Texas,Haus of Aesthetics,San Antonio,TX,78240,Lexi Cavaliere,1099,1,1687.5,2025-11-19,2025-11-19,CLAIMED (stays w/ rep),2
+Houston / South Texas,Helotes Derma Aesthetics,Helotes,TX,78023,Lexi Cavaliere,1099,1,1687.5,2026-02-03,2026-02-03,CLAIMED (stays w/ rep),2
+Houston / South Texas,Hibiscus Aesthetics and Wellness,Katy,TX,77494,Lexi Cavaliere,1099,1,1687.5,2026-04-22,2026-04-22,CLAIMED (stays w/ rep),2
+Houston / South Texas,Integrative Wellness & Aesthetics,Laredo,TX,78041,Lexi Cavaliere,1099,1,1687.5,2026-02-27,2026-02-27,CLAIMED (stays w/ rep),2
+Houston / South Texas,Jovem Med Spa,San Antonio,TX,78257,Lexi Cavaliere,1099,1,1687.5,2025-10-10,2025-10-10,CLAIMED (stays w/ rep),2
+Houston / South Texas,Just Peachie Wellness,Victoria,TX,77901,Lexi Cavaliere,1099,1,1687.5,2026-02-17,2026-02-17,CLAIMED (stays w/ rep),2
+Houston / South Texas,Kalon Aesthetics + Wellness,Austin,TX,78737,Lexi Cavaliere,1099,1,1687.5,2025-02-24,2025-02-24,CLAIMED (stays w/ rep),2
+Houston / South Texas,La Bella Med Aesthetics,Austin,TX,78747,Lexi Cavaliere,1099,1,1687.5,2026-02-18,2026-02-18,CLAIMED (stays w/ rep),2
+Houston / South Texas,Luxe Lift in Drip,Austin,TX,78737,Lexi Cavaliere,1099,1,1687.5,2026-04-30,2026-04-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Luxury Aesthetics LLC,Canyon Lake,TX,78133,Lexi Cavaliere,1099,1,1687.5,2025-12-29,2025-12-29,CLAIMED (stays w/ rep),2
+Houston / South Texas,Luxxe Wellness & Beauty,San Antonio,TX,78258,Lexi Cavaliere,1099,1,1687.5,2026-03-12,2026-03-12,CLAIMED (stays w/ rep),2
+Houston / South Texas,Mederna Aesthetics and Wellness,Houston,TX,77007,Lexi Cavaliere,1099,1,1687.5,2025-01-15,2025-01-15,CLAIMED (stays w/ rep),2
+Houston / South Texas,MedsapatVillago,Katy,TX,77450,Lexi Cavaliere,1099,1,1687.5,2024-11-26,2024-11-26,CLAIMED (stays w/ rep),2
+Houston / South Texas,Melissa Gibbens Aesthetics and Wellness,Houston,TX,77079,Lexi Cavaliere,1099,1,1687.5,2025-01-20,2025-01-20,CLAIMED (stays w/ rep),2
+Houston / South Texas,Mercy Med Spa,Weslaco,TX,78596,Lexi Cavaliere,1099,1,1687.5,2026-04-28,2026-04-28,CLAIMED (stays w/ rep),2
+Houston / South Texas,Monarch Wellness & Aesthetics Lounge,Baytown,TX,77521,Lexi Cavaliere,1099,1,1687.5,2026-06-09,2026-06-09,CLAIMED (stays w/ rep),2
+Houston / South Texas,North Star Med Spa,Houston,TX,77089,Lexi Cavaliere,1099,1,1687.5,2024-12-16,2024-12-16,CLAIMED (stays w/ rep),2
+Houston / South Texas,Parkhurst Luxe Medical Spa,San Antonio,TX,78229,Lexi Cavaliere,1099,1,1687.5,2025-10-06,2025-10-06,CLAIMED (stays w/ rep),2
+Houston / South Texas,Plastic Surgery of Austin,Lakeway,TX,78738,Lexi Cavaliere,1099,1,1687.5,2026-03-12,2026-03-12,CLAIMED (stays w/ rep),2
+Houston / South Texas,Priscilla Medical Aesthetics,McAllen,TX,78504,Lexi Cavaliere,1099,1,1687.5,2026-04-27,2026-04-27,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Rejuvilux Wellness, PLLC",San Antonio,TX,78251,Lexi Cavaliere,1099,1,1687.5,2025-12-04,2025-12-04,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Rise Med Spa, PLLC",Houston,TX,77094,Lexi Cavaliere,1099,1,1687.5,2026-04-15,2026-04-15,CLAIMED (stays w/ rep),2
+Houston / South Texas,Savage Beauty,Fredericksburg,TX,78624,Lexi Cavaliere,1099,1,1687.5,2026-06-12,2026-06-12,CLAIMED (stays w/ rep),2
+Houston / South Texas,Seoul Glow Clinic,Conroe,TX,77302,Lexi Cavaliere,1099,1,1687.5,2025-12-08,2025-12-08,CLAIMED (stays w/ rep),2
+Houston / South Texas,Simple Radiance Medspa,Austin,TX,78731,Lexi Cavaliere,1099,1,1687.5,2025-03-31,2025-03-31,CLAIMED (stays w/ rep),2
+Houston / South Texas,Skin Perfections,Brownsville,TX,78526,Lexi Cavaliere,1099,1,1687.5,2026-04-20,2026-04-20,CLAIMED (stays w/ rep),2
+Houston / South Texas,SKN FIT,Corpus Christi,TX,78411,Lexi Cavaliere,1099,1,1687.5,2026-05-29,2026-05-29,CLAIMED (stays w/ rep),2
+Houston / South Texas,Snyder Dermatology,Austin,TX,78703,Lexi Cavaliere,1099,1,1687.5,2026-02-03,2026-02-03,CLAIMED (stays w/ rep),2
+Houston / South Texas,Sotelo Dermatology,McAllen,TX,78504,Lexi Cavaliere,1099,1,1687.5,2026-05-13,2026-05-13,CLAIMED (stays w/ rep),2
+Houston / South Texas,Suzette Schmidt,Austin,TX,78703,Lexi Cavaliere,1099,1,1687.5,2025-09-12,2025-09-12,CLAIMED (stays w/ rep),2
+Houston / South Texas,The Limmer Hair Transplant Center,San Antonio,TX,78216,Lexi Cavaliere,1099,1,1687.5,2025-02-12,2025-02-12,CLAIMED (stays w/ rep),2
+Houston / South Texas,The Skin MD,Shavano Park,TX,78249,Lexi Cavaliere,1099,1,1687.5,2024-12-04,2024-12-04,CLAIMED (stays w/ rep),2
+Houston / South Texas,Tran Ha Aesthetics,Richmond,TX,77407,Jamie Bergeron,Existing,1,1687.5,2026-06-02,2026-06-02,CLAIMED (stays w/ rep),2
+Houston / South Texas,Tulua Aesthetics and Wellness,Rosharon,TX,77583,Lexi Cavaliere,1099,1,1687.5,2024-11-22,2024-11-22,CLAIMED (stays w/ rep),2
+Houston / South Texas,Vibrant Medspa,Round Rock,TX,78665,Lexi Cavaliere,1099,1,1687.5,2024-12-13,2024-12-13,CLAIMED (stays w/ rep),2
+Houston / South Texas,Z Aesthetics,Laredo,TX,78041,Lexi Cavaliere,1099,1,1687.5,2026-03-23,2026-03-23,CLAIMED (stays w/ rep),2
+Houston / South Texas,"A Glow Everlasting Beauty, LLC",League City,TX,77573,Lexi Cavaliere,1099,1,1518.75,2025-07-30,2025-07-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Aesthetic House,The Woodlands,TX,77380,Lexi Cavaliere,1099,1,1518.75,2026-03-13,2026-03-13,CLAIMED (stays w/ rep),2
+Houston / South Texas,Aura Beauty + Aesthetics,Spring,TX,77381,Lexi Cavaliere,1099,1,1518.75,2026-03-02,2026-03-02,CLAIMED (stays w/ rep),2
+Houston / South Texas,Clean Slate Esthetics,Friendswood,TX,77546,Lexi Cavaliere,1099,1,1518.75,2025-10-31,2025-10-31,CLAIMED (stays w/ rep),2
+Houston / South Texas,Halo and Harmony,Alvin,TX,77511,Lexi Cavaliere,1099,1,1518.75,2025-09-24,2025-09-24,CLAIMED (stays w/ rep),2
+Houston / South Texas,Kai Spa,Houston,TX,77027,Lexi Cavaliere,1099,1,1518.75,2026-05-28,2026-05-28,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Kelly Skin & Health, LLC dba DRVN Aesthetics",Conroe,TX,77304,Lexi Cavaliere,1099,1,1518.75,2025-12-22,2025-12-22,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Lonestar Wellness & Aesthetics, PLLC",Fredericksburg,TX,78624,Lexi Cavaliere,1099,1,1518.75,2026-02-06,2026-02-06,CLAIMED (stays w/ rep),2
+Houston / South Texas,"Luxe Aesthetics and Wellness, PLLC",Alice,TX,78332,Lexi Cavaliere,1099,1,1518.75,2025-07-30,2025-07-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Muy Bueno Injections,San Antonio,TX,78260,Lexi Cavaliere,1099,1,1518.75,2025-07-30,2025-07-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,Revive Health Solutions,Spring,TX,77379,Lexi Cavaliere,1099,1,1518.75,2025-12-15,2025-12-15,CLAIMED (stays w/ rep),2
+Houston / South Texas,Royal Aesthetics,Conroe,TX,77384,Lexi Cavaliere,1099,1,1518.75,2026-01-09,2026-01-09,CLAIMED (stays w/ rep),2
+Houston / South Texas,Vivid Drips and Beauty Bar,Houston,TX,77044,Lexi Cavaliere,1099,1,1518.75,2025-07-30,2025-07-30,CLAIMED (stays w/ rep),2
+Houston / South Texas,It's a Secret Med Spa,The Woodlands,TX,77380,Jamie Bergeron,Existing,1,1507.5,2026-06-08,2026-06-08,CLAIMED (stays w/ rep),2
+Houston / South Texas,It's a Secret Med Spa,Austin,TX,78704,Lexi Cavaliere,1099,1,1507.5,2026-06-08,2026-06-08,CLAIMED (stays w/ rep),2
+Houston / South Texas,It's a Secret Med Spa,Austin,TX,78758,Lexi Cavaliere,1099,1,1507.5,2026-06-08,2026-06-08,CLAIMED (stays w/ rep),2
+Houston / South Texas,It's a Secret Med Spa,Houston,TX,77007,Lexi Cavaliere,1099,1,1350.0,2026-01-06,2026-01-06,CLAIMED (stays w/ rep),2
+Houston / South Texas,Viva  Day Spa,Austin,TX,78757,Lexi Cavaliere,1099,1,870.0,2026-06-04,2026-06-04,CLAIMED (stays w/ rep),2
+Houston / South Texas,Kalon Aesthetic Consulting,Austin,TX,78749,,,1,0.0,2026-05-22,2026-05-22,OPEN (1099 white space),2
+Philadelphia / Pittsburgh,Bloom Facial Plastic Surgery,Bryn Mawr,PA,19010,Jim & Anne Weeks,1099,5,7305.75,2026-01-13,2024-11-08,CLAIMED (stays w/ rep),2
+Philadelphia / Pittsburgh,BAM Aesthetics & Wellness,Blue Bell,PA,19422,Sherry Quinn,Existing,2,3206.25,2026-03-05,2025-05-08,CLAIMED (stays w/ rep),2
+Philadelphia / Pittsburgh,Cirillo Cosmetic Dermatology and Spa,Bryn Mawr,PA,19010,Sherry Quinn,Existing,1,2388.75,2026-04-01,2026-04-01,CLAIMED (stays w/ rep),2
+Philadelphia / Pittsburgh,Arlie Aesthetics,Pittsburgh,PA,15241,Sherry Quinn,Existing,1,1687.5,2026-04-22,2026-04-22,CLAIMED (stays w/ rep),2
+Philadelphia / Pittsburgh,Hurley Dermatology,West Chester,PA,19380,Sherry Quinn,Existing,1,1687.5,2026-05-01,2026-05-01,CLAIMED (stays w/ rep),2
+Buffalo / Rochester / Albany,Magnolia Dermatology & Aesthetics,Latham,NY,12110,Jim & Anne Weeks,1099,2,3375.0,2026-05-21,2026-01-09,CLAIMED (stays w/ rep),3
+Buffalo / Rochester / Albany,Schweiger Dermatology Group,Hamburg,NY,14075,,,1,1687.5,2025-08-08,2025-08-08,OPEN (1099 white space),3
+Mississippi / Alabama,Skin Wellness Dermatology,Birmingham,AL,35209,Taylor Bates,Existing,7,10854.0,2026-06-17,2025-10-22,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Skinwellness Dermatology,Birmingham,AL,35209,Dia Lamport,Existing,4,8257.5,2025-09-10,2025-02-27,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Advanced Dermatology and Skin Cancer Associates,Olive Branch,MS,38654,Taylor Bates,Existing,2,7717.5,2026-02-19,2025-08-14,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Total Dermatology,Birmingham,AL,35203,Taylor Bates,Existing,5,7236.0,2026-03-25,2025-10-23,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Associated Dermatologists,Birmingham,AL,35235,Taylor Bates,Existing,2,3375.0,2026-05-20,2025-05-01,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,"Daniel E. Russo, M.D.",Mountain Brook,AL,35223,Taylor Bates,Existing,2,2412.0,2026-02-20,2025-12-18,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Cahaba Derm,Birmingham,AL,35244,,,1,1687.5,2025-07-22,2025-07-22,OPEN (1099 white space),3
+Mississippi / Alabama,Mad Esthetics,Madison,MS,39110,Taylor Bates,Existing,1,1687.5,2025-10-31,2025-10-31,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Remedy Aesthetics,Tupelo,MS,38801,Becky Curry,Existing,1,1687.5,2024-11-01,2024-11-01,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Timeless Aesthetics + Wellness,Hattiesburg,MS,39401,Taylor Bates,Existing,1,1687.5,2025-12-03,2025-12-03,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Westmoreland dermatology,Columbus,MS,39705,,,1,1687.5,2025-03-20,2025-03-20,OPEN (1099 white space),3
+Mississippi / Alabama,La Bella Skin & Wellness,Birmingham,AL,35210,Taylor Bates,Existing,1,1518.75,2026-03-31,2026-03-31,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Petro Aesthetics,Vestavia Hills,AL,35216,,,1,1518.75,2025-07-07,2025-07-07,OPEN (1099 white space),3
+Mississippi / Alabama,Skin Medspa,Tuscaloosa,AL,35406,Taylor Bates,Existing,1,1518.75,2026-01-01,2026-01-01,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,Indian Hills Aesthetics,Tuscaloosa,AL,35406,Taylor Bates,Existing,1,1434.38,2026-05-30,2026-05-30,CLAIMED (stays w/ rep),3
+Mississippi / Alabama,"Daniel E. Rousso, M.D.",Mountain Brook,AL,35223,Taylor Bates,Existing,1,1206.0,2026-05-12,2026-05-12,CLAIMED (stays w/ rep),3

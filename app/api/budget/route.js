@@ -3,13 +3,19 @@
 
 import { NextResponse } from "next/server";
 import { loadBudgetAndGoals } from "@/lib/budgetSheet";
+import { readOverrides, mergeOverrides } from "@/lib/projectionsStore";
 
-export const revalidate = 600; // 10 min cache
+export const dynamic = "force-dynamic"; // overrides must reflect promptly after an edit
 
 export async function GET() {
   try {
     const data = await loadBudgetAndGoals();
-    return NextResponse.json({ ok: true, ...data });
+    // Overlay the editable Supabase overrides (Projections tab) onto the sheet
+    // cube, so every consumer (Actual-vs-Goal card, PDF recap) reads the
+    // adjusted Budget/Base/Stretch × gross/net targets automatically.
+    const overrides = await readOverrides();
+    const targets = data?.targets ? mergeOverrides(data.targets, overrides) : data?.targets;
+    return NextResponse.json({ ok: true, ...data, targets });
   } catch (err) {
     console.error("[/api/budget] error:", err);
     return NextResponse.json(

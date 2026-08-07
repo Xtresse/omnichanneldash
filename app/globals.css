@@ -178,3 +178,69 @@ input[type="date"] {
 .recharts-cartesian-grid line {
   stroke: rgb(var(--rule)) !important;
 }
+
+/* =====================================================================
+   PDF monthly recap (components/MonthlyReport.jsx)
+   Screen: a full-screen overlay preview with a toolbar. Print: everything
+   hides except .omni-report-sheet, so Save-as-PDF yields a clean one-pager.
+   The sheet pins LIGHT tokens so it prints correctly even in OS dark mode.
+   ===================================================================== */
+.omni-report-overlay {
+  position: fixed; inset: 0; z-index: 70;
+  background: rgba(20, 14, 10, 0.55);
+  display: flex; flex-direction: column;
+}
+.omni-report-toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  background: rgb(var(--card));
+  border-bottom: 1px solid rgb(var(--rule));
+  flex-wrap: wrap;
+}
+.omni-report-scroll {
+  flex: 1; overflow: auto; padding: 18px;
+  display: flex; justify-content: center; align-items: flex-start;
+}
+.omni-report-sheet {
+  /* Pin light tokens — the report is a PDF, never dark-mode. */
+  --xt-ink: #2b1a10; --xt-ink-soft: #5a4232; --xt-muted: #8a7359; --xt-tan: #a89478;
+  --xt-rule: #d4d0c8; --xt-brown: #f0922e; --xt-brown-deep: #241712; --xt-accent: #d8761b;
+  --xt-paper-2: #faf7f2; --xt-b2b: #f0922e; --xt-dtc: #2b1a10; --xt-adcs: #a85f28;
+  --xt-favorable: #5c8a6f; --xt-partial: #c58a2d; --xt-unfavorable: #5c2f2e;
+  width: 8.5in; min-height: 11in; background: #fff; color: var(--xt-ink);
+  padding: 0.55in; box-shadow: 0 6px 28px rgba(0, 0, 0, 0.32);
+  font-family: "Cormorant Garamond", Georgia, serif;
+}
+.omni-report-grid { display: flex; flex-direction: column; gap: 18px; }
+.omni-report-section { break-inside: avoid; }
+
+.omni-tbl { width: 100%; border-collapse: collapse; font-family: Inter, system-ui, sans-serif; font-size: 12.5px; }
+.omni-tbl th {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--xt-muted); font-weight: 600; padding: 6px 8px; text-align: right;
+  border-bottom: 1px solid var(--xt-rule);
+}
+.omni-tbl th.text-left, .omni-tbl td.text-left { text-align: left; }
+.omni-tbl td {
+  padding: 6px 8px; text-align: right; color: var(--xt-ink);
+  border-bottom: 1px solid #efe9df; font-variant-numeric: tabular-nums;
+}
+.omni-tbl-sub td { background: var(--xt-paper-2); font-weight: 600; font-size: 12px; padding-top: 8px; }
+.omni-tbl-subtot td { font-weight: 600; border-top: 1px solid var(--xt-rule); }
+.omni-tbl-grand td { font-weight: 700; border-top: 2px solid var(--xt-ink); font-size: 13.5px; }
+.omni-tbl-sm td { border-bottom: none; padding: 1.5px 4px; }
+
+@media print {
+  html, body { background: #fff !important; overflow: visible !important; height: auto !important; }
+  /* Take everything EXCEPT the portaled report overlay out of flow, so only the
+     sheet contributes page height — no phantom trailing blank pages. */
+  body > *:not(.omni-report-overlay) { display: none !important; }
+  .omni-report-overlay { position: static !important; inset: auto !important; background: none !important; display: block !important; }
+  .omni-report-toolbar { display: none !important; }
+  .omni-report-scroll { position: static !important; overflow: visible !important; padding: 0 !important; display: block !important; }
+  .omni-report-sheet {
+    position: static !important; width: 100% !important; min-height: 0 !important;
+    box-shadow: none !important; padding: 0 !important; margin: 0 auto !important;
+  }
+}
+@page { size: letter; margin: 0.55in; }
