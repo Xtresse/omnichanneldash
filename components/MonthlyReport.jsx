@@ -519,9 +519,6 @@ function ReportBody({ m, ym, hasTargets }) {
 
       {/* §6 top reps */}
       <Section n={6} title="Top Reps" note="This month">
-        <div className="mb-2" style={{ maxWidth: 220 }}>
-          <Stat label="B2B / Rep Channel MoM" value={gv(m.b2bMoM)} color={gc(m.b2bMoM)} sub="gross vs prior month" />
-        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <div className="font-sans text-[9px] uppercase tracking-[0.1em] text-[color:var(--xt-muted)] mb-1">By Net Sales</div>
