@@ -468,95 +468,12 @@ function ReportBody({ m, ym, hasTargets }) {
         </table>
       </Section>
 
-      {/* Two-up: §2 growth + §3 accounts */}
-      <div className="grid grid-cols-2 gap-3">
-        <Section n={2} title="Growth" note="Gross">
-          <div className="grid grid-cols-3 gap-1.5">
-            <Stat label="MoM" value={gv(m.growthRow.mom)} color={gc(m.growthRow.mom)} />
-            <Stat label="QoQ" value={gv(m.growthRow.qoq)} color={gc(m.growthRow.qoq)} sub={m.growthReady ? "quarter-to-date" : null} />
-            <Stat label="YoY" value={gv(m.growthRow.yoy)} color={gc(m.growthRow.yoy)} />
-          </div>
-        </Section>
-
-        <Section n={3} title="New & Cumulative Accounts" note="B2B · location grain">
-          <div className="grid grid-cols-3 gap-1.5">
-            <Stat label="New This Month" value={num(m.newInMonth)} sub={m.newPrev != null ? `${signPct(m.newPrev ? ((m.newInMonth - m.newPrev) / m.newPrev) * 100 : null)} vs prior` : null} color="var(--xt-brown)" />
-            <Stat label="Cumulative" value={num(m.cumulative)} sub="distinct accounts" />
-            <Stat label="Prior Month" value={m.newPrev == null ? "—" : num(m.newPrev)} sub="new accts" />
-          </div>
-        </Section>
-      </div>
-
-      {/* Two-up: §4 new vs returning + §7 xvie/serum */}
-      <div className="grid grid-cols-2 gap-3">
-        <Section n={4} title="New vs Returning" note="Order counts">
-          <table className="omni-tbl">
-            <thead><tr><th className="text-left">Channel</th><th>New</th><th>Returning</th><th>Repeat %</th></tr></thead>
-            <tbody>
-              <tr>
-                <td className="text-left"><Dot c="var(--xt-b2b)" />B2B</td>
-                <td>{num(m.nvr.b2bNew)}</td><td>{num(m.nvr.b2bRet)}</td>
-                <td>{pct0((m.nvr.b2bRet / ((m.nvr.b2bNew + m.nvr.b2bRet) || 1)) * 100)}</td>
-              </tr>
-              <tr>
-                <td className="text-left"><Dot c="var(--xt-dtc)" />DTC</td>
-                <td>{num(m.nvr.dtcNew)}</td><td>{num(m.nvr.dtcRet)}</td>
-                <td>{pct0((m.nvr.dtcRet / ((m.nvr.dtcNew + m.nvr.dtcRet) || 1)) * 100)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </Section>
-
-        <Section n={7} title="XVIE & Serum Accounts" note="B2B accounts">
-          <div className="grid grid-cols-2 gap-1.5">
-            <Stat label="XVIE Accounts" value={num(m.xvieAll)} sub={`+${num(m.newXvie)} new this month`} color="var(--xt-ink)" />
-            <Stat label="Serum Accounts" value={num(m.serumAll)} sub={`+${num(m.newSerum)} new this month`} color="var(--xt-unfavorable)" />
-          </div>
-        </Section>
-      </div>
-
-      {/* §5 DTC scorecard */}
-      <Section n={5} title="DTC Performance" note="B2B-grade breakout">
-        <div className="grid grid-cols-6 gap-1.5 mb-1.5">
-          <Stat label="DTC Gross" value={usdK(m.dtc.gross)} color="var(--xt-dtc)" />
-          <Stat label="DTC Net" value={usdK(m.dtc.net)} />
-          <Stat label="Orders" value={num(m.dtc.orders)} />
-          <Stat label="AOV" value={usd(m.dtc.aov)} />
-          <Stat label="vs Base" value={m.dtc.attain == null ? "—" : pct0(m.dtc.attain)} color={m.dtc.attain >= 100 ? "var(--xt-favorable)" : "var(--xt-partial)"} />
-          <Stat label="MoM" value={gv(m.dtcMoM)} color={gc(m.dtcMoM)} sub="gross vs prior" />
-        </div>
-        {m.dtc.byProduct.length > 0 && (
-          <div className="font-sans text-[10px] text-[color:var(--xt-ink-soft)]">
-            By product (gross): {m.dtc.byProduct.map((r) => (
-              <span key={r.product} className="mr-3"><Dot c={FAMILY_COLORS[r.product] || "var(--xt-tan)"} />{r.product} {usdK(r.gross)}</span>
-            ))}
-          </div>
-        )}
-      </Section>
-
-      {/* §6 top reps */}
-      <Section n={6} title="Top Reps" note="This month">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <div className="font-sans text-[9px] uppercase tracking-[0.1em] text-[color:var(--xt-muted)] mb-1">By Net Sales</div>
-            <table className="omni-tbl omni-tbl-sm">
-              <tbody>
-                {m.topNet.length ? m.topNet.map((r, i) => (
-                  <tr key={r.rep || i}><td className="text-left"><span className="text-[color:var(--xt-muted)]">{i + 1}.</span> {r.rep}</td><td>{usdK(r.net)}</td></tr>
-                )) : <tr><td className="text-left text-[color:var(--xt-muted)]" colSpan={2}>No rep sales this month</td></tr>}
-              </tbody>
-            </table>
-          </div>
-          <div>
-            <div className="font-sans text-[9px] uppercase tracking-[0.1em] text-[color:var(--xt-muted)] mb-1">By New Accounts</div>
-            <table className="omni-tbl omni-tbl-sm">
-              <tbody>
-                {m.topNew.length ? m.topNew.map((r, i) => (
-                  <tr key={r.rep || i}><td className="text-left"><span className="text-[color:var(--xt-muted)]">{i + 1}.</span> {r.rep}</td><td>{num(r._new)}</td></tr>
-                )) : <tr><td className="text-left text-[color:var(--xt-muted)]" colSpan={2}>No new accounts this month</td></tr>}
-              </tbody>
-            </table>
-          </div>
+      {/* §2 Growth (gross) — MoM / QoQ / YoY */}
+      <Section n={2} title="Growth" note="Gross · vs prior periods">
+        <div className="grid grid-cols-3 gap-1.5">
+          <Stat label="MoM" value={gv(m.growthRow.mom)} color={gc(m.growthRow.mom)} sub="month over month" />
+          <Stat label="QoQ" value={gv(m.growthRow.qoq)} color={gc(m.growthRow.qoq)} sub={m.growthReady ? "quarter-to-date" : null} />
+          <Stat label="YoY" value={gv(m.growthRow.yoy)} color={gc(m.growthRow.yoy)} sub="year over year" />
         </div>
       </Section>
     </div>
