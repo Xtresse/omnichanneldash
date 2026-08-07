@@ -1,0 +1,112 @@
+Order,Created (UTC),Channel,Rep,Customer,Email,City,State,Fulfillment,Financial,Total USD,Items
+#9019,2026-06-23 20:57,b2b,Jim & Anne Weeks,Dr. Terrance Keaney,ordering1@premiereaestheticsolutions.com,Arlington,Virginia,IN_PROGRESS,PAID,2412.00,2x Hair Growth Gummy Case
+#9046,2026-06-24 02:01,dtc,,Chris Goulakos,chris.goulakos@gmail.com,Washington,District of Columbia,UNFULFILLED,PAID,210.00,3x Hair Growth Gummies
+#9071,2026-06-24 12:00,dtc,,Tabitha Giles,,Austell,Georgia,UNFULFILLED,PAID,99.59,1x Hair Growth Gummies
+#9072,2026-06-24 12:05,dtc,,Amber D Withycombe,amberwithy@gmail.com,Austin,Texas,UNFULFILLED,PAID,210.00,3x Hair Growth Gummies
+#9073,2026-06-24 12:38,b2b,Jamie Bergeron,Abby Lovell,abbylovellnp@yahoo.com,Stephenville,Texas,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9074,2026-06-24 12:40,dtc,,Vicki Kitchens,vickstrick@hotmail.com,Drasco,Arkansas,UNFULFILLED,PAID,101.58,1x Hair Growth Gummies
+#9075,2026-06-24 12:41,dtc,,Lori Turner,lori.turner@gmail.com,Chicago,Illinois,UNFULFILLED,PAID,86.01,1x Hair Growth Gummies
+#9076,2026-06-24 12:53,dtc,,Christina V,brogan.50-conceit@icloud.com,Plano,Texas,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9077,2026-06-24 12:55,dtc,,Mahnoor Amjad,mahnoor.abdullah@gmail.com,White Plains,New York,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9078,2026-06-24 13:32,dtc,,Gabby Sharaga,gsharaga@gmail.com,Los Angeles,California,UNFULFILLED,PAID,230.48,3x Hair Growth Gummies
+#9079,2026-06-24 13:41,b2b,Dia Lamport,Inga Masters - Sarver,ingam@yourskincaresource.com,Cape Coral,Florida,PARTIALLY_FULFILLED,PAID,6900.00,4x Hair Growth Gummy Case; 1x Xtresse 6 Serum Bundle
+#9080,2026-06-24 13:49,dtc,,Annie Seaman,annie.seaman96@gmail.com,Washington,District of Columbia,UNFULFILLED,PAID,189.00,3x Hair Growth Gummies
+#9081,2026-06-24 13:49,dtc,,Adams Office LLC,fernhollowct2@gmail.com,Roxbury,Connecticut,UNFULFILLED,PAID,174.00,2x Hair Growth Gummies
+#9082,2026-06-24 14:01,dtc,,Deidre Cibelli,dcibelli@gmail.com,New Hope,Pennsylvania,UNFULFILLED,PAID,210.00,3x Hair Growth Gummies
+#9083,2026-06-24 14:05,dtc,,Denise Friou,dfriou@email.com,Houston,Texas,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9084,2026-06-24 14:28,dtc,,Lisa Sliger,lisasliger1978@gmail.com,Middleton,Idaho,UNFULFILLED,PAID,82.68,1x Hair Growth Gummies
+#9085,2026-06-24 14:31,dtc,,Catherine Gayle,catgayle@gmail.com,Atlanta,Georgia,UNFULFILLED,PAID,84.94,1x Hair Growth Gummies
+#9086,2026-06-24 14:31,b2b,Jamie Bergeron,Meredith Abbott,meredith@doctorabbott.com,Dallas,Texas,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9087,2026-06-24 14:32,b2b,Lexi Cavaliere,Irina Minina,iraminina@aol.com,Brownsville,Texas,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9088,2026-06-24 14:36,dtc,,Ashley Neubauer,neubauerashleyd@gmail.com,Minneola,Florida,UNFULFILLED,PAID,100.04,1x Hair Growth Gummies
+#9090,2026-06-24 14:53,dtc,,Caryn Ter-Morshuizen,accounting@hushandhush.com,Jupiter,Florida,UNFULFILLED,PAID,99.61,1x Hair Growth Gummies
+#9091,2026-06-24 15:06,dtc,,Shelly Brown,shellylbrown215@gmail.com,Gardendale,Texas,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9093,2026-06-24 15:33,dtc,,Bridget Marburger,bridget.bilski@gmail.com,Liberty Hill,Texas,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9094,2026-06-24 16:05,dtc,,Laurice Richardson,vane.coppery.5c@icloud.com,Pasco,Washington,UNFULFILLED,PAID,227.01,3x Hair Growth Gummies
+#9095,2026-06-24 16:14,dtc,,Tricia OBrien,triciaobrien4@yahoo.com,Rancho Cucamonga,California,UNFULFILLED,PAID,84.05,1x Hair Growth Gummies
+#9096,2026-06-24 16:17,b2b,laura Mann,Shay Sim,chris@kucumberskinlounge.com,Seattle,Washington,UNFULFILLED,PAID,2557.50,1x Hair Growth Gummy Case; 1x Xtresse 6 Serum Bundle; 1x Gummy On The Go
+#9097,2026-06-24 16:32,b2b,laura Mann,Shay Sim,chris@kucumberskinlounge.com,Bellevue,Washington,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case; 1x Gummy On The Go
+#9098,2026-06-24 16:33,dtc,,Rebecca Curry,becky.curry@xtresse.com,Golden,Colorado,UNFULFILLED,PAID,93.95,1x Hair Growth Gummies
+#9099,2026-06-24 16:38,dtc,,Anhar abdelatif,anhar.abdelatif7@gmail.com,Boston,Massachusetts,UNFULFILLED,PAID,223.13,3x Hair Growth Gummies
+#9100,2026-06-24 16:42,b2b,laura Mann,Andrea Smith,andreadsmithmd@gmail.com,Poulsbo,Washington,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9101,2026-06-24 16:46,dtc,,Alanah Genovese,alanah@danieltoft.co,Lakewood,Colorado,UNFULFILLED,PAID,0.00,1x Hair Growth Gummies
+#9102,2026-06-24 16:46,dtc,,nancy ortiz,nortiz03@live.com,Glen Rose,Texas,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9104,2026-06-24 17:00,dtc,,cynthia reader,cynalicious@yahoo.com,Los gatos,California,UNFULFILLED,PAID,85.61,1x Hair Growth Gummies
+#9105,2026-06-24 17:06,dtc,,Barbara Hofma,barbarahofma@gmail.com,Orlando,Florida,UNFULFILLED,PAID,223.65,3x Hair Growth Gummies
+#9106,2026-06-24 17:09,b2b,James Tuckett,Richmond Ramirez,info@inspiradapc.com,Henderson,Nevada,UNFULFILLED,PAID,1687.50,1x Gummy On The Go; 1x Hair Growth Gummy Case
+#9107,2026-06-24 17:12,dtc,,Suzann Holmes Attig,suzannholmesattig@gmail.com,Boynton Beach,Florida,UNFULFILLED,PAID,83.07,1x Hair Growth Gummies
+#9108,2026-06-24 17:18,b2b,Heidi Fisher,Brande Daniels RN,info@agelessaestheticsar.com,Hot Springs National Park,Arkansas,UNFULFILLED,PAID,1518.75,1x Hair Growth Gummy Case; 1x Gummy On The Go
+#9109,2026-06-24 17:21,dtc,,Carol Goldberg,carolmgoldberg@gmail.com,Austin,Texas,UNFULFILLED,PAID,93.95,1x Hair Growth Gummies
+#9111,2026-06-24 17:38,dtc,,Amelia Genao,amelia.genao@yahoo.com,Dallas,Texas,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9112,2026-06-24 17:58,dtc,,Becky Cohen,beckycohenphotographer@gmail.com,Encinitas,California,UNFULFILLED,PAID,226.28,3x Hair Growth Gummies
+#9113,2026-06-24 18:07,dtc,,Mary Fox,marycfox61@gmail.com,Chicago,Illinois,UNFULFILLED,PAID,231.54,3x Hair Growth Gummies
+#9114,2026-06-24 18:10,dtc,,Diane Swanson,Dianeswanson303@gmail.com,Lone Tree,Colorado,UNFULFILLED,PAID,416.31,1x Xtresse Grow System
+#9115,2026-06-24 18:12,dtc,,Lynne Speierman,lspeierman@icloud.com,Naples,Florida,UNFULFILLED,PAID,222.60,3x Hair Growth Gummies
+#9116,2026-06-24 18:13,b2b,Amy Pierre,Bree Love-Williams,blove@sol-dpc.org,East Point,Georgia,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9117,2026-06-24 18:16,dtc,,Dwayne Pean,gpean007@gmail.com,Plantation,Florida,UNFULFILLED,PAID,224.70,3x Hair Growth Gummies
+#9118,2026-06-24 18:19,dtc,,Lydia Pineda,lpineda7106@gmail.com,Kenner,Louisiana,UNFULFILLED,PAID,85.61,1x Hair Growth Gummies
+#9119,2026-06-24 18:42,dtc,,Bonnie Beebe,bonniebb465@gmail.com,Palm Springs,California,UNFULFILLED,PAID,190.10,2x Hair Growth Gummies
+#9120,2026-06-24 18:48,dtc,,Sheila Skillman,sheskill@aol.com,Johns Creek,Georgia,UNFULFILLED,PAID,281.23,3x Hair Growth Gummies
+#9121,2026-06-24 18:57,dtc,,Jackie Haines,jackiej.haines@gmail.com,Bozeman,Montana,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9122,2026-06-24 19:09,dtc,,Dominic M Brooks,dbrooksfl@aol.com,Naples,Florida,UNFULFILLED,PAID,222.60,3x Hair Growth Gummies
+#9123,2026-06-24 19:34,dtc,,David Jackson,davidja10@aol.com,Tucson,Arizona,UNFULFILLED,PAID,165.52,2x Hair Growth Gummies
+#9125,2026-06-24 19:51,b2b,Amy Pierre,Angela Smith,Aliaskinclinic@outlook.com,Buford,Georgia,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9126,2026-06-24 19:58,b2b,Michelle Boehle,Michelle Aszterbaum,draszterbaum@gmail.com,Newport Beach,California,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9127,2026-06-24 20:04,b2b,Denisse Schimelpfening,Jamie Eschete,jamiern@cox.net,Phoenix,Arizona,UNFULFILLED,PAID,870.00,1x Xtresse 6 Serum Bundle
+#9128,2026-06-24 20:14,b2b,Megan Gilbert,Carly Stillman,carlys@lumamedicalaesthetics.co,Basalt,Colorado,UNFULFILLED,PAID,1800.00,1x Xvie By Xtresse (Case of 6)
+#9129,2026-06-24 20:20,b2b,Megan Gilbert,Carly Stillman,carlys@lumamedicalaesthetics.co,Basalt,Colorado,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case; 1x Gummy On The Go
+#9130,2026-06-24 20:36,dtc,,James Holson,jim.holson@hunterjamesinc.com,Green Oaks,Illinois,UNFULFILLED,PAID,84.64,1x Hair Growth Gummies
+#9131,2026-06-24 20:49,dtc,,Cooper Bratton,cooperbratton@gmail.com,Morehead City,North Carolina,UNFULFILLED,PAID,278.62,3x Hair Growth Gummies
+#9132,2026-06-24 21:16,b2b,Denisse Schimelpfening,Melynda Fenn,mfenn@azivvitality.com,Peoria,Arizona,UNFULFILLED,PAID,4021.50,2x Hair Growth Gummy Case; 1x Xtresse 6 Serum Bundle
+#9133,2026-06-24 21:58,dtc,,Robert Tillis,bobsbags@gmail.com,Old Westbury,New York,UNFULFILLED,PAID,210.00,3x Hair Growth Gummies
+#9134,2026-06-24 22:10,b2b,Gina Napoli,Chris Burlet,coupa@qualderm.com,Schererville,Indiana,UNFULFILLED,PENDING (Net Terms),1687.50,1x Hair Growth Gummy Case; 1x Gummy On The Go
+#9135,2026-06-24 22:22,dtc,,Jeanna Mane,jeannajmane@gmail.com,Lewistown,Montana,UNFULFILLED,PAID,210.00,3x Hair Growth Gummies
+#9136,2026-06-24 22:26,b2b,Lexi Cavaliere,Dr. Ernai Hernandez,ernaihernandez@outlook.com,Houston,Texas,UNFULFILLED,PAID,1518.75,1x Hair Growth Gummy Case
+#9137,2026-06-24 22:52,dtc,,Yenitza Mendez,bcsp289@gmail.com,Orlando,Florida,UNFULFILLED,PAID,83.07,1x Hair Growth Gummies
+#9138,2026-06-24 22:52,b2b,Gina Napoli,Kelly Manicke,kelly@elevatefunctionalmed.com,Carmel,Indiana,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9139,2026-06-24 22:57,b2b,Gina Napoli,Melanie Kingsley,drkingsley@mkderm.com,Carmel,Indiana,UNFULFILLED,PAID,3195.00,2x Hair Growth Gummy Case
+#9140,2026-06-24 22:59,dtc,,Caitlin Liang,caitlin.liang@gmail.com,Los Angeles,California,UNFULFILLED,PAID,230.48,3x Hair Growth Gummies
+#9141,2026-06-24 23:34,dtc,,Reginald Robins,reginald.robins72@gmail.com,Greenwell Springs,Louisiana,UNFULFILLED,PAID,233.10,3x Hair Growth Gummies
+#9142,2026-06-24 23:46,dtc,,Karen Lashlee,klash.lashlee@gmail.com,Carlsbad,California,UNFULFILLED,PAID,187.49,2x Hair Growth Gummies
+#9143,2026-06-25 00:50,dtc,,Lori Zuckerman,lorizonline@gmail.com,Boca Raton,Florida,UNFULFILLED,PAID,83.07,1x Hair Growth Gummies
+#9144,2026-06-25 01:15,b2b,Michelle Boehle,Tricia Dikes,triciadikes@hotmail.com,Sherman Oaks,California,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9145,2026-06-25 01:28,b2b,Tyler DeMasi,Amber McLung,info@carolinahormone.com,Mount Pleasant,South Carolina,UNFULFILLED,PAID,4865.00,2x Hair Growth Gummy Case; 2x Xtresse 6 Serum Bundle; 2x Gummy On The Go
+#9146,2026-06-25 01:36,dtc,,Vynae Jamison,vynaejamison@gmail.com,Winston Salem,North Carolina,UNFULFILLED,PAID,83.47,1x Hair Growth Gummies
+#9147,2026-06-25 01:36,b2b,Tyler DeMasi,Helen Bode,sarah@deetox.org,Chapel Hill,North Carolina,UNFULFILLED,PAID,3195.00,2x Hair Growth Gummy Case; 2x Gummy On The Go
+#9148,2026-06-25 01:44,dtc,,Patricia Perez,perezpat30@yahoo.com,Providence,Rhode Island,UNFULFILLED,PAID,224.70,3x Hair Growth Gummies
+#9149,2026-06-25 02:50,dtc,,Barbara Piotrowski,barbarapio@comcast.net,Columbus,Indiana,UNFULFILLED,PAID,100.53,1x Hair Growth Gummies
+#9150,2026-06-25 02:53,dtc,,Uzma Zafar,uzikayani@yahoo.com,Las Vegas,Nevada,UNFULFILLED,PAID,101.23,1x Hair Growth Gummies
+#9151,2026-06-25 03:31,dtc,,Rebecca Blum,beckyblum22@gmail.com,Littleton,Colorado,UNFULFILLED,PAID,397.74,1x FR Concentrate Serum; 1x Hair Growth Gummies
+#9152,2026-06-25 03:33,dtc,,moira twitty,moiratwitty@icloud.com,Lagrange,Illinois,UNFULFILLED,PAID,85.81,1x Hair Growth Gummies
+#9153,2026-06-25 03:49,dtc,,Stephanie Kopfhammer,steppytoes@aol.com,Milwaukee,Wisconsin,UNFULFILLED,PAID,203.93,3x Hair Growth Gummies
+#9154,2026-06-25 04:17,dtc,,Aaron Rogers,arog2436@yahoo.com,Canby,Oregon,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9155,2026-06-25 07:07,dtc,,Karolina Piorko,karolinapiorko@gmail.com,Brooklyn,New York,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9157,2026-06-25 07:08,dtc,,Julie Bucciarelli,jchowlin@gmail.com,Tampa,Florida,UNFULFILLED,PAID,83.85,1x Hair Growth Gummies
+#9167,2026-06-25 07:08,dtc,,Joanna Manning,manningfamily7@aol.com,Dallas,Texas,UNFULFILLED,PAID,78.00,1x Hair Growth Gummies
+#9170,2026-06-25 07:08,dtc,,Yvonne Wilk,pomme.ville@yahoo.com,Berwyn,Illinois,UNFULFILLED,PAID,86.40,1x Hair Growth Gummies
+#9175,2026-06-25 07:29,dtc,,Quan Dang,qtdang@swbell.net,Austin,Texas,UNFULFILLED,PAID,189.00,3x Hair Growth Gummies
+#9184,2026-06-25 12:22,dtc,,Bobby Stephenson,bobbys2001@gmail.com,West Dundee,Illinois,UNFULFILLED,PAID,227.86,3x Hair Growth Gummies
+#9185,2026-06-25 12:44,dtc,,Terri Glass,terribuck16@gmail.com,Boone,North Carolina,UNFULFILLED,PAID,224.18,3x Hair Growth Gummies
+#9186,2026-06-25 12:46,dtc,,Cheryl Hawes,chawes56@frontiernet.net,Charles Town,West Virginia,UNFULFILLED,PAID,210.00,3x Hair Growth Gummies
+#9187,2026-06-25 12:51,b2b,Sevi McCutcheon,Yolanda Lenzy,yolanda_lenzy@yahoo.com,Chicopee,Massachusetts,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9188,2026-06-25 12:55,b2b,Jose Bimont / Michelle Boehle,Krista Salinas,ap@platinumderm.com,Laguna Niguel,California,UNFULFILLED,PENDING (Net Terms),6541.50,3x Hair Growth Gummy Case; 2x Xtresse 6 Serum Bundle
+#9189,2026-06-25 13:14,b2b,michelle spencer,Dr. Heather Rogers / Dr. James Collyer,Kyndra@premiereaestheticsolutions.com,West Palm Beach,Florida,UNFULFILLED,PAID,1206.00,1x Hair Growth Gummy Case
+#9190,2026-06-25 13:37,b2b,Morgan Hood,Mary Katelyn Cirese,office@georgousaestheticbar.com,Kansas City,Missouri,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9191,2026-06-25 13:48,dtc,,susan baedke,smbaedke@yahoo.com,Plainfield,Illinois,UNFULFILLED,PAID,227.86,3x Hair Growth Gummies
+#9192,2026-06-25 14:08,b2b,Jamie Bergeron,Stormie Tuma,storm@beautifulaesthetics.com,Frisco,Texas,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9193,2026-06-25 14:11,b2b,Cheryl Greiber,Becky Berkan,wilsonaestheticco@gmail.com,Oregon,Wisconsin,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9194,2026-06-25 14:43,b2b,Jamie Bergeron,Jessica Jackson,restorationhaustx@gmail.com,Decatur,Texas,UNFULFILLED,PAID,2062.50,1x Hair Growth Gummy Case; 1x Gummy On The Go
+#9195,2026-06-25 14:43,dtc,,Bethany Kruse,kruse.bethany15@gmail.com,Elkhorn,Nebraska,UNFULFILLED,PAID,224.70,3x Hair Growth Gummies
+#9196,2026-06-25 14:49,b2b,Jamie Bergeron,Jessica Jackson,restorationhaustx@gmail.com,Decatur,Texas,UNFULFILLED,PAID,0.00,1x Gummy On The Go
+#9197,2026-06-25 15:08,dtc,,Adrienne Scott,adrienne6445@gmail.com,Galivants Ferry,South Carolina,UNFULFILLED,PAID,226.80,3x Hair Growth Gummies
+#9198,2026-06-25 15:16,b2b,Cheryl Greiber,Jessica Hutchins,jessica@lunamedspawi.com,Brookfield,Wisconsin,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case; 1x Gummy On The Go
+#9199,2026-06-25 15:19,b2b,michelle spencer,Dr. Michael Borenstein,lisas@gardensdermatology.com,Palm Beach Gardens,Florida,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case; 1x Gummy On The Go
+#9200,2026-06-25 15:56,b2b,Megan Gilbert,Sandi Eivins,drsandi@steamboatderm.com,Steamboat Springs,Colorado,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case; 1x Gummy On The Go
+#9201,2026-06-25 16:01,b2b,Cheryl Greiber,Christine Schneider,christines@illumemke.com,Milwaukee,Wisconsin,UNFULFILLED,PAID,3570.00,2x Hair Growth Gummy Case; 1x Gummy On The Go
+#9202,2026-06-25 16:02,b2b,Cheryl Greiber,Christine Schneider,christines@illumemke.com,Milwaukee,Wisconsin,UNFULFILLED,PAID,0.00,1x Gummy On The Go
+#9203,2026-06-25 16:04,b2b,Megan Gilbert,Sandi Eivins,drsandi@steamboatderm.com,Steamboat Springs,Colorado,UNFULFILLED,PAID,1800.00,1x Xvie By Xtresse (Case of 6)
+#9204,2026-06-25 16:27,b2b,Dia Spangler Lamport,Sam Sood (TEST),samukhsood+030926@gmail.com,Tempe,Arizona,UNFULFILLED,VOIDED,1687.50,1x Hair Growth Gummy Case
+#9205,2026-06-25 16:28,b2b,Sonia Mace,Rona Marc,ronamarc@yahoo.com,Roslyn,New York,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9206,2026-06-25 16:33,b2b,Dia Spangler Lamport,Sam Sood (TEST),samukhsood+030926@gmail.com,Tempe,Arizona,UNFULFILLED,REFUNDED,16.88,1x Hair Growth Gummy Case
+#9207,2026-06-25 16:47,b2b,Amy Pierre,Dr. Kristine Gould,KrissieGould@yahoo.com,Lawrenceville,Georgia,UNFULFILLED,PAID,1687.50,1x Hair Growth Gummy Case
+#9208,2026-06-25 17:24,dtc,,Nina Dubret,ninadubret@gmail.com,New Orleans,Louisiana,UNFULFILLED,PAID,85.80,1x Hair Growth Gummies

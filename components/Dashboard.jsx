@@ -14,6 +14,7 @@ import {
 } from "@/lib/repMetrics.js";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
+import MonthlyReport from "./MonthlyReport.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
 import BudgetVsActual from "./BudgetVsActual.jsx";
 import AccountAging from "./AccountAging.jsx";
@@ -464,6 +465,7 @@ export default function Dashboard({ initial }) {
               <span className="sm:hidden">Ask</span>
             </a>
             {data && <ExportButton data={data} periodLabel={periodLabel} />}
+            {data && <MonthlyReport data={data} targets={execGoalTargets} monthPayload={execGoalMtdFull} periodLabel={periodLabel} />}
           </div>
         </header>
 

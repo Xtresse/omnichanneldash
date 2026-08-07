@@ -1,0 +1,7 @@
+[2026-06-25 17:46 UTC] Shopify non-shipbob=48  grid=46 (B2B 18 / DTC 28)  rows=56  excluded_tests=['#9204', '#9206']  flags=[]
+[2026-06-25 17:50 UTC] Shopify non-shipbob=48  grid=46 (B2B 18 / DTC 28)  rows=56  excluded_tests=['#9204', '#9206']  flags=[]
+[2026-06-25 17:53 UTC] ShipBob upload built: 63 orders (B2C 43 / B2B 20) -> SHIPBOB Bulk Upload FILLED.xlsx
+[2026-06-25 17:53 UTC] ShipBob upload built: 63 orders (B2C 43 / B2B 20) -> SHIPBOB Bulk Upload FILLED.xlsx  skipped_already_in_progress=['#9019', '#9079']
+[2026-06-25 18:24 UTC] non-shipbob=46  NEW_in_file=0 (B2B 0/DTC 0)  rows=0  already_loaded=46  marked_sent=no  tests=['#9204', '#9206']  flags=[]
+[2026-06-25 20:11 UTC] non-shipbob=46  NEW_in_file=2 (B2B 0/DTC 2)  rows=2  already_loaded=44  marked_sent=no  tests=['#9204', '#9206']  flags=[]
+[2026-06-25 22:32 UTC] non-shipbob=51  NEW_in_file=7 (B2B 1/DTC 6)  rows=7  already_loaded=44  marked_sent=no  tests=['#9204', '#9206']  flags=[]
