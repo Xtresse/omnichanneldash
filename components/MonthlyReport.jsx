@@ -103,8 +103,8 @@ function warmedTrendWindows() {
 function Section({ n, title, note, children }) {
   return (
     <section className="omni-report-section">
-      <div className="flex items-baseline justify-between gap-3 border-b border-[color:var(--xt-tan)] pb-0.5 mb-1">
-        <h2 className="font-serif text-[13px] font-semibold text-[color:var(--xt-ink)] leading-none">
+      <div className="flex items-baseline justify-between gap-3 border-b border-[color:var(--xt-tan)] pb-1.5 mb-3">
+        <h2 className="font-serif text-[18px] font-semibold text-[color:var(--xt-ink)] leading-none">
           <span className="text-[color:var(--xt-brown)]">{n}.</span> {title}
         </h2>
         {note ? <span className="font-sans text-[9px] uppercase tracking-[0.12em] text-[color:var(--xt-muted)]">{note}</span> : null}
@@ -115,10 +115,10 @@ function Section({ n, title, note, children }) {
 }
 function Stat({ label, value, sub, color }) {
   return (
-    <div className="rounded-md border border-[color:var(--xt-rule)] bg-[color:var(--xt-paper-2)] px-2 py-1">
-      <div className="font-sans text-[7.5px] uppercase tracking-[0.1em] text-[color:var(--xt-muted)]">{label}</div>
-      <div className="font-serif text-[15px] font-semibold leading-tight" style={color ? { color } : undefined}>{value}</div>
-      {sub ? <div className="font-sans text-[8px] text-[color:var(--xt-ink-soft)] leading-tight">{sub}</div> : null}
+    <div className="rounded-lg border border-[color:var(--xt-rule)] bg-[color:var(--xt-paper-2)] px-3.5 py-3">
+      <div className="font-sans text-[9px] uppercase tracking-[0.12em] text-[color:var(--xt-muted)]">{label}</div>
+      <div className="font-serif text-[25px] font-semibold leading-tight mt-0.5" style={color ? { color } : undefined}>{value}</div>
+      {sub ? <div className="font-sans text-[10px] text-[color:var(--xt-ink-soft)] leading-tight mt-0.5">{sub}</div> : null}
     </div>
   );
 }
@@ -400,14 +400,14 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
 
 function ReportHeader({ ym, genAt, isMtd }) {
   return (
-    <header className="flex items-end justify-between border-b-2 border-[color:var(--xt-ink)] pb-1.5 mb-2">
+    <header className="flex items-end justify-between border-b-2 border-[color:var(--xt-ink)] pb-2.5 mb-5">
       <div>
-        <div className="font-sans text-[9px] uppercase tracking-[0.22em] text-[color:var(--xt-muted)]">Xtressé · Omni-Channel Sales</div>
-        <h1 className="font-serif text-[22px] font-semibold text-[color:var(--xt-ink)] leading-none mt-0.5">Monthly Sales Recap</h1>
+        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-[color:var(--xt-muted)]">Xtressé · Omni-Channel Sales</div>
+        <h1 className="font-serif text-[30px] font-semibold text-[color:var(--xt-ink)] leading-none mt-1">Monthly Sales Recap</h1>
       </div>
       <div className="text-right">
-        <div className="font-serif text-[18px] font-semibold text-[color:var(--xt-brown)] leading-none">{monthLabel(ym)}{isMtd ? " · MTD" : ""}</div>
-        <div className="font-sans text-[9px] text-[color:var(--xt-muted)] mt-1">Generated {genAt}</div>
+        <div className="font-serif text-[22px] font-semibold text-[color:var(--xt-brown)] leading-none">{monthLabel(ym)}{isMtd ? " · MTD" : ""}</div>
+        <div className="font-sans text-[10px] text-[color:var(--xt-muted)] mt-1">Generated {genAt}</div>
       </div>
     </header>
   );
@@ -415,7 +415,7 @@ function ReportHeader({ ym, genAt, isMtd }) {
 
 function ReportFooter() {
   return (
-    <footer className="mt-2 pt-1 border-t border-[color:var(--xt-rule)] font-sans text-[7.5px] text-[color:var(--xt-muted)] leading-snug">
+    <footer className="mt-5 pt-2 border-t border-[color:var(--xt-rule)] font-sans text-[9px] text-[color:var(--xt-muted)] leading-relaxed">
       Net = subtotal (post-discount, pre-ship/tax) − refunds · Gross = subtotal + discounts. Budget tiers from the Rep Goals sheet;
       3-tier gross targets require the live sheet. Accounts &amp; reps are B2B rep-attributed (location grain). DTC reliable from Apr 2026.
       New-vs-returning is order counts (B2B cohort = gummy-case buyers). Confidential — internal use only.
@@ -437,7 +437,7 @@ function ReportBody({ m, ym, hasTargets }) {
   return (
     <div className="omni-report-grid">
       {/* Headline strip */}
-      <div className="grid grid-cols-6 gap-1.5 mb-1">
+      <div className="grid grid-cols-3 gap-3">
         <Stat label="Total Gross" value={usdK(total)} sub={`${num(k.totalOrders)} orders`} />
         <Stat label="B2B Gross" value={usdK(k.b2bGrossSales)} sub={`${pct0((k.b2bNetSales / (k.totalNetSales || 1)) * 100)} of net`} color="var(--xt-b2b)" />
         <Stat label="DTC Gross" value={usdK(k.dtcGrossSales)} sub={`${pct0((k.dtcNetSales / (k.totalNetSales || 1)) * 100)} of net`} color="var(--xt-dtc)" />
@@ -470,7 +470,7 @@ function ReportBody({ m, ym, hasTargets }) {
 
       {/* §2 Growth (gross) — MoM / QoQ / YoY */}
       <Section n={2} title="Growth" note="Gross · vs prior periods">
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 gap-3">
           <Stat label="MoM" value={gv(m.growthRow.mom)} color={gc(m.growthRow.mom)} sub="month over month" />
           <Stat label="QoQ" value={gv(m.growthRow.qoq)} color={gc(m.growthRow.qoq)} sub={m.growthReady ? "quarter-to-date" : null} />
           <Stat label="YoY" value={gv(m.growthRow.yoy)} color={gc(m.growthRow.yoy)} sub="year over year" />
