@@ -231,15 +231,16 @@ input[type="date"] {
 .omni-tbl-sm td { border-bottom: none; padding: 1.5px 4px; }
 
 @media print {
-  html, body { background: #fff !important; overflow: visible !important; }
-  body * { visibility: hidden !important; }
-  .omni-report-sheet, .omni-report-sheet * { visibility: visible !important; }
-  .omni-report-overlay { position: static !important; background: none !important; display: block !important; }
-  .omni-report-scroll { position: static !important; overflow: visible !important; padding: 0 !important; display: block !important; }
+  html, body { background: #fff !important; overflow: visible !important; height: auto !important; }
+  /* Take everything EXCEPT the portaled report overlay out of flow, so only the
+     sheet contributes page height — no phantom trailing blank pages. */
+  body > *:not(.omni-report-overlay) { display: none !important; }
+  .omni-report-overlay { position: static !important; inset: auto !important; background: none !important; display: block !important; }
   .omni-report-toolbar { display: none !important; }
+  .omni-report-scroll { position: static !important; overflow: visible !important; padding: 0 !important; display: block !important; }
   .omni-report-sheet {
-    position: absolute; left: 0; top: 0; width: 100%; min-height: 0;
-    box-shadow: none !important; padding: 0 !important; margin: 0 !important;
+    position: static !important; width: 100% !important; min-height: 0 !important;
+    box-shadow: none !important; padding: 0 !important; margin: 0 auto !important;
   }
 }
 @page { size: letter; margin: 0.45in; }

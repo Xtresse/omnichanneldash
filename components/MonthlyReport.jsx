@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { CHANNEL_COLORS, FAMILY_COLORS } from "@/lib/constants";
 
@@ -114,30 +114,53 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
   const [store, setStore] = useState({}); // { [ym]: { month, trend } }
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
+  const inflight = useRef({});
 
   useEffect(() => setMounted(true), []);
 
   const currentYm = currentYmPT();
 
+  // Fetch that surfaces server failures as a clean error instead of choking on
+  // a non-JSON timeout page ("An error occurred…" → "Unexpected token 'A'").
+  const getJson = async (url) => {
+    const r = await fetch(url, { cache: "no-store" });
+    const text = await r.text();
+    let j;
+    try { j = JSON.parse(text); } catch { throw new Error(`Server error (${r.status || "timeout"}) — the data pull didn't finish. Try again in a moment.`); }
+    if (!r.ok || j?.ok === false) throw new Error(j?.error || `Server error (${r.status}).`);
+    return pick(j);
+  };
+
   const load = useCallback(async (targetYm) => {
-    if (store[targetYm]) return;
-    setLoading(true); setErr(null);
+    if (inflight.current[targetYm]) return;
+    inflight.current[targetYm] = true;
+    setErr(null); setLoading(true);
+    const { start, end, trendStart } = monthBounds(targetYm);
+    // 1) MONTH window — the hard dependency (powers every section but growth).
+    //    Fetched ALONE first so it isn't throttled by the heavier trend pull,
+    //    and the report body can paint as soon as it lands (progressive render).
     try {
-      const { start, end, trendStart } = monthBounds(targetYm);
       const monthReuse = targetYm === currentYm && monthPayload ? pick(monthPayload) : null;
-      const [monthJson, trendJson] = await Promise.all([
-        monthReuse
-          ? Promise.resolve(monthReuse)
-          : fetch(`/api/dashboard?from=${start}&to=${end}&granularity=month`, { cache: "no-store" }).then((r) => r.json()).then(pick),
-        fetch(`/api/dashboard?from=${trendStart}&to=${end}&granularity=month`, { cache: "no-store" }).then((r) => r.json()).then(pick),
-      ]);
-      setStore((s) => ({ ...s, [targetYm]: { month: monthJson, trend: trendJson } }));
+      const monthJson = monthReuse || await getJson(`/api/dashboard?from=${start}&to=${end}&granularity=month`);
+      if (!monthJson || !monthJson.kpis) throw new Error("The month pull returned no data.");
+      setStore((s) => ({ ...s, [targetYm]: { ...(s[targetYm] || {}), month: monthJson } }));
     } catch (e) {
       setErr(String(e?.message || e));
+      inflight.current[targetYm] = false;
+      setLoading(false);
+      return;
+    }
+    // 2) TREND window (13 mo) — SOFT: only §2 growth needs it. A failure marks
+    //    growth "n/a" rather than erroring the whole recap.
+    try {
+      const trendJson = await getJson(`/api/dashboard?from=${trendStart}&to=${end}&granularity=month`);
+      setStore((s) => ({ ...s, [targetYm]: { ...(s[targetYm] || {}), trend: trendJson } }));
+    } catch {
+      setStore((s) => ({ ...s, [targetYm]: { ...(s[targetYm] || {}), trend: { __error: true } } }));
     } finally {
       setLoading(false);
     }
-  }, [store, currentYm, monthPayload]);
+  }, [currentYm, monthPayload]);
 
   // Fetch when the overlay opens or the month changes.
   useEffect(() => {
@@ -179,38 +202,44 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
     }), { actual: 0, budget: 0, base: 0, stretch: 0 });
     grand.attain = grand.base > 0 ? (grand.actual / grand.base) * 100 : null;
 
-    // §2 — growth MoM / QoQ / YoY (gross)
+    // §2 — growth MoM / QoQ / YoY (gross). SOFT: needs the trend series; renders
+    // "n/a" if the trend pull failed, "…" while still loading.
+    const trendOk = !!(trend && !trend.__error);
     const series = (trend?.monthlySeries || []).slice().sort((a, b) => a.month.localeCompare(b.month));
+    const byMonth = new Map(series.map((s) => [s.month, s]));
     const gOf = (row) => Number(row?.Total_gross || 0);
-    const idx = series.findIndex((s) => s.month === ym);
-    const cur = idx >= 0 ? series[idx] : null;
-    const prev = idx > 0 ? series[idx - 1] : null;
     const [yy, mm] = ym.split("-").map(Number);
+    const shiftYm = (y, m, back) => { let y2 = y, m2 = m - back; while (m2 <= 0) { m2 += 12; y2 -= 1; } return `${y2}-${String(m2).padStart(2, "0")}`; };
+    const prevYm = shiftYm(yy, mm, 1);                       // calendar prior month (not array-adjacent)
     const yoyYm = `${yy - 1}-${String(mm).padStart(2, "0")}`;
-    const yoy = series.find((s) => s.month === yoyYm) || null;
+    const cur = byMonth.get(ym) || null;
+    const prev = byMonth.get(prevYm) || null;
+    const yoy = byMonth.get(yoyYm) || null;
     const growth = (a, b) => (b > 0 ? ((a - b) / b) * 100 : null);
-    // Quarter sums
+    // QoQ — quarter-to-DATE vs the SAME elapsed span of the prior quarter, so a
+    // mid-quarter month isn't unfairly compared to a full prior quarter.
     const q = Math.floor((mm - 1) / 3);
-    const qMonths = (qy, qq) => [0, 1, 2].map((k) => `${qy}-${String(qq * 3 + k + 1).padStart(2, "0")}`);
-    const sumQ = (months) => series.filter((s) => months.includes(s.month)).reduce((a, s) => a + gOf(s), 0);
-    const curQ = sumQ(qMonths(yy, q));
+    const elapsed = ((mm - 1) % 3) + 1; // months into the current quarter (1..3)
+    const qMonths = (qy, qq, count) => Array.from({ length: count }, (_, k) => `${qy}-${String(qq * 3 + k + 1).padStart(2, "0")}`);
+    const sumG = (months) => months.reduce((a, mk) => a + gOf(byMonth.get(mk)), 0);
+    const curQ = sumG(qMonths(yy, q, elapsed));
     const prevQY = q === 0 ? yy - 1 : yy;
     const prevQ = q === 0 ? 3 : q - 1;
-    const priorQ = sumQ(qMonths(prevQY, prevQ));
+    const priorQ = sumG(qMonths(prevQY, prevQ, elapsed));
     const growthRow = {
       curGross: gOf(cur), mom: growth(gOf(cur), gOf(prev)), qoq: growth(curQ, priorQ),
-      yoy: yoy ? growth(gOf(cur), gOf(yoy)) : null, curQ, priorQ,
+      yoy: growth(gOf(cur), gOf(yoy)), curQ, priorQ,
     };
 
     // §3 — new + cumulative accounts (B2B, rep-attributed), from accountAging
+    // (all-time in every payload, so prior-month is a calendar lookup — no trend).
     const aging = month.accountAging || [];
     const newInMonth = aging.filter((a) => ymSlice(a.firstOrder) === ym).length;
     const cumulative = aging.filter((a) => ymSlice(a.firstOrder) <= ym).length;
-    const prevYm = prev?.month || null;
-    const newPrev = prevYm ? aging.filter((a) => ymSlice(a.firstOrder) === prevYm).length : null;
+    const newPrev = aging.filter((a) => ymSlice(a.firstOrder) === prevYm).length;
 
-    // §4 — new vs returning (order counts), from trend customerDynamics bucket
-    const cd = (trend?.customerDynamics || []).find((r) => r.month === ym) || {};
+    // §4 — new vs returning (order counts), from the MONTH payload's bucket
+    const cd = (month.customerDynamics || []).find((r) => r.month === ym) || {};
     const nvr = {
       b2bNew: cd.B2B_new || 0, b2bRet: cd.B2B_ret || 0, dtcNew: cd.DTC_new || 0, dtcRet: cd.DTC_ret || 0,
     };
@@ -240,6 +269,7 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
     return {
       kpis, matrix, grand, growthRow, newInMonth, cumulative, newPrev, nvr, dtc,
       topNet, topNew, xvieAll, serumAll, newXvie, newSerum,
+      growthReady: trendOk, growthFailed: !!(trend && trend.__error),
       isMtd: ym === currentYm,
     };
   }, [month, trend, targets, ym, currentYm]);
@@ -345,6 +375,8 @@ function AttainPill({ v }) {
 function ReportBody({ m, ym, hasTargets }) {
   const k = m.kpis;
   const total = Number(k.totalGrossSales || 0);
+  const gv = (n) => (m.growthReady ? signPct(n) : m.growthFailed ? "n/a" : "…");
+  const gc = (n) => (m.growthReady ? growthColor(n) : "var(--xt-muted)");
   return (
     <div className="omni-report-grid">
       {/* Headline strip */}
@@ -353,8 +385,8 @@ function ReportBody({ m, ym, hasTargets }) {
         <Stat label="B2B Gross" value={usdK(k.b2bGrossSales)} sub={`${pct0((k.b2bNetSales / (k.totalNetSales || 1)) * 100)} of net`} color="var(--xt-b2b)" />
         <Stat label="DTC Gross" value={usdK(k.dtcGrossSales)} sub={`${pct0((k.dtcNetSales / (k.totalNetSales || 1)) * 100)} of net`} color="var(--xt-dtc)" />
         <Stat label="ADCS Gross" value={usdK(k.adcsGrossSales)} sub={`${pct0((k.adcsNetSales / (k.totalNetSales || 1)) * 100)} of net`} color="var(--xt-adcs)" />
-        <Stat label="MoM" value={signPct(m.growthRow.mom)} color={growthColor(m.growthRow.mom)} sub="gross" />
-        <Stat label="YoY" value={signPct(m.growthRow.yoy)} color={growthColor(m.growthRow.yoy)} sub="gross" />
+        <Stat label="MoM" value={gv(m.growthRow.mom)} color={gc(m.growthRow.mom)} sub="gross" />
+        <Stat label="YoY" value={gv(m.growthRow.yoy)} color={gc(m.growthRow.yoy)} sub="gross" />
       </div>
 
       {/* §1 Budget vs actual by channel × product */}
@@ -383,9 +415,9 @@ function ReportBody({ m, ym, hasTargets }) {
       <div className="grid grid-cols-2 gap-3">
         <Section n={2} title="Growth" note="Gross">
           <div className="grid grid-cols-3 gap-1.5">
-            <Stat label="MoM" value={signPct(m.growthRow.mom)} color={growthColor(m.growthRow.mom)} />
-            <Stat label="QoQ" value={signPct(m.growthRow.qoq)} color={growthColor(m.growthRow.qoq)} sub={`${usdK(m.growthRow.curQ)} vs ${usdK(m.growthRow.priorQ)}`} />
-            <Stat label="YoY" value={signPct(m.growthRow.yoy)} color={growthColor(m.growthRow.yoy)} />
+            <Stat label="MoM" value={gv(m.growthRow.mom)} color={gc(m.growthRow.mom)} />
+            <Stat label="QoQ" value={gv(m.growthRow.qoq)} color={gc(m.growthRow.qoq)} sub={m.growthReady ? `${usdK(m.growthRow.curQ)} vs ${usdK(m.growthRow.priorQ)} QTD` : null} />
+            <Stat label="YoY" value={gv(m.growthRow.yoy)} color={gc(m.growthRow.yoy)} />
           </div>
         </Section>
 
