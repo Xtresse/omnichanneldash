@@ -86,7 +86,7 @@ function lastMonths(n) {
 function Section({ n, title, note, children }) {
   return (
     <section className="omni-report-section">
-      <div className="flex items-baseline justify-between gap-3 border-b border-[color:var(--xt-ink)] pb-1 mb-2">
+      <div className="flex items-baseline justify-between gap-3 border-b border-[color:var(--xt-tan)] pb-1 mb-2">
         <h2 className="font-serif text-[15px] font-semibold text-[color:var(--xt-ink)] leading-none">
           <span className="text-[color:var(--xt-brown)]">{n}.</span> {title}
         </h2>
@@ -150,10 +150,12 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
       setLoading(false);
       return;
     }
-    // 2) TREND window (13 mo) — SOFT: only §2 growth needs it. A failure marks
-    //    growth "n/a" rather than erroring the whole recap.
+    // 2) TREND for growth — SOFT. Use the STABLE `last_2years` preset (not a
+    //    custom date window): it's a shared, cron-warmed cache key that serves
+    //    instantly via SWR, where a bespoke 13-month window is always a cold
+    //    pull that times out. 24 months covers MoM/QoQ/YoY for any recent month.
     try {
-      const trendJson = await getJson(`/api/dashboard?from=${trendStart}&to=${end}&granularity=month`);
+      const trendJson = await getJson(`/api/dashboard?preset=last_2years&granularity=month`);
       setStore((s) => ({ ...s, [targetYm]: { ...(s[targetYm] || {}), trend: trendJson } }));
     } catch {
       setStore((s) => ({ ...s, [targetYm]: { ...(s[targetYm] || {}), trend: { __error: true } } }));
@@ -181,25 +183,32 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
     const tget = (ch, p, tier) => Number(co?.[ch]?.[p]?.[ym]?.[tier]?.gross || 0);
     const actGross = (ch, p) => Number(famOf(p)[`${ch}_gross`] || 0);
 
-    // §1 — channel × product matrix (gross, 3-tier)
+    // §1 — channel × product, ACTUAL vs BASE (gross), per Sam. DTC only sells
+    // Gummies + Serum. ADCS base is a lump in the sheet, so allocate it across
+    // products by the channel's ACTUAL gross mix instead of parking it all on
+    // Gummies. Rows with no actual and no base are dropped.
+    const prodsFor = (ch) => (ch === "DTC" ? ["Gummies", "Serum"] : PRODUCTS);
     const matrix = CHANNELS.map((ch) => {
-      const rows = PRODUCTS.map((p) => {
-        const actual = actGross(ch, p);
-        const base = tget(ch, p, "base");
-        return {
-          product: p, actual,
-          budget: tget(ch, p, "budget"), base, stretch: tget(ch, p, "stretch"),
-          attain: base > 0 ? (actual / base) * 100 : null,
-        };
-      });
-      const tot = rows.reduce((a, r) => ({
-        actual: a.actual + r.actual, budget: a.budget + r.budget, base: a.base + r.base, stretch: a.stretch + r.stretch,
-      }), { actual: 0, budget: 0, base: 0, stretch: 0 });
+      const prods = prodsFor(ch);
+      let baseFor;
+      if (ch === "ADCS") {
+        const adcsBaseTotal = prods.reduce((a, p) => a + tget("ADCS", p, "base"), 0);
+        const actTotal = prods.reduce((a, p) => a + actGross("ADCS", p), 0);
+        baseFor = (p) => (actTotal > 0 ? adcsBaseTotal * (actGross("ADCS", p) / actTotal) : tget("ADCS", p, "base"));
+      } else {
+        baseFor = (p) => tget(ch, p, "base");
+      }
+      const rows = prods
+        .map((p) => {
+          const actual = actGross(ch, p);
+          const base = baseFor(p);
+          return { product: p, actual, base, attain: base > 0 ? (actual / base) * 100 : null };
+        })
+        .filter((r) => r.actual > 0 || r.base > 0);
+      const tot = rows.reduce((a, r) => ({ actual: a.actual + r.actual, base: a.base + r.base }), { actual: 0, base: 0 });
       return { channel: ch, rows, tot: { ...tot, attain: tot.base > 0 ? (tot.actual / tot.base) * 100 : null } };
     });
-    const grand = matrix.reduce((a, m) => ({
-      actual: a.actual + m.tot.actual, budget: a.budget + m.tot.budget, base: a.base + m.tot.base, stretch: a.stretch + m.tot.stretch,
-    }), { actual: 0, budget: 0, base: 0, stretch: 0 });
+    const grand = matrix.reduce((a, mm2) => ({ actual: a.actual + mm2.tot.actual, base: a.base + mm2.tot.base }), { actual: 0, base: 0 });
     grand.attain = grand.base > 0 ? (grand.actual / grand.base) * 100 : null;
 
     // §2 — growth MoM / QoQ / YoY (gross). SOFT: needs the trend series; renders
@@ -390,12 +399,12 @@ function ReportBody({ m, ym, hasTargets }) {
       </div>
 
       {/* §1 Budget vs actual by channel × product */}
-      <Section n={1} title="Performance vs Budget — Channel × Product" note={hasTargets ? "Gross · 3-tier" : "No targets loaded"}>
+      <Section n={1} title="Performance vs Base — Channel × Product" note={hasTargets ? "Gross · Actual vs Base" : "No targets loaded"}>
         <table className="omni-tbl">
           <thead>
             <tr>
               <th className="text-left">Channel / Product</th>
-              <th>Actual</th><th>Budget</th><th>Base</th><th>Stretch</th><th>% Base</th>
+              <th>Actual</th><th>Base</th><th>% Base</th>
             </tr>
           </thead>
           <tbody>
@@ -404,7 +413,7 @@ function ReportBody({ m, ym, hasTargets }) {
             ))}
             <tr className="omni-tbl-grand">
               <td className="text-left">Company Total</td>
-              <td>{usdK(m.grand.actual)}</td><td>{usdK(m.grand.budget)}</td><td>{usdK(m.grand.base)}</td><td>{usdK(m.grand.stretch)}</td>
+              <td>{usdK(m.grand.actual)}</td><td>{usdK(m.grand.base)}</td>
               <td><AttainPill v={m.grand.attain} /></td>
             </tr>
           </tbody>
@@ -460,13 +469,12 @@ function ReportBody({ m, ym, hasTargets }) {
 
       {/* §5 DTC scorecard */}
       <Section n={5} title="DTC Performance" note="B2B-grade breakout">
-        <div className="grid grid-cols-6 gap-1.5 mb-1.5">
+        <div className="grid grid-cols-5 gap-1.5 mb-1.5">
           <Stat label="DTC Gross" value={usdK(m.dtc.gross)} color="var(--xt-dtc)" />
           <Stat label="DTC Net" value={usdK(m.dtc.net)} />
           <Stat label="Orders" value={num(m.dtc.orders)} />
           <Stat label="AOV" value={usd(m.dtc.aov)} />
           <Stat label="vs Base" value={m.dtc.attain == null ? "—" : pct0(m.dtc.attain)} color={m.dtc.attain >= 100 ? "var(--xt-favorable)" : "var(--xt-partial)"} />
-          <Stat label="New / Ret" value={`${num(m.dtc.newC)} / ${num(m.dtc.retC)}`} sub="orders" />
         </div>
         {m.dtc.byProduct.length > 0 && (
           <div className="font-sans text-[10px] text-[color:var(--xt-ink-soft)]">
@@ -511,24 +519,20 @@ function FragmentChannel({ mx }) {
   return (
     <>
       <tr className="omni-tbl-sub">
-        <td className="text-left" colSpan={6}><Dot c={CHANNEL_COLORS[mx.channel] || "var(--xt-tan)"} />{mx.channel}</td>
+        <td className="text-left" colSpan={4}><Dot c={CHANNEL_COLORS[mx.channel] || "var(--xt-tan)"} />{mx.channel}</td>
       </tr>
       {mx.rows.map((r) => (
         <tr key={r.product}>
           <td className="text-left pl-4">{r.product}</td>
           <td>{usdK(r.actual)}</td>
-          <td className="text-[color:var(--xt-muted)]">{r.budget ? usdK(r.budget) : "—"}</td>
           <td>{r.base ? usdK(r.base) : "—"}</td>
-          <td className="text-[color:var(--xt-muted)]">{r.stretch ? usdK(r.stretch) : "—"}</td>
           <td><AttainPill v={r.attain} /></td>
         </tr>
       ))}
       <tr className="omni-tbl-subtot">
         <td className="text-left pl-4">{mx.channel} total</td>
         <td>{usdK(mx.tot.actual)}</td>
-        <td className="text-[color:var(--xt-muted)]">{mx.tot.budget ? usdK(mx.tot.budget) : "—"}</td>
         <td>{mx.tot.base ? usdK(mx.tot.base) : "—"}</td>
-        <td className="text-[color:var(--xt-muted)]">{mx.tot.stretch ? usdK(mx.tot.stretch) : "—"}</td>
         <td><AttainPill v={mx.tot.attain} /></td>
       </tr>
     </>
