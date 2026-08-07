@@ -15,6 +15,7 @@ import {
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import MonthlyReport from "./MonthlyReport.jsx";
+import ProjectionsPanel from "./ProjectionsPanel.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
 import BudgetVsActual from "./BudgetVsActual.jsx";
 import AccountAging from "./AccountAging.jsx";
@@ -140,6 +141,8 @@ export default function Dashboard({ initial }) {
   const [compareMode, setCompareMode] = useState("off");
   // Net/Gross toggle for the channel revenue chart (Top-Line Performance).
   const [revMetric, setRevMetric] = useState("gross");
+  // Top-level view: the dashboard, or the editable Projections (targets) editor.
+  const [view, setView] = useState("dashboard");
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
 
@@ -469,6 +472,20 @@ export default function Dashboard({ initial }) {
           </div>
         </header>
 
+        {/* View tabs: the dashboard, or the editable Projections (targets) editor */}
+        <div className="mb-4 md:mb-6 flex gap-1 border-b border-rule">
+          {[["dashboard", "Dashboard"], ["projections", "Projections"]].map(([v, l]) => (
+            <button key={v} type="button" onClick={() => setView(v)}
+              className={`min-h-touch px-4 py-2 font-sans text-sm font-semibold tracking-[0.02em] -mb-px border-b-2 transition ${view === v ? "border-brown text-ink" : "border-transparent text-muted hover:text-ink"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {view === "projections" ? (
+          <ProjectionsPanel />
+        ) : (
+        <>
         <div className="mb-4 md:mb-6">
           <FilterBar
             activePreset={activePreset}
@@ -843,6 +860,8 @@ export default function Dashboard({ initial }) {
               </p>
             </footer>
           </>
+        )}
+        </>
         )}
       </div>
 
