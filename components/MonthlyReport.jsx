@@ -80,6 +80,25 @@ function lastMonths(n) {
   return out;
 }
 
+// The two CRON-WARMED windows whose merged monthly series powers §2 growth.
+// Both are >70 days so the server buckets them by MONTH; requested with NO
+// granularity param so the cache key is `{q:{from,to},granularity:"auto",…}` —
+// byte-identical to what /api/warm pre-computes (mirrors FilterBar's PT date
+// math). last_365d = trailing 12 months; last_year = the prior calendar year.
+// Together they span ~Jan(prev yr) → now, covering MoM, QoQ AND YoY for any
+// recent month. A bespoke wide window is never warmed → cold → times out.
+function warmedTrendWindows() {
+  const pt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const [py, pm, pd] = pt.split("-").map(Number);
+  const t = new Date(`${py}-${String(pm).padStart(2, "0")}-${String(pd).padStart(2, "0")}T00:00:00`);
+  const yd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  return [
+    { from: yd(addDays(t, -364)), to: yd(t) },                                                       // last_365d
+    { from: yd(new Date(t.getFullYear() - 1, 0, 1)), to: yd(new Date(t.getFullYear() - 1, 11, 31)) }, // last_year
+  ];
+}
+
 // ---- small presentational helpers -------------------------------------------
 function Section({ n, title, note, children }) {
   return (
@@ -148,13 +167,21 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
       setLoading(false);
       return;
     }
-    // 2) TREND for growth — SOFT. Use the STABLE `last_2years` preset (not a
-    //    custom date window): it's a shared, cron-warmed cache key that serves
-    //    instantly via SWR, where a bespoke 13-month window is always a cold
-    //    pull that times out. 24 months covers MoM/QoQ/YoY for any recent month.
+    // 2) TREND for growth — SOFT. Fetch the two CRON-WARMED windows (last_365d +
+    //    last_year, granularity=auto→month) and merge their monthly series. These
+    //    hit the warm KV cache and serve instantly/completely, where a bespoke
+    //    wide window is cold and comes back partial (only recent months → QoQ/YoY
+    //    read $0). Failure marks growth "n/a"; the rest of the recap still renders.
     try {
-      const trendJson = await getJson(`/api/dashboard?preset=last_2years&granularity=month`);
-      setStore((s) => ({ ...s, [targetYm]: { ...(s[targetYm] || {}), trend: trendJson } }));
+      const wins = warmedTrendWindows();
+      const payloads = await Promise.all(
+        wins.map((w) => getJson(`/api/dashboard?from=${w.from}&to=${w.to}`).catch(() => null))
+      );
+      const merged = new Map();
+      for (const p of payloads) for (const s of p?.monthlySeries || []) merged.set(s.month, s);
+      if (merged.size === 0) throw new Error("no trend data");
+      const monthlySeries = Array.from(merged.values()).sort((a, b) => a.month.localeCompare(b.month));
+      setStore((s) => ({ ...s, [targetYm]: { ...(s[targetYm] || {}), trend: { monthlySeries } } }));
     } catch {
       setStore((s) => ({ ...s, [targetYm]: { ...(s[targetYm] || {}), trend: { __error: true } } }));
     } finally {
