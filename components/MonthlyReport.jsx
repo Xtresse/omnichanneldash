@@ -135,6 +135,14 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
 
   useEffect(() => setMounted(true), []);
 
+  // After the print dialog closes, undo the auto-fit zoom so the on-screen
+  // preview returns to full size.
+  useEffect(() => {
+    const reset = () => { const s = document.querySelector(".omni-report-sheet"); if (s) s.style.zoom = "1"; };
+    window.addEventListener("afterprint", reset);
+    return () => window.removeEventListener("afterprint", reset);
+  }, []);
+
   const currentYm = currentYmPT();
 
   // Fetch that surfaces server failures as a clean error instead of choking on
@@ -334,7 +342,19 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
   const monthOpts = lastMonths(13);
   const genAt = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-  function doPrint() { window.print(); }
+  // Auto-fit to a single page: the on-screen sheet's 0.55in padding ≈ the @page
+  // print margin, so its scrollHeight ≈ the height it needs on paper. If that
+  // exceeds one Letter page (11in × 96dpi), zoom the sheet down just enough to
+  // fit — so the recap always prints on ONE page while staying as large as it can.
+  function doPrint() {
+    const sheet = typeof document !== "undefined" ? document.querySelector(".omni-report-sheet") : null;
+    if (sheet) {
+      sheet.style.zoom = "1";
+      const onePage = 11 * 96 - 6; // one Letter page in CSS px, tiny safety margin
+      if (sheet.scrollHeight > onePage) sheet.style.zoom = String(onePage / sheet.scrollHeight);
+    }
+    window.print();
+  }
 
   const button = (
     <button
