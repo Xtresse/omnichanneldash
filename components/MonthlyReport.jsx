@@ -207,25 +207,37 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
     const co = targets?.company || null;
     const tget = (ch, p, tier) => Number(co?.[ch]?.[p]?.[ym]?.[tier]?.gross || 0);
     const actGross = (ch, p) => Number(famOf(p)[`${ch}_gross`] || 0);
+    // The uncategorized residual (Total gross − the broken-out families) folds
+    // into each channel's GUMMIES (Sam) — no dropped "Other" row — so the channel
+    // totals tie to the headline gross and the Company Total ties to Total Gross.
+    // B2B carries the untagged-B2B remainder (total − dtc − adcs − b2b families).
+    const totGross = Number(kpis.totalGrossSales || 0);
+    const chGross = { B2B: Number(kpis.b2bGrossSales || 0), DTC: Number(kpis.dtcGrossSales || 0), ADCS: Number(kpis.adcsGrossSales || 0) };
+    const famSum = (ch) => PRODUCTS.reduce((a, p) => a + actGross(ch, p), 0);
+    const residualCh = {
+      DTC: chGross.DTC - famSum("DTC"),
+      ADCS: chGross.ADCS - famSum("ADCS"),
+      B2B: totGross - chGross.DTC - chGross.ADCS - famSum("B2B"),
+    };
+    const actFold = (ch, p) => actGross(ch, p) + (p === "Gummies" ? (residualCh[ch] || 0) : 0);
 
     // §1 — channel × product, ACTUAL vs BASE (gross), per Sam. DTC only sells
-    // Gummies + Serum. ADCS base is a lump in the sheet, so allocate it across
-    // products by the channel's ACTUAL gross mix instead of parking it all on
-    // Gummies. Rows with no actual and no base are dropped.
+    // Gummies + Serum. ADCS base is a lump in the sheet → allocate it across
+    // products by the channel's ACTUAL gross mix. Rows with no actual+base drop.
     const prodsFor = (ch) => (ch === "DTC" ? ["Gummies", "Serum"] : PRODUCTS);
     const matrix = CHANNELS.map((ch) => {
       const prods = prodsFor(ch);
       let baseFor;
       if (ch === "ADCS") {
         const adcsBaseTotal = prods.reduce((a, p) => a + tget("ADCS", p, "base"), 0);
-        const actTotal = prods.reduce((a, p) => a + actGross("ADCS", p), 0);
-        baseFor = (p) => (actTotal > 0 ? adcsBaseTotal * (actGross("ADCS", p) / actTotal) : tget("ADCS", p, "base"));
+        const actTotal = prods.reduce((a, p) => a + actFold("ADCS", p), 0);
+        baseFor = (p) => (actTotal > 0 ? adcsBaseTotal * (actFold("ADCS", p) / actTotal) : tget("ADCS", p, "base"));
       } else {
         baseFor = (p) => tget(ch, p, "base");
       }
       const rows = prods
         .map((p) => {
-          const actual = actGross(ch, p);
+          const actual = actFold(ch, p);
           const base = baseFor(p);
           return { product: p, actual, base, attain: base > 0 ? (actual / base) * 100 : null };
         })
@@ -289,7 +301,7 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
       gross: Number(kpis.dtcGrossSales || 0), net: Number(kpis.dtcNetSales || 0),
       orders: Number(kpis.dtcOrders || 0), aov: Number(kpis.dtcAOV || 0),
       base: dtcBase, attain: dtcBase > 0 ? (Number(kpis.dtcGrossSales || 0) / dtcBase) * 100 : null,
-      byProduct: PRODUCTS.map((p) => ({ product: p, gross: actGross("DTC", p) })).filter((r) => r.gross > 0),
+      byProduct: PRODUCTS.map((p) => ({ product: p, gross: actFold("DTC", p) })).filter((r) => r.gross > 0),
       newC: nvr.dtcNew, retC: nvr.dtcRet,
     };
 

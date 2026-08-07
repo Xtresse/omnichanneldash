@@ -234,17 +234,20 @@ export default function BudgetVsActual({
 
   // ── BY PRODUCT ────────────────────────────────────────────────────────────
   const byProduct = useMemo(() => {
+    const trackedActual = PRODUCTS.reduce((a, p) => a + Number(prodActuals[p] || 0), 0);
+    const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
+    // Fold the uncategorized residual (grand total − the 4 broken-out families)
+    // into GUMMIES (Sam 2026-08-06) instead of a separate "Other" row — so its
+    // revenue counts toward the flagship line and the table ties to the total.
+    const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     const rows = PRODUCTS.map((p) => {
-      const actual = Number(prodActuals[p] || 0);
       // FULL month, not prorated. Actuals already roll up B2B+ADCS+DTC
       // (see actualsByProduct), so the target must too, or % Goal is wrong.
+      const actual = Number(prodActuals[p] || 0) + (p === "Gummies" ? otherActual : 0);
       const target = coTarget("All", p);
       return makeRow(p, actual, target, target > 0, blendedFactor);
     });
-    const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
-    const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
-    const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
-    return { rows, otherActual, grandActual };
+    return { rows, otherActual: 0, grandActual };
   }, [prodActuals, coTarget, blendedFactor, grandActualRaw]);
 
   // ── BY CHANNEL ────────────────────────────────────────────────────────────
@@ -256,16 +259,18 @@ export default function BudgetVsActual({
     // steady daily cadence, so projecting a month-end run-rate from a
     // partial-month pace would be misleading, even though it has a real
     // monthly target like every other channel.
+    const trackedActual = Number(channelAct.B2B || 0) + Number(channelAct.DTC || 0) + Number(channelAct.ADCS || 0);
+    const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
+    // Fold the uncategorized residual (incl. untagged-by-signal B2B) into the B2B
+    // channel (Sam) — no separate "Other" row; channels tie to the company total.
+    const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
     const adcs = makeRow("ADCS", Number(channelAct.ADCS || 0), monthlyADCS, monthlyADCS > 0, 1);
     const rows = [
-      makeRow("B2B", Number(channelAct.B2B || 0), monthlyB2B, monthlyB2B > 0, chanFactor("B2B")),
+      makeRow("B2B", Number(channelAct.B2B || 0) + otherActual, monthlyB2B, monthlyB2B > 0, chanFactor("B2B")),
       makeRow("DTC", Number(channelAct.DTC || 0), monthlyDTC, monthlyDTC > 0, chanFactor("DTC")),
       adcs,
     ];
-    const trackedActual = rows.reduce((a, r) => a + r.actual, 0);
-    const grandActual = grandActualRaw != null ? Number(grandActualRaw) : trackedActual;
-    const otherActual = Math.max(0, Math.round(grandActual - trackedActual));
-    return { rows, otherActual, grandActual };
+    return { rows, otherActual: 0, grandActual };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelAct, coTarget, rrf, msFrac, rr.active, grandActualRaw]);
 
