@@ -37,12 +37,10 @@ const TIERS = [
 ];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// Full dollars WITH thousands separators — the clean, unambiguous format for a
+// CEO recap ($1,902,341, not $1902K). Used everywhere money appears.
 const usd = (n) => `$${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
-const usdK = (n) => {
-  const v = Math.round(Number(n) || 0);
-  if (Math.abs(v) >= 1000) return `$${(v / 1000).toFixed(Math.abs(v) >= 10000 ? 0 : 1)}K`;
-  return `$${v.toLocaleString("en-US")}`;
-};
+const usdK = usd;
 const num = (n) => Math.round(Number(n) || 0).toLocaleString("en-US");
 const pct0 = (n) => (n == null || !isFinite(n) ? "—" : `${Math.round(n)}%`);
 const signPct = (n) => (n == null || !isFinite(n) ? "—" : `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`);
