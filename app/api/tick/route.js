@@ -31,7 +31,9 @@ import {
   periodRange,
   leaderboardCacheKey,
   dashboardCacheKey,
+  heatmapCacheKey,
 } from "@/lib/periodWindows.js";
+import { computeHeatMap } from "../heatmap/route.js";
 import {
   DIRTY_KEY,
   TICK_KEY,
@@ -39,6 +41,7 @@ import {
   TICK_TTL_MS,
   LIVE_PERIODS,
   LIVE_LEADERBOARD_PERIODS,
+  LIVE_HEATMAP_PERIODS,
   MIN_REFRESH_INTERVAL_MS,
 } from "@/lib/liveState.js";
 
@@ -143,6 +146,20 @@ export async function GET(request) {
           source: "tick",
         });
       }
+      // Precompute the rep × day heat map off the SAME rows — one extra
+      // aggregation at daily granularity, no extra Shopify pull.
+      let hm = null;
+      if (LIVE_HEATMAP_PERIODS.includes(period)) {
+        try {
+          hm = await setCachedData(
+            heatmapCacheKey(from, to),
+            await computeHeatMap(from, to)
+          );
+        } catch {
+          /* the heat map must never take the tick down */
+        }
+      }
+
       results.push({
         period,
         from,
@@ -153,6 +170,7 @@ export async function GET(request) {
         dashOk: !!dash?.ok,
         dashParts: dash?.parts || 1,
         lbOk: lb ? !!lb.ok : null,
+        hmOk: hm ? !!hm.ok : null,
       });
     } catch (err) {
       // One window failing must not abort the rest, and must not lose the

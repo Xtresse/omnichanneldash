@@ -19,7 +19,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const PREFIXES = ["dash:v", "lb:v", "rows:v", "live:v"];
+const PREFIXES = ["dash:v", "lb:v", "hm:v", "rows:v", "live:v"];
 const DEFAULT_OLDER_THAN_H = 24;
 
 export async function GET(request) {

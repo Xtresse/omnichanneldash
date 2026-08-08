@@ -7,6 +7,16 @@ import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
 import RepLeaderboard from "./RepLeaderboard.jsx";
+// Heavy-ish grid (reps × up to 400 day cells) and it lives in a collapsed
+// bottom section, so keep it out of the initial bundle.
+const RepHeatMap = dynamic(() => import("./RepHeatMap.jsx"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-card border border-rule rounded-xl p-6 md:p-8 text-center text-muted text-sm font-sans">
+      Loading heat map…
+    </div>
+  ),
+});
 import {
   SALES_BY_REP_METRICS,
   PRESIDENTS_CLUB_METRICS,
@@ -836,6 +846,17 @@ export default function Dashboard({ initial }) {
               defaultCollapsed
             >
               <OrdersTable orders={data.orders || []} />
+            </Section>
+
+            {/* Scott Stepe's daily rep grid (Sam, 2026-08-08). Bottom section,
+                precomputed via /api/heatmap — never a per-request rebuild. */}
+            <Section
+              title="Rep Daily Heat Map"
+              detail="Rows = Reps · Columns = Days · Net Sales + Ramp T&E · MTD / QTD / YTD / Range"
+              collapsible
+              defaultCollapsed
+            >
+              <RepHeatMap rangeFrom={customFrom} rangeTo={customTo} />
             </Section>
 
             <Section title="Marketing Performance" detail="Tier 4 / pending connectors" collapsible defaultCollapsed>
