@@ -13,7 +13,14 @@
 // which also refreshes the shared "dash:v1:alltime" entry) and reused across
 // every window. Window pulls run with a small concurrency cap so we don't
 // hammer Shopify. Resilient: one window's failure never aborts the rest.
-// Hit by a Vercel cron every 10 min (see vercel.json).
+// Hit by a Vercel cron every 20 min (see vercel.json).
+//
+// Was every 10. Halved on 2026-08-08 because /api/tick now keeps today/mtd
+// (every minute) and qtd/ytd (every 5) fresh via delta pulls, so warm's job
+// shrank to two things that don't need 10-minute cadence: the historical
+// windows nobody's order changes (last_week, last_month, last_90d,
+// last_year...), and acting as the independent FULL-pull corrector against
+// any delta drift. At 114 s a run that was 19% of continuous CPU on its own.
 
 import { NextResponse } from "next/server";
 import {
