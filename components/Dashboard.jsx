@@ -145,6 +145,11 @@ export default function Dashboard({ initial }) {
   const [view, setView] = useState("dashboard");
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef(null);
+  // Gate for anything whose render output depends on the CURRENT clock or the
+  // viewer's locale. app/page.jsx is ISR-cached, so such output would be baked
+  // into stale HTML and mismatch on hydration. See the "Refreshed" label below.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Shared "this month, MTD-to-date" fetch — the single source for every
   // goal-pace figure on the dashboard (Executive Summary's "% to Base Goal"
@@ -433,7 +438,15 @@ export default function Dashboard({ initial }) {
               within a 375px viewport. md+ keeps the original right-aligned
               cluster. */}
           <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap md:justify-end">
-            {data && (
+            {/* Client-only: BOTH halves of this are hydration hazards on an
+                ISR-cached page — fmtTimeAgo() reads Date.now() and
+                toLocaleString() renders in the server's locale/timezone, so
+                the cached HTML ("Refreshed just now") never matches what the
+                browser computes. React was bailing out of hydration on every
+                load and re-rendering the whole tree client-side (minified
+                #425 → #418/#423). Same CLAUDE.md rule as the "today" default:
+                never trust an SSR-computed date on the client. */}
+            {mounted && data && (
               <div
                 className="font-sans text-[10px] md:text-xs text-muted w-full md:w-auto md:order-1"
                 title={new Date(data.generatedAt).toLocaleString()}
