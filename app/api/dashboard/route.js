@@ -9,7 +9,11 @@ import {
 import { fetchAllTimeRowsCached } from "@/lib/allTimeCache.js";
 import { getCachedEntry, setCachedData } from "@/lib/dataCache.js";
 import { loadCosts } from "@/lib/costsSheet.js";
-export const maxDuration = 60; // cold pull + background SWR refresh headroom
+// 300, not 60: a cold YTD build measured ~60 s on 2026-08-08 and was landing
+// right on the old ceiling — some requests returned a timeout error, and a
+// request killed mid-flight never reaches its cache write, so the next one
+// paid the same cost again. The warmer has always used 300.
+export const maxDuration = 300;
 
 // 5-minute cache on the API. Browser still gets a fresh response per query
 // (preset/from/to combinations cache independently).

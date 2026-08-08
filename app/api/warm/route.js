@@ -22,6 +22,12 @@ import {
 } from "@/lib/windsor.js";
 import { fetchAllTimeRowsCached } from "@/lib/allTimeCache.js";
 import { setCachedData } from "@/lib/dataCache.js";
+import { leaderboardCacheKey } from "@/lib/periodWindows.js";
+
+// Warm-window labels that also get a precomputed leaderboard payload. These
+// match the period keys the leaderboard UI offers; the from/to they resolve to
+// below are byte-identical to lib/periodWindows.js, so the keys line up.
+const LEADERBOARD_LABELS = new Set(["mtd", "qtd", "ytd"]);
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic"; // the warmer must always run
@@ -118,7 +124,25 @@ export async function GET() {
         ...data,
       };
       const status = await setCachedData(cacheKey, payload);
-      return { label: w.label, from: w.from, to: w.to, ok: !!status?.ok, status };
+
+      // Precompute the small leaderboard payload for the MTD/QTD/YTD periods
+      // off the SAME build we just did — no extra Shopify pull. This is what
+      // makes a leaderboard period toggle an instant cache hit instead of a
+      // multi-second recompute (2026-08-08 CPU incident).
+      let lb = null;
+      if (LEADERBOARD_LABELS.has(w.label)) {
+        const lbPayload = {
+          ok: true,
+          from: w.from,
+          to: w.to,
+          repPerformance: data.repPerformance || [],
+          generatedAt: new Date().toISOString(),
+          source: "warm",
+        };
+        lb = await setCachedData(leaderboardCacheKey(w.from, w.to), lbPayload);
+      }
+
+      return { label: w.label, from: w.from, to: w.to, ok: !!status?.ok, status, lb };
     } catch (err) {
       return { label: w.label, from: w.from, to: w.to, ok: false, error: String(err?.message || err) };
     }

@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { resolveMetrics } from "@/lib/repMetrics.js";
+// Shared Pacific-anchored window math — the SAME module /api/warm and
+// /api/leaderboard use, so the from/to strings (and therefore the cache keys)
+// line up exactly. A local copy drifting by a day here would silently miss
+// every warmed entry and put us back on per-request recompute.
+import { periodRange } from "@/lib/periodWindows.js";
 
 /**
  * Rep Leaderboard — the ONE presentation for every per-rep comparison on the
@@ -33,35 +38,6 @@ import { resolveMetrics } from "@/lib/repMetrics.js";
  * below), so a toggle click normally lands on a pre-warmed KV copy instead of
  * a cold Shopify pull.
  */
-
-// ── Pacific (shop tz) date math — MUST mirror FilterBar.jsx + /api/warm ──────
-// A browser-local anchor drifts a full day for an ET viewer late in the
-// evening, which would both show the wrong window AND miss the warmed cache
-// entry (keys are the literal from/to strings).
-const SHOP_TZ = "America/Los_Angeles";
-const shopTodayStr = () =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: SHOP_TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-const shopTodayD = () => new Date(shopTodayStr() + "T00:00:00");
-const ymd = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
-
-function periodRange(key) {
-  const t = shopTodayD();
-  if (key === "mtd") return [ymd(new Date(t.getFullYear(), t.getMonth(), 1)), ymd(t)];
-  if (key === "qtd") {
-    const q = Math.floor(t.getMonth() / 3);
-    return [ymd(new Date(t.getFullYear(), q * 3, 1)), ymd(t)];
-  }
-  if (key === "ytd") return [ymd(new Date(t.getFullYear(), 0, 1)), ymd(t)];
-  return null;
-}
 
 const PERIODS = [
   { key: "mtd", label: "MTD", full: "Month To Date" },
@@ -101,8 +77,12 @@ const PAYLOAD_CACHE = new Map();
 function loadWindow(from, to) {
   const key = `${from}|${to}`;
   if (PAYLOAD_CACHE.has(key)) return PAYLOAD_CACHE.get(key);
-  const qs = new URLSearchParams({ from, to, granularity: "auto" });
-  const p = fetch(`/api/dashboard?${qs}`, { cache: "no-store" })
+  // /api/leaderboard, NOT /api/dashboard: it returns only repPerformance
+  // (~50 KB) instead of the full payload (6.75 MB for YTD, 87% of it the raw
+  // orders array this component never reads). /api/warm precomputes the three
+  // periods every 10 min, so this is normally a warm cache hit.
+  const qs = new URLSearchParams({ from, to });
+  const p = fetch(`/api/leaderboard?${qs}`, { cache: "no-store" })
     .then((r) => r.json())
     .then((j) => {
       if (!j?.ok) throw new Error(j?.error || "Load failed");
