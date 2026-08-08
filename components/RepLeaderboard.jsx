@@ -141,7 +141,28 @@ export default function RepLeaderboard({
   const [fetched, setFetched] = useState({});
 
   const metric = metrics.find((m) => m.key === metricKey) || metrics[0];
-  const range = period === "range" ? [rangeFrom, rangeTo] : periodRange(period);
+
+  // ---- Never resolve MTD/QTD/YTD during SSR ----
+  // periodRange() calls new Date(). app/page.jsx is ISR-cached
+  // (revalidate = 300) and this section renders eagerly, so a server-computed
+  // date gets BAKED into HTML that Next may serve for far longer than 5
+  // minutes on this low-traffic app. Once that cached HTML crosses a day
+  // boundary the baked "Aug 1 – Aug 8" no longer matches what the browser
+  // computes, and React bails out of hydration (minified errors #418/#423/
+  // #425 were live in prod from 2026-08-03 until this fix).
+  //
+  // Same rule CLAUDE.md sets for Dashboard's "today": resolve it on the
+  // client. Pre-mount we render the skeleton, which is date-free and
+  // therefore identical on server and first client render.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const range =
+    period === "range"
+      ? [rangeFrom, rangeTo] // props — server-provided, hydration-safe
+      : mounted
+        ? periodRange(period)
+        : null;
   const [from, to] = range || [];
   const cacheKey = from && to ? `${from}|${to}` : null;
   // If the dashboard's own FilterBar already has this exact window loaded
@@ -185,7 +206,9 @@ export default function RepLeaderboard({
   const fmtV = fmtBy(metric?.unit);
   const total = rows.reduce((a, r) => a + (r.value || 0), 0);
   const max = rows.length ? Math.max(...rows.map((r) => r.value || 0)) : 0;
-  const busy = loading && !source;
+  // Pre-mount counts as busy so SSR emits the date-free skeleton (see the
+  // hydration note above) rather than an empty "no activity" state.
+  const busy = !mounted || (loading && !source);
   const periodMeta = PERIODS.find((p) => p.key === period);
   const unitSuffix = metric?.suffix ? ` ${metric.suffix}` : "";
 
