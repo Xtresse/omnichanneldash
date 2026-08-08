@@ -120,6 +120,11 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
     return marks;
   }, [days]);
 
+  // Cell width scales with the window so a short period reads as a grid rather
+  // than a thin cluster stranded beside a dead gap, and a long one still fits.
+  // A flexible spacer column (below) soaks up whatever width is left over.
+  const cellW = days.length <= 20 ? 26 : days.length <= 45 ? 18 : days.length <= 120 ? 13 : 10;
+
   const totals = useMemo(() => {
     return rows.reduce(
       (a, r) => ({
@@ -221,7 +226,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
           )}
 
           <div className="overflow-x-auto">
-            <table className="border-collapse" style={{ minWidth: "100%" }}>
+            <table className="border-collapse" style={{ width: "100%" }}>
               <thead>
                 <tr>
                   <th
@@ -239,7 +244,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                         className={`py-1 px-0 font-sans text-[8px] font-normal ${
                           isWeekend(d) ? "text-muted/40" : "text-muted"
                         }`}
-                        style={{ minWidth: 11, width: 11 }}
+                        style={{ minWidth: cellW, width: cellW }}
                       >
                         {mark ? (
                           <span className="block text-[8px] text-inksoft font-semibold">
@@ -251,6 +256,9 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                       </th>
                     );
                   })}
+                  {/* Absorbs leftover width so short windows don't strand the
+                      grid beside a dead gap. */}
+                  <th aria-hidden="true" style={{ width: "100%" }} />
                   <th
                     className="sticky right-0 z-10 bg-paper2 text-right py-1.5 px-2 font-sans text-[10px] uppercase tracking-[0.14em] text-muted border-l border-rule"
                     style={{ minWidth: 170 }}
@@ -288,8 +296,8 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                             }`}
                             style={{
                               backgroundColor: bg || (weekend ? "#F2EEE7" : "#FBFAF7"),
-                              width: 11,
-                              minWidth: 11,
+                              width: cellW,
+                              minWidth: cellW,
                               height: 15,
                               boxShadow: spendNoSale
                                 ? "inset 0 0 0 1.5px #5C2F2E"
@@ -300,6 +308,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                           />
                         );
                       })}
+                      <td aria-hidden="true" />
                       <td className="sticky right-0 z-10 bg-card py-0.5 px-2 text-right whitespace-nowrap border-l border-rule">
                         <span className="font-display text-[12px] font-semibold text-ink tabular-nums">
                           {metric === "net" ? fmt$k(r.totalNet) : fmt$k(r.totalSpend)}
