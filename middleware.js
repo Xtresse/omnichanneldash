@@ -17,6 +17,11 @@ const PUBLIC_PREFIXES = [
   "/api/login",
   "/api/logout",
   "/api/warm", // Vercel cron warmer — no browser cookie
+  "/api/tick", // Vercel cron live-refresher — no browser cookie
+  // Shopify webhook receiver. Must be reachable without a session; it
+  // authenticates itself by HMAC-SHA256 of the raw body against the app's
+  // client secret and rejects anything unsigned before doing any work.
+  "/api/shopify-webhook",
   // Next.js metadata routes (generated icons / manifest) — keep them reachable
   // so the login page renders its favicon + PWA manifest without redirecting.
   "/icon",

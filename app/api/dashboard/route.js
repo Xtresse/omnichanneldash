@@ -26,7 +26,12 @@ export const revalidate = 300;
 //     window has been computed once. The 10-min cron keeps common windows fresh
 //     so they almost always fall in the FRESH band anyway.
 // Older than MAX_AGE (or a true cache miss) → compute synchronously.
-const FRESH_MS = 60 * 60 * 1000; // 60 min
+// 15 min, not 60: the live windows (today/mtd/qtd/ytd) are rewritten by the
+// 1-minute /api/tick and the rest by the 10-minute /api/warm, so everything
+// the crons cover is comfortably inside this and serves as a straight hit.
+// The shorter window only affects ad-hoc custom ranges, which now go stale —
+// and therefore background-refresh — in 15 min instead of an hour.
+const FRESH_MS = 15 * 60 * 1000; // 15 min
 const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 h
 
 const ALLOWED_PRESETS = new Set([
