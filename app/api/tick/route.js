@@ -16,6 +16,9 @@
 //   2. DELTA PULLS. lib/liveRows.js re-pulls only the days that actually
 //      changed and reuses cached history, so refreshing YTD costs about what
 //      refreshing today costs — not the ~60 s a cold YTD pull takes.
+//   3. TIERED CADENCE. today/mtd refresh every minute; qtd/ytd and the heat
+//      map every 5. Doing all of it every minute took the tick to 19 s and
+//      re-fired the CPU alert on 2026-08-08 — see lib/liveState.js.
 //
 // NO METRIC LOGIC HERE. Every number still comes from buildDashboardData()
 // over an equivalent row set; this only decides when to recompute and what to
@@ -39,7 +42,9 @@ import {
   TICK_KEY,
   DIRTY_TTL_MS,
   TICK_TTL_MS,
-  LIVE_PERIODS,
+  LIVE_PERIODS_FAST,
+  LIVE_PERIODS_SLOW,
+  SLOW_INTERVAL_MS,
   LIVE_LEADERBOARD_PERIODS,
   LIVE_HEATMAP_PERIODS,
   MIN_REFRESH_INTERVAL_MS,
@@ -96,6 +101,7 @@ export async function GET(request) {
   await setCachedData(TICK_KEY, {
     at: claimedAt,
     running: true,
+    lastSlowAt: lastTick?.lastSlowAt || null,
     results: lastTick?.results || [],
   }).catch(() => {});
 
@@ -109,8 +115,17 @@ export async function GET(request) {
     loadCosts().catch(() => null),
   ]);
 
+  // Only fold the expensive windows (and the heat map) in every SLOW_INTERVAL.
+  // Doing them every minute is what took the tick to 19 s and re-fired the CPU
+  // alert; they gain nothing from minute-level freshness.
+  const lastSlowAt = lastTick?.lastSlowAt ? new Date(lastTick.lastSlowAt).getTime() : 0;
+  const doSlow = force || Date.now() - lastSlowAt >= SLOW_INTERVAL_MS;
+  const periods = doSlow
+    ? [...LIVE_PERIODS_FAST, ...LIVE_PERIODS_SLOW]
+    : LIVE_PERIODS_FAST;
+
   const results = [];
-  for (const period of LIVE_PERIODS) {
+  for (const period of periods) {
     const range = periodRange(period);
     if (!range) continue;
     const [from, to] = range;
@@ -149,7 +164,7 @@ export async function GET(request) {
       // Precompute the rep × day heat map off the SAME rows — one extra
       // aggregation at daily granularity, no extra Shopify pull.
       let hm = null;
-      if (LIVE_HEATMAP_PERIODS.includes(period)) {
+      if (doSlow && LIVE_HEATMAP_PERIODS.includes(period)) {
         try {
           hm = await setCachedData(
             heatmapCacheKey(from, to),
@@ -186,12 +201,18 @@ export async function GET(request) {
   }
 
   const at = new Date().toISOString();
-  await setCachedData(TICK_KEY, { at, ms: Date.now() - started, results }).catch(() => {});
+  await setCachedData(TICK_KEY, {
+    at,
+    lastSlowAt: doSlow ? at : lastTick?.lastSlowAt || null,
+    ms: Date.now() - started,
+    results,
+  }).catch(() => {});
 
   return NextResponse.json({
     ok: true,
     refreshed: true,
     trigger: force ? "force" : "webhook",
+    cadence: doSlow ? "fast+slow" : "fast",
     dirtyFrom,
     pending: dirty?.pending || 0,
     at,
