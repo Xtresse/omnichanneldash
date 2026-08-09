@@ -617,6 +617,7 @@ export default function Dashboard({ initial }) {
 
         {data && (
           <>
+            <SectionGroup title="Sales Performance" detail="Goals, Top-Line Trends & Customer Mix">
             <Section title="Actual Vs Goal" detail={`Budget / Base / Stretch · by product & channel · ${M} basis`} collapsible>
               <BudgetVsActual
                 productFamily={data.productFamily}
@@ -680,41 +681,9 @@ export default function Dashboard({ initial }) {
                 </ChartCell>
               </ChartGrid>
             </Section>
+            </SectionGroup>
 
-            <Section title="Operational & Geographic" detail="Tier 3 / 3 charts" collapsible defaultCollapsed>
-              <ChartGrid>
-                <ChartCell title={`Top 15 States By ${M} Sales`} subtitle="Channel split" wide>
-                  <RevenueByState data={data.revenueByState} metric={revMetric} />
-                </ChartCell>
-                <ChartCell title="Discount Code Usage" subtitle="Top 12 By $ Volume">
-                  <DiscountUsage data={data.discountUsage} />
-                </ChartCell>
-                <ChartCell title="3PL Fulfillment Split" subtitle="Order count by location">
-                  <FulfillmentSplit data={data.fulfillmentSplit} />
-                </ChartCell>
-              </ChartGrid>
-            </Section>
-
-            <Section
-              title="ZIP Heat Map"
-              detail="B2B only · Sales density or Opportunity (open + thin markets) · click / “Jump to” a state"
-              collapsible
-              defaultCollapsed
-            >
-              {/* B2B only — exclude DTC consumer orders AND ADCS, so the map (and
-                  its rep/whitespace signal) is purely the rep-sold business. */}
-              <ZipHeatMap orders={(data.orders || []).filter((o) => o.channel === "B2B")} />
-            </Section>
-
-            <Section
-              title="Sales By State, Rep & Zip"
-              detail="Cross-filter sales on all three · % of total per breakdown · honors Net/Gross toggle"
-              collapsible
-              defaultCollapsed
-            >
-              <SalesExplorer orders={data.orders || []} metric={revMetric} repRoster={data.repRoster || []} />
-            </Section>
-
+            <SectionGroup title="Rep Performance" detail="Leaderboards, Daily Activity & Programs">
             <Section
               title="Sales By Rep"
               detail="Stack-Ranked Leaderboard · MTD / QTD / YTD · Trend Lines Below"
@@ -809,16 +778,43 @@ export default function Dashboard({ initial }) {
             </Section>
 
             <Section
-              title="Reconciliation"
-              detail="Cross-checks chart totals against the headline KPIs"
+              title="Rep Daily Heat Map"
+              detail="Rows = Reps · Columns = Days · Net Sales + Ramp T&E · MTD / QTD / YTD / Range"
               collapsible
               defaultCollapsed
             >
-              <ReconciliationCheck
-                reconciliation={data.reconciliation}
-                kpis={data.kpis}
-                compare={data.compare}
-              />
+              <RepHeatMap rangeFrom={customFrom} rangeTo={customTo} />
+            </Section>
+
+            <Section
+              title="Ambassador Program (XVIE50)"
+              detail="Xvie 50%-off ambassadors by rep · who reordered Xvie full-price after entry · all-history"
+              collapsible
+              defaultCollapsed
+            >
+              <AmbassadorProgram />
+            </Section>
+            </SectionGroup>
+
+            <SectionGroup title="Territory & Accounts" detail="Geography, Cross-Filter & Account Recency">
+            <Section
+              title="ZIP Heat Map"
+              detail="B2B only · Sales density or Opportunity (open + thin markets) · click / “Jump to” a state"
+              collapsible
+              defaultCollapsed
+            >
+              {/* B2B only — exclude DTC consumer orders AND ADCS, so the map (and
+                  its rep/whitespace signal) is purely the rep-sold business. */}
+              <ZipHeatMap orders={(data.orders || []).filter((o) => o.channel === "B2B")} />
+            </Section>
+
+            <Section
+              title="Sales By State, Rep & Zip"
+              detail="Cross-filter sales on all three · % of total per breakdown · honors Net/Gross toggle"
+              collapsible
+              defaultCollapsed
+            >
+              <SalesExplorer orders={data.orders || []} metric={revMetric} repRoster={data.repRoster || []} />
             </Section>
 
             <Section
@@ -829,14 +825,21 @@ export default function Dashboard({ initial }) {
             >
               <AccountAging accountAging={data.accountAging} />
             </Section>
+            </SectionGroup>
 
-            <Section
-              title="Ambassador Program (XVIE50)"
-              detail="Xvie 50%-off ambassadors by rep · who reordered Xvie full-price after entry · all-history"
-              collapsible
-              defaultCollapsed
-            >
-              <AmbassadorProgram />
+            <SectionGroup title="Operations & Data Integrity" detail="Fulfillment, Discounts, Audit Trail & Reconciliation">
+            <Section title="Operational & Geographic" detail="Tier 3 / 3 charts" collapsible defaultCollapsed>
+              <ChartGrid>
+                <ChartCell title={`Top 15 States By ${M} Sales`} subtitle="Channel split" wide>
+                  <RevenueByState data={data.revenueByState} metric={revMetric} />
+                </ChartCell>
+                <ChartCell title="Discount Code Usage" subtitle="Top 12 By $ Volume">
+                  <DiscountUsage data={data.discountUsage} />
+                </ChartCell>
+                <ChartCell title="3PL Fulfillment Split" subtitle="Order count by location">
+                  <FulfillmentSplit data={data.fulfillmentSplit} />
+                </ChartCell>
+              </ChartGrid>
             </Section>
 
             <Section
@@ -850,15 +853,22 @@ export default function Dashboard({ initial }) {
 
             {/* Scott Stepe's daily rep grid (Sam, 2026-08-08). Bottom section,
                 precomputed via /api/heatmap — never a per-request rebuild. */}
+
             <Section
-              title="Rep Daily Heat Map"
-              detail="Rows = Reps · Columns = Days · Net Sales + Ramp T&E · MTD / QTD / YTD / Range"
+              title="Reconciliation"
+              detail="Cross-checks chart totals against the headline KPIs"
               collapsible
               defaultCollapsed
             >
-              <RepHeatMap rangeFrom={customFrom} rangeTo={customTo} />
+              <ReconciliationCheck
+                reconciliation={data.reconciliation}
+                kpis={data.kpis}
+                compare={data.compare}
+              />
             </Section>
+            </SectionGroup>
 
+            <SectionGroup title="Marketing" detail="Pending Connectors">
             <Section title="Marketing Performance" detail="Tier 4 / pending connectors" collapsible defaultCollapsed>
               <ChartGrid>
                 <ChartCell title="Blended ROAS" subtitle="DTC ad spend → all channel revenue">
@@ -875,6 +885,7 @@ export default function Dashboard({ initial }) {
                 Activates once Google Ads, Meta, TikTok, and Klaviyo are authorized on Windsor.ai.
               </p>
             </Section>
+            </SectionGroup>
 
             <footer className="font-sans text-[10px] md:text-xs text-muted mt-10 border-t border-rule pt-4 leading-relaxed">
               <p>
@@ -941,6 +952,29 @@ function Section({ title, detail, children, collapsible = false, defaultCollapse
 // trend lines / detail table beneath the stack-ranked leaderboard without
 // losing them — one compact cream bar with a Show/Hide affordance, and the
 // children don't mount (or fetch/render Recharts) until expanded.
+// Top-level grouping band for the section stack. 14 identical dark Section
+// bars in a row gave no sense of where sales analysis ended and operations
+// began (Sam, 2026-08-09) — this adds the one level of hierarchy that was
+// missing. Deliberately NOT collapsible: the Sections inside already collapse,
+// and nesting a second collapse just adds clicks between you and the data.
+function SectionGroup({ title, detail, children }) {
+  return (
+    <div className="mt-8 md:mt-10 first:mt-5 md:first:mt-7">
+      <div className="flex items-baseline justify-between gap-3 flex-wrap border-b-2 border-brown/70 pb-1.5 mb-1">
+        <h2 className="font-display text-lg sm:text-xl md:text-2xl font-semibold leading-tight text-ink">
+          {title}
+        </h2>
+        {detail && (
+          <span className="font-sans text-[10px] md:text-xs uppercase tracking-[0.18em] text-muted">
+            {detail}
+          </span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function SubBlock({ title, detail, children, className = "", defaultCollapsed = true }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   return (
