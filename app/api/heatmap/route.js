@@ -47,6 +47,34 @@ async function buildUserIdToRep() {
   return out;
 }
 
+// Ramp transactions are cached for the WIDEST window (year-to-date) and every
+// narrower window is sliced out of that one pull.
+//
+// 2026-08-09: pulling Ramp per window took the slow tick from 21.7 s to 101 s
+// — mtd, qtd and ytd each walking their own paginated transaction list, and
+// ytd's is the whole year. Since mtd and qtd are strict subsets of ytd, that
+// was the same rows fetched three times. One cached pull covers all three.
+//
+// 15 min TTL: card transactions settle over hours, so the heat map's daily
+// grid can't meaningfully change faster than that.
+const RAMP_TTL_MS = 15 * 60 * 1000;
+const rampCacheKey = (from, to) => `ramp:v1:${from}|${to}`;
+
+async function fetchRampTransactionsCached(from, to) {
+  const key = rampCacheKey(from, to);
+  try {
+    const hit = await getCachedEntry(key);
+    if (hit && Date.now() - hit.at <= RAMP_TTL_MS && Array.isArray(hit.data)) {
+      return hit.data;
+    }
+  } catch {
+    /* cache miss → live pull */
+  }
+  const txns = await fetchRampTransactions(from, to);
+  await setCachedData(key, txns).catch(() => {});
+  return txns;
+}
+
 /** Pull Ramp spend, degrading to "unavailable" rather than failing the panel. */
 async function loadSpend(from, to) {
   if (!RAMP_CONFIGURED) {
@@ -58,10 +86,22 @@ async function loadSpend(from, to) {
     };
   }
   try {
-    const [userIdToRep, txns] = await Promise.all([
+    // Widen to the start of `from`'s year so mtd/qtd/ytd all share ONE cached
+    // pull. A window starting before that (custom range) falls back to its own.
+    const yearStart = `${from.slice(0, 4)}-01-01`;
+    const wideFrom = from >= yearStart ? yearStart : from;
+    const [userIdToRep, wideTxns] = await Promise.all([
       buildUserIdToRep(),
-      fetchRampTransactions(from, to),
+      fetchRampTransactionsCached(wideFrom, to),
     ]);
+    // Slice the shared pull down to the requested window.
+    const txns =
+      wideFrom === from
+        ? wideTxns
+        : wideTxns.filter((t) => {
+            const d = String(t.at || "").slice(0, 10);
+            return d && d >= from && d <= to;
+          });
     return {
       grid: spendByRepDay(txns, userIdToRep),
       available: true,
