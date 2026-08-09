@@ -168,7 +168,7 @@ export async function GET(request) {
         try {
           hm = await setCachedData(
             heatmapCacheKey(from, to),
-            await computeHeatMap(from, to)
+            await computeHeatMap(from, to, { rows, allTimeRows })
           );
         } catch {
           /* the heat map must never take the tick down */

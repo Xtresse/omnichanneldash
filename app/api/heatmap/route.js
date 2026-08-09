@@ -55,9 +55,10 @@ async function buildUserIdToRep() {
 // ytd's is the whole year. Since mtd and qtd are strict subsets of ytd, that
 // was the same rows fetched three times. One cached pull covers all three.
 //
-// 15 min TTL: card transactions settle over hours, so the heat map's daily
-// grid can't meaningfully change faster than that.
-const RAMP_TTL_MS = 15 * 60 * 1000;
+// 60 min TTL: card transactions settle over hours, so a daily grid cannot
+// meaningfully change faster, and the wide pull is the single most expensive
+// thing in the slow tick.
+const RAMP_TTL_MS = 60 * 60 * 1000;
 const rampCacheKey = (from, to) => `ramp:v1:${from}|${to}`;
 
 async function fetchRampTransactionsCached(from, to) {
@@ -122,10 +123,15 @@ async function loadSpend(from, to) {
   }
 }
 
-export async function computeHeatMap(from, to) {
-  const [{ rows }, allTimeRows, spend] = await Promise.all([
-    fetchWindowRowsLive(from, to, {}),
-    fetchAllTimeRowsCached(),
+/**
+ * @param {object} [pre] rows/allTimeRows the caller ALREADY has. /api/tick has
+ *   just fetched both for this window, and re-fetching + re-aggregating them
+ *   here is what made the slow tick do ~7 aggregations instead of 4.
+ */
+export async function computeHeatMap(from, to, pre = {}) {
+  const [rows, allTimeRows, spend] = await Promise.all([
+    pre.rows ? Promise.resolve(pre.rows) : fetchWindowRowsLive(from, to, {}).then((r) => r.rows),
+    pre.allTimeRows ? Promise.resolve(pre.allTimeRows) : fetchAllTimeRowsCached(),
     loadSpend(from, to),
   ]);
   // granularity "day" → repSalesMonthly is bucketed per calendar day.
