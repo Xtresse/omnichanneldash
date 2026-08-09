@@ -45,6 +45,11 @@ const isWeekend = (d) => dow(d) === 0 || dow(d) === 6;
 const dayNum = (d) => String(Number(d.slice(8, 10)));
 const monthLabel = (d) =>
   new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+const dowInitial = (d) => ["S", "M", "T", "W", "T", "F", "S"][dow(d)];
+const longDate = (d) =>
+  new Date(d + "T00:00:00Z").toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
+  });
 
 // Brand ramp, cream → orange → espresso. Index 0 is the empty surface.
 const RAMP = ["#FAF7F2", "#FBD9B3", "#F7B36B", "#F0922E", "#D8761B", "#A85F28", "#2B1A10"];
@@ -120,10 +125,41 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
     return marks;
   }, [days]);
 
-  // Cell width scales with the window so a short period reads as a grid rather
-  // than a thin cluster stranded beside a dead gap, and a long one still fits.
-  // A flexible spacer column (below) soaks up whatever width is left over.
-  const cellW = days.length <= 20 ? 26 : days.length <= 45 ? 18 : days.length <= 120 ? 13 : 10;
+  // Cell width scales with the window. Short periods get columns wide enough to
+  // carry a readable date label; long ones shrink and scroll.
+  const cellW =
+    days.length <= 14 ? 34 : days.length <= 31 ? 24 : days.length <= 45 ? 18 : days.length <= 120 ? 13 : 10;
+  // Per-day numbers only fit above a certain width; below it fall back to
+  // month markers so the ruler stays legible instead of turning to mush.
+  const showEveryDay = cellW >= 18;
+  // Only pin the Rep/Summary columns when the grid actually overflows. Pinning
+  // Summary on a short window shoved it to the far right of the viewport and
+  // left a dead gap mid-table, which is what made this hard to read.
+  const wide = days.length > 40;
+
+  // Rows grouped Existing / New / 1099 (Sam, 2026-08-09) — a flat list mixed
+  // W-2 and contractor territories together, so you couldn't compare like with
+  // like. Sorted by the ACTIVE metric within each group.
+  const groups = useMemo(() => {
+    const order = showing?.territories || ["Existing", "New", "1099"];
+    const label = { Existing: "Existing Territories", New: "New Territories", "1099": "1099 Territories" };
+    const byTerr = new Map(order.map((t) => [t, []]));
+    const orphans = [];
+    for (const r of rows) {
+      if (byTerr.has(r.territory)) byTerr.get(r.territory).push(r);
+      else orphans.push(r);
+    }
+    const val = (r) => (metric === "net" ? r.totalNet : r.totalSpend);
+    const out = order
+      .filter((t) => (byTerr.get(t) || []).length)
+      .map((t) => ({
+        territory: t,
+        label: label[t] || t,
+        rows: [...byTerr.get(t)].sort((a, b) => val(b) - val(a) || a.rep.localeCompare(b.rep)),
+      }));
+    if (orphans.length) out.push({ territory: "other", label: "Unassigned", rows: orphans });
+    return out;
+  }, [rows, metric, showing]);
 
   const totals = useMemo(() => {
     return rows.reduce(
@@ -226,41 +262,60 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
           )}
 
           <div className="overflow-x-auto">
-            <table className="border-collapse" style={{ width: "100%" }}>
+            {/* max-content, not 100%: stretching the table pushed Summary to the
+                far right and left a dead gap mid-row. Only pin columns once the
+                grid genuinely overflows. */}
+            <table className="border-collapse" style={{ width: wide ? "100%" : "max-content" }}>
               <thead>
                 <tr>
                   <th
-                    className="sticky left-0 z-10 bg-paper2 text-left py-1.5 px-2 font-sans text-[10px] uppercase tracking-[0.14em] text-muted"
+                    className={`${wide ? "sticky left-0 z-10 " : ""}bg-paper2 text-left py-1 px-2 font-sans text-[10px] uppercase tracking-[0.14em] text-muted align-bottom`}
                     style={{ minWidth: 150 }}
                   >
                     Rep
                   </th>
                   {days.map((d, i) => {
                     const mark = monthMarks.find((m) => m.i === i);
+                    const we = isWeekend(d);
                     return (
                       <th
                         key={d}
-                        title={d}
-                        className={`py-1 px-0 font-sans text-[8px] font-normal ${
-                          isWeekend(d) ? "text-muted/40" : "text-muted"
+                        title={longDate(d)}
+                        className={`py-1 px-0 font-sans font-normal align-bottom ${
+                          we ? "bg-paper2/60" : ""
                         }`}
                         style={{ minWidth: cellW, width: cellW }}
                       >
-                        {mark ? (
-                          <span className="block text-[8px] text-inksoft font-semibold">
+                        {mark && (
+                          <span className="block text-[9px] text-inksoft font-semibold leading-tight">
                             {mark.label}
                           </span>
-                        ) : dayNum(d) === "15" ? (
-                          <span className="block text-[8px]">15</span>
+                        )}
+                        {showEveryDay ? (
+                          <>
+                            <span
+                              className={`block text-[8px] leading-tight ${
+                                we ? "text-muted/45" : "text-muted/70"
+                              }`}
+                            >
+                              {dowInitial(d)}
+                            </span>
+                            <span
+                              className={`block text-[10px] tabular-nums leading-tight ${
+                                we ? "text-muted/45" : "text-inksoft"
+                              }`}
+                            >
+                              {dayNum(d)}
+                            </span>
+                          </>
+                        ) : !mark && dayNum(d) === "15" ? (
+                          <span className="block text-[8px] text-muted leading-tight">15</span>
                         ) : null}
                       </th>
                     );
                   })}
-                  {/* Absorbs leftover width so short windows don't strand the
-                      grid beside a dead gap. */}
-                  <th aria-hidden="true" style={{ width: "100%" }} />
                   <th
-                    className="sticky right-0 z-10 bg-paper2 text-right py-1.5 px-2 font-sans text-[10px] uppercase tracking-[0.14em] text-muted border-l border-rule"
+                    className={`${wide ? "sticky right-0 z-10 " : ""}bg-paper2 text-right py-1 px-2 font-sans text-[10px] uppercase tracking-[0.14em] text-muted border-l border-rule align-bottom`}
                     style={{ minWidth: 170 }}
                   >
                     Summary
@@ -268,12 +323,27 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => {
+                {groups.flatMap((g) => [
+                  <tr key={`h-${g.territory}`} className="border-t border-rule">
+                    <td
+                      colSpan={days.length + 2}
+                      className="bg-paper2 py-1 px-2 font-sans text-[10px] uppercase tracking-[0.16em] text-inksoft font-semibold"
+                    >
+                      {g.label}
+                      <span className="text-muted font-normal ml-2 tracking-normal normal-case">
+                        {g.rows.length} reps ·{" "}
+                        {metric === "net"
+                          ? fmt$(g.rows.reduce((a, r) => a + r.totalNet, 0))
+                          : fmt$(g.rows.reduce((a, r) => a + r.totalSpend, 0))}
+                      </span>
+                    </td>
+                  </tr>,
+                  ...g.rows.map((r) => {
                   const series = metric === "net" ? r.net : r.spend;
                   return (
                     <tr key={r.rep} className="border-t border-rule/40">
                       <td
-                        className="sticky left-0 z-10 bg-card py-0.5 px-2 font-sans text-[11px] md:text-xs text-ink whitespace-nowrap"
+                        className={`${wide ? "sticky left-0 z-10 " : ""}bg-card py-0.5 px-2 font-sans text-[11px] md:text-xs text-ink whitespace-nowrap`}
                         title={`${r.rep} · ${r.territory || ""}`}
                       >
                         {r.rep}
@@ -308,8 +378,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                           />
                         );
                       })}
-                      <td aria-hidden="true" />
-                      <td className="sticky right-0 z-10 bg-card py-0.5 px-2 text-right whitespace-nowrap border-l border-rule">
+                      <td className={`${wide ? "sticky right-0 z-10 " : ""}bg-card py-0.5 px-2 text-right whitespace-nowrap border-l border-rule`}>
                         <span className="font-display text-[12px] font-semibold text-ink tabular-nums">
                           {metric === "net" ? fmt$k(r.totalNet) : fmt$k(r.totalSpend)}
                         </span>
@@ -328,7 +397,8 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                       </td>
                     </tr>
                   );
-                })}
+                  }),
+                ])}
               </tbody>
             </table>
           </div>
