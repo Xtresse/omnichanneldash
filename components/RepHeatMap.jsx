@@ -65,6 +65,9 @@ function cellColor(value, max) {
 export default function RepHeatMap({ rangeFrom, rangeTo }) {
   const [period, setPeriod] = useState("mtd");
   const [metric, setMetric] = useState("net");
+  // Clicked cell -> { rep, i }. Drives the detail readout in the header, so
+  // you can interrogate a day without hunting for a tooltip (Sam, 2026-08-09).
+  const [sel, setSel] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
@@ -104,6 +107,9 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
   useEffect(() => {
     if (key && cache[key]) setData(cache[key]);
   }, [key, cache]);
+
+  // A day index means nothing once the window moves, so drop the selection.
+  useEffect(() => { setSel(null); }, [key]);
 
   const showing = key && cache[key] ? cache[key] : null;
   const busy = !mounted || (loading && !showing);
@@ -160,6 +166,29 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
     if (orphans.length) out.push({ territory: "other", label: "Unassigned", rows: orphans });
     return out;
   }, [rows, metric, showing]);
+
+  // Resolve the click into everything worth showing about that rep-day.
+  const selDetail = useMemo(() => {
+    if (!sel) return null;
+    const row = rows.find((r) => r.rep === sel.rep);
+    if (!row || !days[sel.i]) return null;
+    const day = days[sel.i];
+    const net = row.net[sel.i] || 0;
+    const spend = row.spend[sel.i] || 0;
+    return {
+      rep: row.rep,
+      territory: row.territory,
+      day,
+      weekend: isWeekend(day),
+      net,
+      spend,
+      zeroDollar: !isWeekend(day) && !(net > 0),
+      spendNoSale: !isWeekend(day) && spend > 0 && !(net > 0),
+      periodNet: row.totalNet,
+      periodSpend: row.totalSpend,
+      shareOfPeriod: row.totalNet > 0 ? net / row.totalNet : 0,
+    };
+  }, [sel, rows, days]);
 
   const totals = useMemo(() => {
     return rows.reduce(
@@ -231,7 +260,84 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
               : `${rows.length} Reps · ${days.length} Days · ${totals.zero.toLocaleString()} Zero-Dollar Days`}
           </span>
         </div>
+
+        {/* Legend lives UP HERE, not buried under the grid — you need to know
+            what the colours mean before you scroll (Sam, 2026-08-09). */}
+        {!busy && rows.length > 0 && (
+          <div className="flex items-center justify-between gap-3 flex-wrap pt-0.5">
+            <span className="flex items-center gap-1">
+              <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-paper/50 mr-1">
+                {activeMetric.label} Low
+              </span>
+              {RAMP.slice(1).map((c) => (
+                <span
+                  key={c}
+                  className="inline-block w-5 h-2.5 rounded-[1px] border border-paper/15"
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+              <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-paper/50 ml-1">
+                High
+              </span>
+              <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-paper/35 ml-3">
+                Click Any Cell For That Day
+              </span>
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* Clicked-cell readout. Sits at the top so it's visible wherever you
+          are in the grid, rather than a tooltip you have to keep hovering. */}
+      {selDetail && (
+        <div className="bg-paper2 border-b border-rule px-3 md:px-5 py-2 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-baseline gap-3 flex-wrap min-w-0">
+            <span className="font-display text-sm md:text-base font-semibold text-ink">
+              {selDetail.rep}
+            </span>
+            <span className="font-sans text-[11px] text-muted">
+              {selDetail.territory} · {longDate(selDetail.day)}
+              {selDetail.weekend ? " · weekend" : ""}
+            </span>
+          </div>
+          <div className="flex items-center gap-4 md:gap-6 flex-wrap">
+            <span className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">
+              Net Sales{" "}
+              <span className="font-display text-sm font-semibold text-ink tabular-nums normal-case tracking-normal ml-1">
+                {fmt$(selDetail.net)}
+              </span>
+              {selDetail.periodNet > 0 && (
+                <span className="text-muted/70 normal-case tracking-normal ml-1">
+                  ({(selDetail.shareOfPeriod * 100).toFixed(1)}% of {fmt$k(selDetail.periodNet)})
+                </span>
+              )}
+            </span>
+            <span className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted">
+              Ramp T&amp;E{" "}
+              <span className="font-display text-sm font-semibold text-ink tabular-nums normal-case tracking-normal ml-1">
+                {spendDark ? "—" : fmt$(selDetail.spend)}
+              </span>
+            </span>
+            {selDetail.spendNoSale ? (
+              <span
+                className="font-sans text-[11px] font-semibold"
+                style={{ color: "#5C2F2E" }}
+              >
+                ⚠ Spend on a zero-dollar selling day
+              </span>
+            ) : selDetail.zeroDollar ? (
+              <span className="font-sans text-[11px] text-muted">Zero-dollar selling day</span>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setSel(null)}
+              className="font-sans text-[10px] uppercase tracking-[0.14em] text-muted hover:text-ink border border-rule rounded px-2 py-0.5"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {busy ? (
         <div className="px-4 py-10 text-center font-sans text-sm text-muted">Loading heat map…</div>
@@ -356,24 +462,41 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                         const zeroFlag = metric === "net" && !weekend && !(v > 0);
                         const spendNoSale =
                           metric === "spend" && !weekend && v > 0 && !(r.net[i] > 0);
+                        const isSel = sel && sel.rep === r.rep && sel.i === i;
                         return (
                           <td
                             key={d}
-                            title={`${r.rep} · ${d}${weekend ? " (weekend)" : ""}\n${
+                            onClick={() =>
+                              setSel(isSel ? null : { rep: r.rep, i })
+                            }
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setSel(isSel ? null : { rep: r.rep, i });
+                              }
+                            }}
+                            title={`${r.rep} · ${longDate(d)}${weekend ? " (weekend)" : ""}\n${
                               metric === "net" ? "Net" : "Spend"
                             }: ${fmt$(v)}${
                               spendNoSale ? "\n⚠ spend on a zero-dollar selling day" : ""
-                            }`}
+                            }\nClick for detail`}
+                            className="cursor-pointer"
                             style={{
                               backgroundColor: bg || (weekend ? "#F2EEE7" : "#FBFAF7"),
                               width: cellW,
                               minWidth: cellW,
                               height: 15,
-                              boxShadow: spendNoSale
-                                ? "inset 0 0 0 1.5px #5C2F2E"
-                                : zeroFlag
-                                  ? "inset 0 0 0 1px rgba(92,47,46,0.28)"
-                                  : undefined,
+                              // Selection outline wins over the flag outlines so
+                              // you can always see what you just clicked.
+                              boxShadow: isSel
+                                ? "inset 0 0 0 2px #2B1A10"
+                                : spendNoSale
+                                  ? "inset 0 0 0 1.5px #5C2F2E"
+                                  : zeroFlag
+                                    ? "inset 0 0 0 1px rgba(92,47,46,0.28)"
+                                    : undefined,
                             }}
                           />
                         );
@@ -411,17 +534,6 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                 {!spendDark && totals.flagged > 0
                   ? ` · ${totals.flagged} Reps Spending On Zero-Dollar Days (${fmt$(totals.spendOnZero)})`
                   : ""}
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted mr-1">
-                  Low
-                </span>
-                {RAMP.slice(1).map((c) => (
-                  <span key={c} className="inline-block w-4 h-2.5 rounded-[1px]" style={{ backgroundColor: c }} />
-                ))}
-                <span className="font-sans text-[9px] uppercase tracking-[0.14em] text-muted ml-1">
-                  High
-                </span>
               </span>
             </div>
             <p className="font-sans text-[10px] md:text-[11px] leading-snug text-muted">
