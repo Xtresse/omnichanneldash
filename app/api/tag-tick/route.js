@@ -77,6 +77,7 @@ const numericId = (gid) => (gid ? String(gid).split("/").pop() : "");
 
 const ORDER_FIELDS = `
   id name createdAt cancelledAt displayFinancialStatus tags
+  purchasingEntity { __typename ... on PurchasingCompany { location { id name } } }
   subtotalPriceSet { shopMoney { amount } }
   currentSubtotalPriceSet { shopMoney { amount } }
   lineItems(first: 100) { edges { node { sku } } }
@@ -88,11 +89,20 @@ function toDetectionOrder(node, customerId) {
   const isCancelled = Boolean(node.cancelledAt);
   const refundsSubtotal = isCancelled ? sub : Math.max(0, sub - curSub);
   const lis = (node.lineItems && node.lineItems.edges) || [];
+  const locationId =
+    node.purchasingEntity && node.purchasingEntity.__typename === "PurchasingCompany" && node.purchasingEntity.location
+      ? numericId(node.purchasingEntity.location.id)
+      : null;
+  // CompanyLocation id when available, else customer.id — see the "Identity
+  // key" note atop lib/firstOrderTags.js. A pooled/reseller account (one
+  // customer.id, many real physical locations) splits correctly here.
+  const identityKey = locationId ? `loc:${locationId}` : `cust:${customerId}`;
   return {
     id: node.id, // keep the GID — tagsAdd/tagsRemove need it as-is
     numericId: numericId(node.id),
     name: node.name,
     customerId,
+    identityKey,
     createdAt: node.createdAt,
     cancelledAt: node.cancelledAt || null,
     financialStatus: node.displayFinancialStatus || "",
@@ -215,8 +225,18 @@ export async function GET(request) {
   for (const customerId of ids) {
     try {
       const orders = await fetchCustomerOrders(customerId);
-      const applied = await applyPlanForCustomer(orders);
-      if (applied.length) results.push({ customerId, applied });
+      // Split this customer's orders by identityKey before computing a plan —
+      // a pooled/reseller customer.id can span multiple real locations, and
+      // each needs its own independent "First order"/family-tag history.
+      const byIdentity = new Map();
+      for (const o of orders) {
+        if (!byIdentity.has(o.identityKey)) byIdentity.set(o.identityKey, []);
+        byIdentity.get(o.identityKey).push(o);
+      }
+      for (const [identityKey, group] of byIdentity) {
+        const applied = await applyPlanForCustomer(group);
+        if (applied.length) results.push({ customerId, identityKey, applied });
+      }
     } catch (e) {
       errors.push({ customerId, error: String(e?.message || e) });
     }

@@ -122,6 +122,7 @@ const numericId = (gid) => (gid ? String(gid).split('/').pop() : '');
 const FULL_ORDER_FIELDS = `
   id name createdAt cancelledAt displayFinancialStatus tags discountCodes
   customer { id displayName }
+  purchasingEntity { __typename ... on PurchasingCompany { location { id name } } }
   subtotalPriceSet { shopMoney { amount } }
   currentSubtotalPriceSet { shopMoney { amount } }
   shippingAddress { company }
@@ -158,10 +159,21 @@ function toDetectionOrder(node) {
   // not always emit a refund delta for a Net-Terms void.
   const refundsSubtotal = isCancelled ? sub : Math.max(0, sub - curSub);
   const lis = (node.lineItems && node.lineItems.edges) || [];
+  const customerId = numericId(node.customer && node.customer.id);
+  const locationId =
+    node.purchasingEntity && node.purchasingEntity.__typename === 'PurchasingCompany' && node.purchasingEntity.location
+      ? numericId(node.purchasingEntity.location.id)
+      : null;
+  // CompanyLocation id when this is a B2B order placed under Shopify's native
+  // Companies feature, else fall back to customer.id — see the "Identity key"
+  // note atop lib/firstOrderTags.js for why (pooled/reseller ordering
+  // accounts share one customer.id across genuinely different locations).
+  const identityKey = locationId ? `loc:${locationId}` : `cust:${customerId}`;
   return {
     id: numericId(node.id),
     name: node.name,
-    customerId: numericId(node.customer && node.customer.id),
+    customerId,
+    identityKey,
     customerName: (node.customer && node.customer.displayName) || '',
     company: (node.shippingAddress && node.shippingAddress.company) || '',
     createdAt: toShopLocalISO(node.createdAt),
@@ -220,12 +232,18 @@ async function identifyCustomerUniverse(stage) {
   return b2bCustomerIds;
 }
 
-// ---- Stage 2: full order history per customer, batched ---------------------
+// ---- Stage 2: full order history per customer, batched, grouped by
+// LOCATION identity (not raw customer.id) -------------------------------
+// Fetching is still by customer_id (that's the cheap, indexed Shopify query
+// dimension, and the customer-universe stage only knows customer ids) — but
+// a pooled/reseller customer's orders get split into separate identityKey
+// buckets afterward, so each real physical location gets its own tag plan.
+// See the "Identity key" note atop lib/firstOrderTags.js.
 async function fetchFullHistoryForCustomers(customerIds) {
   const ids = [...customerIds];
   const batches = chunk(ids, 30);
   console.error(`[history] fetching full order history for ${ids.length} customers in ${batches.length} batches...`);
-  const byCustomer = new Map();
+  const byIdentity = new Map();
   let done = 0;
   for (const batch of batches) {
     const q = `status:any (${batch.map((id) => `customer_id:${id}`).join(' OR ')})`;
@@ -233,17 +251,18 @@ async function fetchFullHistoryForCustomers(customerIds) {
     for (const n of nodes) {
       const o = toDetectionOrder(n);
       if (!o.customerId) continue;
-      if (!byCustomer.has(o.customerId)) byCustomer.set(o.customerId, []);
-      byCustomer.get(o.customerId).push(o);
+      if (!byIdentity.has(o.identityKey)) byIdentity.set(o.identityKey, []);
+      byIdentity.get(o.identityKey).push(o);
     }
     done += batch.length;
     if (done % 300 === 0 || done === ids.length) console.error(`[history] ...${done}/${ids.length} customers`);
   }
-  return byCustomer;
+  console.error(`[history] ${ids.length} customers -> ${byIdentity.size} distinct identities (location-split)`);
+  return byIdentity;
 }
 
 // ---- Reporting ---------------------------------------------------------------
-function buildReport(byCustomer) {
+function buildReport(byIdentity) {
   const changes = []; // one row per (order, change)
   let firstOrderAdditions = 0;
   let firstOrderCorrections = 0; // remove+relocate pairs
@@ -252,7 +271,7 @@ function buildReport(byCustomer) {
   let firstXvieAdditions = 0;
   let customersWithAnyChange = 0;
 
-  for (const [customerId, orders] of byCustomer) {
+  for (const [identityKey, orders] of byIdentity) {
     const plan = computeCustomerTagPlan(orders);
     const correction = detectFirstOrderCorrection(orders, plan);
     const byId = new Map(orders.map((o) => [o.id, o]));
@@ -274,7 +293,8 @@ function buildReport(byCustomer) {
         else if (t === 'First XVIE') firstXvieAdditions++;
       }
       changes.push({
-        customerId,
+        identityKey,
+        customerId: o.customerId,
         customerName: o.customerName,
         company: o.company,
         orderName: o.name,
@@ -314,7 +334,8 @@ function buildReport(byCustomer) {
           why += ` — customer has no eligible paid order anywhere in their history`;
         }
         changes.push({
-          customerId,
+          identityKey,
+          customerId: o.customerId,
           customerName: o.customerName,
           company: o.company,
           orderName: o.name,
@@ -334,8 +355,8 @@ function buildReport(byCustomer) {
 
   return {
     summary: {
-      customersProcessed: byCustomer.size,
-      ordersProcessed: [...byCustomer.values()].reduce((s, arr) => s + arr.length, 0),
+      identitiesProcessed: byIdentity.size,
+      ordersProcessed: [...byIdentity.values()].reduce((s, arr) => s + arr.length, 0),
       customersWithAnyChange,
       firstOrderAdditions,
       firstOrderCorrections,
@@ -353,8 +374,8 @@ async function main() {
   console.error(`=== First-order/product tagging DRY RUN — stage=${STAGE} ===`);
   const t0 = Date.now();
   const customerIds = await identifyCustomerUniverse(STAGE);
-  const byCustomer = await fetchFullHistoryForCustomers(customerIds);
-  const report = buildReport(byCustomer);
+  const byIdentity = await fetchFullHistoryForCustomers(customerIds);
+  const report = buildReport(byIdentity);
 
   mkdirSync(OUT_DIR, { recursive: true });
   const outPath = `${OUT_DIR}/dry-run-${STAGE}.json`;

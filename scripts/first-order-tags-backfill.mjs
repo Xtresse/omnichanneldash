@@ -101,6 +101,7 @@ const numericId = (gid) => (gid ? String(gid).split('/').pop() : '');
 const FULL_ORDER_FIELDS = `
   id name createdAt cancelledAt displayFinancialStatus tags discountCodes
   customer { id displayName }
+  purchasingEntity { __typename ... on PurchasingCompany { location { id name } } }
   subtotalPriceSet { shopMoney { amount } }
   currentSubtotalPriceSet { shopMoney { amount } }
   shippingAddress { company }
@@ -133,11 +134,18 @@ function toDetectionOrder(node) {
   const isCancelled = Boolean(node.cancelledAt);
   const refundsSubtotal = isCancelled ? sub : Math.max(0, sub - curSub);
   const lis = (node.lineItems && node.lineItems.edges) || [];
+  const customerId = numericId(node.customer && node.customer.id);
+  const locationId =
+    node.purchasingEntity && node.purchasingEntity.__typename === 'PurchasingCompany' && node.purchasingEntity.location
+      ? numericId(node.purchasingEntity.location.id)
+      : null;
+  const identityKey = locationId ? `loc:${locationId}` : `cust:${customerId}`;
   return {
     id: numericId(node.id),
     gid: node.id,
     name: node.name,
-    customerId: numericId(node.customer && node.customer.id),
+    customerId,
+    identityKey,
     customerName: (node.customer && node.customer.displayName) || '',
     company: (node.shippingAddress && node.shippingAddress.company) || '',
     createdAt: node.createdAt,
@@ -185,11 +193,15 @@ async function identifyCustomerUniverse(stage) {
   return b2bCustomerIds;
 }
 
+// Groups by identityKey (CompanyLocation when present, else customer.id) —
+// see the "Identity key" note atop lib/firstOrderTags.js. A pooled/reseller
+// customer.id (e.g. Premiere Aesthetic Solutions) splits into its real
+// distinct physical locations here.
 async function fetchFullHistoryForCustomers(customerIds) {
   const ids = [...customerIds];
   const batches = chunk(ids, 30);
   console.error(`[history] fetching full order history for ${ids.length} customers in ${batches.length} batches...`);
-  const byCustomer = new Map();
+  const byIdentity = new Map();
   let done = 0;
   for (const batch of batches) {
     const q = `status:any (${batch.map((id) => `customer_id:${id}`).join(' OR ')})`;
@@ -197,13 +209,14 @@ async function fetchFullHistoryForCustomers(customerIds) {
     for (const n of nodes) {
       const o = toDetectionOrder(n);
       if (!o.customerId) continue;
-      if (!byCustomer.has(o.customerId)) byCustomer.set(o.customerId, []);
-      byCustomer.get(o.customerId).push(o);
+      if (!byIdentity.has(o.identityKey)) byIdentity.set(o.identityKey, []);
+      byIdentity.get(o.identityKey).push(o);
     }
     done += batch.length;
     if (done % 300 === 0 || done === ids.length) console.error(`[history] ...${done}/${ids.length} customers`);
   }
-  return byCustomer;
+  console.error(`[history] ${ids.length} customers -> ${byIdentity.size} distinct identities (location-split)`);
+  return byIdentity;
 }
 
 async function tagsAdd(orderGid, tags) {
@@ -223,12 +236,12 @@ async function main() {
   console.error(`=== First-order/product tagging BACKFILL — stage=${STAGE} apply=${APPLY} ===`);
   const t0 = Date.now();
   const customerIds = await identifyCustomerUniverse(STAGE);
-  const byCustomer = await fetchFullHistoryForCustomers(customerIds);
+  const byIdentity = await fetchFullHistoryForCustomers(customerIds);
 
   const log = [];
   let additions = 0, removals = 0, customersChanged = 0, writeErrors = 0;
 
-  for (const [customerId, orders] of byCustomer) {
+  for (const [identityKey, orders] of byIdentity) {
     const plan = computeCustomerTagPlan(orders);
     const correction = detectFirstOrderCorrection(orders, plan);
     const byId = new Map(orders.map((o) => [o.id, o]));
@@ -242,10 +255,10 @@ async function main() {
       if (!netAdds.length) continue;
       changed = true;
       additions += netAdds.length;
-      log.push({ customerId, customerName: o.customerName, company: o.company, order: o.name, action: 'add', tags: netAdds });
+      log.push({ identityKey, customerId: o.customerId, customerName: o.customerName, company: o.company, order: o.name, action: 'add', tags: netAdds });
       if (APPLY) {
         try { await tagsAdd(o.gid, netAdds); }
-        catch (e) { writeErrors++; log.push({ customerId, order: o.name, action: 'ERROR', error: String(e.message || e) }); }
+        catch (e) { writeErrors++; log.push({ identityKey, order: o.name, action: 'ERROR', error: String(e.message || e) }); }
       }
     }
 
@@ -254,10 +267,10 @@ async function main() {
       if (!o) continue;
       changed = true;
       removals++;
-      log.push({ customerId, customerName: o.customerName, company: o.company, order: o.name, action: 'remove', tags: [FIRST_ORDER_TAG] });
+      log.push({ identityKey, customerId: o.customerId, customerName: o.customerName, company: o.company, order: o.name, action: 'remove', tags: [FIRST_ORDER_TAG] });
       if (APPLY) {
         try { await tagsRemove(o.gid, [FIRST_ORDER_TAG]); }
-        catch (e) { writeErrors++; log.push({ customerId, order: o.name, action: 'ERROR', error: String(e.message || e) }); }
+        catch (e) { writeErrors++; log.push({ identityKey, order: o.name, action: 'ERROR', error: String(e.message || e) }); }
       }
     }
 
@@ -266,7 +279,7 @@ async function main() {
 
   mkdirSync(OUT_DIR, { recursive: true });
   const outPath = `${OUT_DIR}/backfill-${STAGE}-${APPLY ? 'applied' : 'dryrun'}.json`;
-  writeFileSync(outPath, JSON.stringify({ summary: { customersProcessed: byCustomer.size, customersChanged, additions, removals, writeErrors, applied: APPLY }, log }, null, 2));
+  writeFileSync(outPath, JSON.stringify({ summary: { identitiesProcessed: byIdentity.size, customersChanged, additions, removals, writeErrors, applied: APPLY }, log }, null, 2));
 
   console.error(`\n=== SUMMARY (stage=${STAGE}, apply=${APPLY}) ===`);
   console.error(JSON.stringify({ customersProcessed: byCustomer.size, customersChanged, additions, removals, writeErrors }, null, 2));
