@@ -30,6 +30,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "/Users/samsood/Documents/GitHub/xtresse-influencer-dash", "--", "-p", "3459"],
       "port": 3459
+    },
+    {
+      "name": "cro-tracker-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /Users/samsood/Documents/GitHub/CRO_Tracker && set -a && source ~/.claude/xvie-internal.env && set +a && npm run dev -- -p 3461"],
+      "port": 3461
     }
   ]
 }
