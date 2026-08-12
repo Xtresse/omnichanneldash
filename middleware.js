@@ -18,6 +18,7 @@ const PUBLIC_PREFIXES = [
   "/api/logout",
   "/api/warm", // Vercel cron warmer — no browser cookie
   "/api/tick", // Vercel cron live-refresher — no browser cookie
+  "/api/tag-tick", // Vercel cron product-family tag corrector — no browser cookie
   // Shopify webhook receiver. Must be reachable without a session; it
   // authenticates itself by HMAC-SHA256 of the raw body against the app's
   // client secret and rejects anything unsigned before doing any work.
