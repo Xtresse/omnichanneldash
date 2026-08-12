@@ -7,6 +7,10 @@
     {
       "path": "/api/warm",
       "schedule": "*/20 * * * *"
+    },
+    {
+      "path": "/api/tag-tick",
+      "schedule": "*/2 * * * *"
     }
   ]
 }

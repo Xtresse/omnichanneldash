@@ -20,6 +20,11 @@ import crypto from "node:crypto";
 import { getCachedData, setCachedData } from "@/lib/dataCache.js";
 import { shopLocalDate } from "@/lib/xtresseCore.js";
 import { DIRTY_KEY, DIRTY_TTL_MS } from "@/lib/liveState.js";
+import {
+  TAG_DIRTY_CUSTOMERS_KEY,
+  TAG_DIRTY_TTL_MS,
+  TAG_RELEVANT_TOPICS,
+} from "@/lib/liveTagState.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,6 +102,35 @@ export async function POST(request) {
   } catch {
     // Never fail the webhook on a cache hiccup — Shopify would retry, and the
     // 1-minute tick refreshes on its own schedule anyway.
+  }
+
+  // Product-family "First order" / "First Gummy" / "First Serum" / "First
+  // XVIE" tag correction (lib/firstOrderTags.js) — queue the affected
+  // customer for the separate tag-tick cron (/api/tag-tick) to pick up.
+  // Kept OUT of the fast-path above on purpose: recomputing a customer's
+  // full order history is real work, not a cache flag, and doesn't belong in
+  // a handler budgeted for milliseconds.
+  //
+  // refunds/create payloads don't reliably carry customer.id (same caveat as
+  // dirtyFrom above) — skipped here rather than adding a network fetch to
+  // this handler; refunds are rare enough that the periodic backfill catches
+  // any drift this misses.
+  if (TAG_RELEVANT_TOPICS.has(topic)) {
+    const customerId = payload.customer?.id ? String(payload.customer.id) : null;
+    if (customerId) {
+      try {
+        const prev = (await getCachedData(TAG_DIRTY_CUSTOMERS_KEY, TAG_DIRTY_TTL_MS))?.data || null;
+        const ids = new Set(prev?.ids || []);
+        ids.add(customerId);
+        await setCachedData(TAG_DIRTY_CUSTOMERS_KEY, {
+          ids: [...ids],
+          lastAt: new Date().toISOString(),
+        });
+      } catch {
+        // Same tolerance as above — a missed enqueue here is caught by the
+        // periodic backfill script, never worth failing the webhook over.
+      }
+    }
   }
 
   return NextResponse.json({ ok: true, topic, dirtyFrom });
