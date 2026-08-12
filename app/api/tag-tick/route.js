@@ -98,8 +98,8 @@ function toDetectionOrder(node, customerId) {
   // customer.id, many real physical locations) splits correctly here.
   const identityKey = locationId ? `loc:${locationId}` : `cust:${customerId}`;
   return {
-    id: node.id, // keep the GID — tagsAdd/tagsRemove need it as-is
-    numericId: numericId(node.id),
+    id: numericId(node.id), // matches lib/firstOrderTags.js's plan keying
+    gid: node.id, // tagsAdd/tagsRemove need the GID, kept separately
     name: node.name,
     customerId,
     identityKey,
@@ -159,7 +159,7 @@ async function tagsRemove(orderGid, tags) {
 async function applyPlanForCustomer(orders) {
   const plan = computeCustomerTagPlan(orders);
   const correction = detectFirstOrderCorrection(orders, plan);
-  const byId = new Map(orders.map((o) => [o.numericId, o]));
+  const byId = new Map(orders.map((o) => [o.id, o])); // o.id is numericId — matches plan's keys
   const applied = [];
 
   // Additions (including the correct "First order" placement, which is
@@ -170,7 +170,7 @@ async function applyPlanForCustomer(orders) {
     const already = new Set((o.tags || []).map((t) => t.toLowerCase()));
     const netAdds = adds.filter((t) => !already.has(t.toLowerCase()));
     if (!netAdds.length) continue;
-    await tagsAdd(o.id, netAdds);
+    await tagsAdd(o.gid, netAdds);
     applied.push({ order: o.name, added: netAdds, removed: [] });
   }
 
@@ -178,7 +178,7 @@ async function applyPlanForCustomer(orders) {
   for (const rem of correction.removals) {
     const o = byId.get(rem.orderId);
     if (!o) continue;
-    await tagsRemove(o.id, [FIRST_ORDER_TAG]);
+    await tagsRemove(o.gid, [FIRST_ORDER_TAG]);
     applied.push({ order: o.name, added: [], removed: [FIRST_ORDER_TAG] });
   }
 
