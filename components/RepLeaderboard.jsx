@@ -81,6 +81,20 @@ const prettyDate = (iso) => {
 // on the same window awaits the first rather than starting a duplicate pull.
 const PAYLOAD_CACHE = new Map();
 
+// MTD/QTD/YTD land on /api/warm's precomputed trio, so they normally settle
+// in well under a second. RANGE lets someone pick ANY window — including one
+// nobody has ever loaded — which falls through to a cold Shopify pull on the
+// server (up to the route's 300s maxDuration) with no client-side backstop.
+// fetch() has no built-in timeout, so if that request hangs (a slow cold
+// compute on a wide span, or a dropped connection somewhere between here and
+// Vercel) the promise this resolves into never settles — and since the
+// effect below only clears `loading` in a .then/.catch/.finally attached to
+// THIS promise, a request that never settles leaves the skeleton rows
+// spinning forever with no way out short of a full reload (2026-08-16, Sam:
+// RANGE stuck on "LOADING…" for a Feb 1 – Aug 15 span). Bound every request
+// with an AbortController so it always settles one way or the other.
+const LOAD_TIMEOUT_MS = 45000;
+
 function loadWindow(from, to) {
   const key = `${from}|${to}`;
   if (PAYLOAD_CACHE.has(key)) return PAYLOAD_CACHE.get(key);
@@ -89,7 +103,18 @@ function loadWindow(from, to) {
   // orders array this component never reads). /api/warm precomputes the three
   // periods every 10 min, so this is normally a warm cache hit.
   const qs = new URLSearchParams({ from, to });
-  const p = fetch(`/api/leaderboard?${qs}`, { cache: "no-store" })
+  const controller = new AbortController();
+  // No custom reason: an argument-less abort() sets signal.reason to a
+  // DOMException named "AbortError" (the same one a native fetch abort
+  // produces), which is what the .catch below keys off of. Passing a plain
+  // Error("timeout") here would defeat that check — its .name is "Error",
+  // not "AbortError" — and leak the raw "timeout" string to the user instead
+  // of the friendly message below.
+  const timer = setTimeout(() => controller.abort(), LOAD_TIMEOUT_MS);
+  const p = fetch(`/api/leaderboard?${qs}`, {
+    cache: "no-store",
+    signal: controller.signal,
+  })
     .then((r) => r.json())
     .then((j) => {
       if (!j?.ok) throw new Error(j?.error || "Load failed");
@@ -99,8 +124,15 @@ function loadWindow(from, to) {
       // Drop the rejected promise so a later toggle can retry instead of
       // replaying the same failure forever.
       PAYLOAD_CACHE.delete(key);
+      if (e?.name === "AbortError") {
+        throw new Error(
+          `Timed out after ${Math.round(LOAD_TIMEOUT_MS / 1000)}s — this range ` +
+            "isn't pre-warmed (only MTD/QTD/YTD are). Try again or narrow it."
+        );
+      }
       throw e;
-    });
+    })
+    .finally(() => clearTimeout(timer));
   PAYLOAD_CACHE.set(key, p);
   return p;
 }
@@ -379,7 +411,15 @@ export default function RepLeaderboard({
             </div>
           ))}
         </div>
-      ) : err ? (
+      ) : err && !source ? (
+        // Gated on !source, not just err: a failed RANGE fetch (or the new
+        // 45s timeout above) sets err and is never explicitly cleared when
+        // the user then switches to a period served straight from the
+        // repPerformance prop (propCoversPeriod — no fetch, no setErr(null)
+        // ever runs). Without this guard that stale err outlives the period
+        // it belongs to and blanks out perfectly good MTD/QTD/YTD rows with
+        // an error message from an unrelated, already-abandoned RANGE
+        // request.
         <div className="px-4 py-6 text-center font-sans text-sm text-unfavorable">
           Couldn’t load {periodMeta?.full}: {err}
         </div>
