@@ -22,6 +22,7 @@ import {
   PRESIDENTS_CLUB_METRICS,
   isPresidentsClubEligible,
 } from "@/lib/repMetrics.js";
+import { presidentsClubYtdRange } from "@/lib/periodWindows.js";
 import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import MonthlyReport from "./MonthlyReport.jsx";
@@ -763,6 +764,12 @@ export default function Dashboard({ initial }) {
                 repPerformance={data.repPerformance || []}
                 rangeFrom={customFrom}
                 rangeTo={customTo}
+                // President's Club runs Feb 1 – Jan 31, not the calendar
+                // year — scope YTD to the program year here only. Sales By
+                // Rep's leaderboard above (no ytdRange prop) keeps the
+                // generic calendar-year YTD everyone else relies on.
+                ytdRange={presidentsClubYtdRange}
+                ytdFull="Program Year (Feb 1) To Date"
               />
 
               <SubBlock

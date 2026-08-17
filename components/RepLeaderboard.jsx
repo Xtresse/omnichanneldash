@@ -6,7 +6,7 @@ import { resolveMetrics } from "@/lib/repMetrics.js";
 // /api/leaderboard use, so the from/to strings (and therefore the cache keys)
 // line up exactly. A local copy drifting by a day here would silently miss
 // every warmed entry and put us back on per-request recompute.
-import { periodRange } from "@/lib/periodWindows.js";
+import { periodRange, shopTodayD } from "@/lib/periodWindows.js";
 
 /**
  * Rep Leaderboard — the ONE presentation for every per-rep comparison on the
@@ -27,6 +27,13 @@ import { periodRange } from "@/lib/periodWindows.js";
  *                   means one thing dashboard-wide.
  *   period toggle — MTD / QTD / YTD (default MTD) + "Range", which follows
  *                   whatever window the dashboard's FilterBar has loaded.
+ *                   YTD is calendar-year (Jan 1) by default; a caller may
+ *                   pass `ytdRange` to override the start for a program
+ *                   year that isn't the calendar year (President's Club
+ *                   runs Feb 1 – Jan 31, so Dashboard.jsx passes
+ *                   `presidentsClubYtdRange` only into that instance —
+ *                   Sales By Rep's leaderboard is untouched and stays
+ *                   calendar-year YTD).
  *   scope chips   — All / Existing / New / 1099 (suppressed when the caller
  *                   pins eligibility, e.g. President's Club is W-2 only).
  *
@@ -39,7 +46,7 @@ import { periodRange } from "@/lib/periodWindows.js";
  * a cold Shopify pull.
  */
 
-const PERIODS = [
+const DEFAULT_PERIODS = [
   { key: "mtd", label: "MTD", full: "Month To Date" },
   { key: "qtd", label: "QTD", full: "Quarter To Date" },
   { key: "ytd", label: "YTD", full: "Year To Date" },
@@ -129,8 +136,22 @@ export default function RepLeaderboard({
   rowFilter,          // (row, territory) => bool — pins eligibility (P-Club)
   showScope = true,
   scopeNote,          // replaces the scope chips when eligibility is pinned
+  ytdRange,           // optional (today) => [from, to] override for the YTD
+                       // preset — e.g. presidentsClubYtdRange for a Feb 1
+                       // program year. Omit to keep calendar-year YTD.
+  ytdFull,            // optional label override for the YTD preset's
+                       // "full" name (footer/tooltip text) when ytdRange
+                       // is set, so it doesn't read "Year To Date" for a
+                       // Feb-1-anchored window.
 }) {
   const metrics = useMemo(() => resolveMetrics(metricKeys), [metricKeys]);
+  const PERIODS = useMemo(
+    () =>
+      ytdFull
+        ? DEFAULT_PERIODS.map((p) => (p.key === "ytd" ? { ...p, full: ytdFull } : p))
+        : DEFAULT_PERIODS,
+    [ytdFull]
+  );
   const [metricKey, setMetricKey] = useState(
     () => defaultMetric || (metricKeys && metricKeys[0]) || "net"
   );
@@ -139,6 +160,14 @@ export default function RepLeaderboard({
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [fetched, setFetched] = useState({});
+  // RANGE used to be a no-op: it just mirrored whatever preset/custom window
+  // the top-level FilterBar happened to have loaded (rangeFrom/rangeTo props)
+  // rather than letting the user pick a window independently for THIS
+  // leaderboard. These two inputs are local overrides — null until touched,
+  // in which case we fall back to the props (so the button still works
+  // before any edit, and stays hydration-safe: both server and first client
+  // render start null).
+  const [rangeInputs, setRangeInputs] = useState({ from: null, to: null });
 
   const metric = metrics.find((m) => m.key === metricKey) || metrics[0];
 
@@ -159,20 +188,25 @@ export default function RepLeaderboard({
 
   const range =
     period === "range"
-      ? [rangeFrom, rangeTo] // props — server-provided, hydration-safe
+      ? [rangeInputs.from ?? rangeFrom, rangeInputs.to ?? rangeTo] // local override, else props (server-provided, hydration-safe)
       : mounted
-        ? periodRange(period)
+        ? period === "ytd" && typeof ytdRange === "function"
+          ? ytdRange(shopTodayD())
+          : periodRange(period)
         : null;
   const [from, to] = range || [];
   const cacheKey = from && to ? `${from}|${to}` : null;
   // If the dashboard's own FilterBar already has this exact window loaded
-  // (e.g. Sam is sitting on the MTD preset), reuse the payload we were handed
-  // instead of firing a second identical request.
-  const propCoversPeriod =
-    period !== "range" && !!from && from === rangeFrom && to === rangeTo;
+  // (e.g. Sam is sitting on the MTD preset, or hasn't touched the Range
+  // inputs yet so Range still matches rangeFrom/rangeTo), reuse the payload
+  // we were handed instead of firing a second identical request. Once the
+  // user edits the Range inputs to something else, this stops matching and
+  // the effect below fetches that window on its own via /api/leaderboard —
+  // same path MTD/QTD/YTD already use.
+  const propCoversPeriod = !!from && !!to && from === rangeFrom && to === rangeTo;
 
   useEffect(() => {
-    if (period === "range" || propCoversPeriod || !cacheKey) return undefined;
+    if (propCoversPeriod || !cacheKey) return undefined;
     if (fetched[cacheKey]) return undefined;
     let cancelled = false;
     setLoading(true);
@@ -192,10 +226,9 @@ export default function RepLeaderboard({
     };
   }, [period, cacheKey, from, to, propCoversPeriod, fetched]);
 
-  const source =
-    period === "range" || propCoversPeriod
-      ? repPerformance
-      : (cacheKey && fetched[cacheKey]) || null;
+  const source = propCoversPeriod
+    ? repPerformance
+    : (cacheKey && fetched[cacheKey]) || null;
 
   const rows = useMemo(
     () => flattenAndRank(source, scope, metric, rowFilter),
@@ -265,6 +298,40 @@ export default function RepLeaderboard({
                 {m.label}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Range inputs — only when RANGE is the active period. Independent
+            of the top FilterBar's own Custom date pair; edits here just
+            change what THIS leaderboard fetches (via /api/leaderboard, same
+            as MTD/QTD/YTD), starting from whatever window was already
+            loaded. */}
+        {period === "range" && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-sans text-[9px] uppercase tracking-[0.18em] text-paper/50">
+              Range
+            </span>
+            <input
+              type="date"
+              aria-label="Range start date"
+              value={rangeInputs.from ?? rangeFrom ?? ""}
+              max={rangeInputs.to ?? rangeTo ?? undefined}
+              onChange={(e) =>
+                setRangeInputs((prev) => ({ ...prev, from: e.target.value }))
+              }
+              className="bg-paper text-browndeep border border-paper/30 rounded px-1.5 py-0.5 font-sans text-[11px] min-w-0"
+            />
+            <span className="font-sans text-[10px] text-paper/60">–</span>
+            <input
+              type="date"
+              aria-label="Range end date"
+              value={rangeInputs.to ?? rangeTo ?? ""}
+              min={rangeInputs.from ?? rangeFrom ?? undefined}
+              onChange={(e) =>
+                setRangeInputs((prev) => ({ ...prev, to: e.target.value }))
+              }
+              className="bg-paper text-browndeep border border-paper/30 rounded px-1.5 py-0.5 font-sans text-[11px] min-w-0"
+            />
           </div>
         )}
 
