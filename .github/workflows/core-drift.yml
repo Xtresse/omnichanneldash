@@ -1,0 +1,35 @@
+# Fleet core-drift guard. The vendored lib/xtresseCore.js is copied into every
+# dashboard by scripts/sync-core.sh with no other guardrail; this fails CI (and
+# runs daily) if any repo's REVENUE/CHANNEL invariants diverge from omni's master,
+# so a silent drift (like the 2026-08 influencer one) can't happen unnoticed.
+#
+# NEEDS a repo secret FLEET_PAT = a GitHub PAT with read access to the sibling
+# repos (all under samxtresse). Without it the job SKIPS (never a false failure).
+name: core-drift
+on:
+  push: { paths: ['lib/xtresseCore.js', 'scripts/check-core-drift.mjs'] }
+  schedule: [{ cron: '0 13 * * *' }]   # 13:00 UTC daily
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Canonical (this repo)
+        uses: actions/checkout@v4
+        with: { path: omnichanneldash }
+      - name: Guard requires FLEET_PAT
+        id: gate
+        run: |
+          if [ -z "${{ secrets.FLEET_PAT }}" ]; then
+            echo "FLEET_PAT not set — skipping cross-repo drift check."; echo "ok=false" >> $GITHUB_OUTPUT
+          else echo "ok=true" >> $GITHUB_OUTPUT; fi
+      - name: Clone target dashboards
+        if: steps.gate.outputs.ok == 'true'
+        run: |
+          for r in xtresse-leadershipdash Sales-Rep-Dashboards CRO_Tracker xtresse-orders-tracker xtresse-ops-tracker xtresse-finance-tracker DTC_Dashboard xtresse-influencer-dash; do
+            git clone --depth 1 "https://x-access-token:${{ secrets.FLEET_PAT }}@github.com/samxtresse/$r.git" "$r" 2>/dev/null || echo "::warning::could not clone $r"
+          done
+      - name: Check core drift
+        if: steps.gate.outputs.ok == 'true'
+        env: { CORE_ROOT: ${{ github.workspace }} }
+        run: node omnichanneldash/scripts/check-core-drift.mjs
