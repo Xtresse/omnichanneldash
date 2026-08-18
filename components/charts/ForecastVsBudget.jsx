@@ -152,6 +152,17 @@ export default function ForecastVsBudget() {
 
   return (
     <div className="rounded-xl border border-rule bg-card p-4 md:p-5 mb-5">
+      {/* Forecast fill = hatched channel color (keeps B2B/DTC identity while signalling forecast). */}
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+        <defs>
+          {CHS.map((ch) => (
+            <pattern key={ch} id={`fc-${ch}`} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+              <rect width="6" height="6" fill={CHANNEL_COLORS[ch]} fillOpacity="0.5" />
+              <rect width="3" height="6" fill={CHANNEL_COLORS[ch]} />
+            </pattern>
+          ))}
+        </defs>
+      </svg>
       <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
         <div>
           <h3 className="font-serif text-lg md:text-xl font-semibold text-ink leading-tight">Actual + Forecast vs Budget — {basisLabel} Revenue</h3>
@@ -203,7 +214,7 @@ export default function ForecastVsBudget() {
             {grouped
               ? channels.flatMap((ch) => [
                   <Bar key={`${ch}-r`} dataKey={ch} maxBarSize={18} radius={[2, 2, 0, 0]} isAnimationActive={false}>
-                    {rows.map((r, i) => <Cell key={i} fill={CHANNEL_COLORS[ch]} fillOpacity={r.__fc !== "none" ? 0.55 : 1} />)}
+                    {rows.map((r, i) => <Cell key={i} fill={r.__fc !== "none" ? `url(#fc-${ch})` : CHANNEL_COLORS[ch]} />)}
                     <LabelList content={pctLabelCh(rows, ch)} />
                   </Bar>,
                   <Bar key={`${ch}-b`} dataKey={`${ch}__bud`} maxBarSize={18} radius={[2, 2, 0, 0]} fill="var(--ink)" fillOpacity={0.2} isAnimationActive={false} />,
@@ -236,7 +247,7 @@ export default function ForecastVsBudget() {
             : <span style={{ width: 16, height: 0, borderTop: "2px dashed var(--ink)", display: "inline-block" }} />}
           Budget (board plan)
         </span>
-        <span className="text-tan">▨ Lighter = forecast</span>
+        <span className="text-tan">▨ {grouped ? "Hatched" : "Lighter"} = forecast</span>
       </div>
 
       <PeriodTable rows={rows} />
