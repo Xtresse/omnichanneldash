@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ForecastVsBudget from "@/components/charts/ForecastVsBudget";
 
 // =============================================================================
 // PROJECTIONS — editable target overlay (Sam). Edit Budget / Base / Stretch, in
@@ -157,6 +158,8 @@ export default function ProjectionsPanel() {
           </button>
         </div>
       </div>
+
+      <ForecastVsBudget />
 
       {notConfigured && (
         <div className="xt-error mb-3" style={{ borderLeftColor: "var(--brown)" }}>
