@@ -3,44 +3,42 @@
 // =============================================================================
 // ACTUAL + FORECAST vs BUDGET — revenue by channel vs the board plan.
 //
-//   • ACTUALS are LIVE: closed months (Jan → last-closed) come from the same
-//     /api/dashboard monthlySeries that feeds the "Total Sales by Channel" cards,
-//     so they tie out exactly. Seeded with the last-known values so the chart is
-//     correct on first paint, then refreshed on mount. Forecast (current month →
-//     Dec) = the Base-Gross forecast loaded into Projections.
+//   • JAN–JUL ARE LOCKED (closed / actualized — these months are done and will
+//     not move). Values below are the real per-channel actuals that tie to the
+//     "Total Sales by Channel" cards (Shopify monthlySeries as of 2026-08-18).
+//     When a new month closes, append its actuals here and bump FC_FROM.
+//   • AUG–DEC = forecast (the Base-Gross forecast loaded into Projections).
 //   • BUDGET = board financial model "Budget — Master P&L" (Monthly Pro Forma),
 //     gross-to-net as the model computes it. Ties to FY2026: Gross $18,679,442 →
 //     Net $16,959,470. Split B2B / DTC / ADCS.
 //   • Layout: "By channel" (grouped B2B|DTC|ADCS bars, each with a dashed budget
 //     tick so the beat is visible) or "Combined" (stacked, total vs budget line).
 //   • Net ⇄ Gross · Monthly / Quarterly / Half / Full Year · ADCS on/off.
-//   • Forecast months render lighter, inside a shaded "Forecast" band; the left
-//     region is labelled "Actuals" so a future month never reads as a result.
 // =============================================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ComposedChart, Bar, Cell, Line, LabelList, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ResponsiveContainer,
 } from "recharts";
 import { CHANNEL_COLORS } from "@/lib/constants";
 
 const M = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const FC_FROM = 7; // Aug — first forecast month. Jan–Jul (0–6) are locked actuals.
 const FACTOR = { B2B: 0.92, DTC: 0.98, ADCS: 0.55 }; // forecast gross = net ÷ factor
 const CHS = ["B2B", "DTC", "ADCS"];
 
-// ---- ACTUALS (real, per channel) — seed = live values as of 2026-08-18; the
-// component refreshes these from /api/dashboard on mount. Jan–Jul; Aug–Dec = 0.
+// ---- LOCKED ACTUALS (Jan–Jul), real per-channel, tie to the channel cards.
 const ACT_NET = {
-  B2B:  [417454, 1069243, 1047481, 1000440, 1037857, 1209157, 1103467, 0, 0, 0, 0, 0],
-  DTC:  [0, 70, 835, 36129, 174126, 247816, 317831, 0, 0, 0, 0, 0],
-  ADCS: [0, 68040, 150060, 13260, 110040, 122760, 229998, 0, 0, 0, 0, 0],
+  B2B:  [417454, 1069243, 1047481, 1000440, 1037857, 1209157, 1103467],
+  DTC:  [0, 70, 835, 36129, 174126, 247816, 317831],
+  ADCS: [0, 68040, 150060, 13260, 110040, 122760, 229998],
 };
 const ACT_GROSS = {
-  B2B:  [467438, 1147355, 1148477, 1069830, 1122968, 1316303, 1206721, 0, 0, 0, 0, 0],
-  DTC:  [0, 78, 858, 36210, 175495, 250998, 322708, 0, 0, 0, 0, 0],
-  ADCS: [0, 121500, 269250, 22740, 195420, 216293, 371930, 0, 0, 0, 0, 0],
+  B2B:  [467438, 1147355, 1148477, 1069830, 1122968, 1316303, 1206721],
+  DTC:  [0, 78, 858, 36210, 175495, 250998, 322708],
+  ADCS: [0, 121500, 269250, 22740, 195420, 216293, 371930],
 };
-// ---- FORECAST (net), Aug–Dec — Base-Gross forecast. Jan–Jul = 0 (unused).
+// ---- FORECAST (net), Aug–Dec — Base-Gross forecast. Jan–Jul slots = 0 (unused).
 const FCAST_NET = {
   B2B:  [0, 0, 0, 0, 0, 0, 0, 1300000, 1500000, 1600000, 1700000, 2000000],
   DTC:  [0, 0, 0, 0, 0, 0, 0, 392000, 441000, 490000, 539000, 588000],
@@ -59,6 +57,13 @@ const BUD_GROSS = {
   ADCS: BUD_NET.ADCS.map((n, i) => (S2_GROSS[i] * n) / (BUD_NET.B2B[i] + BUD_NET.ADCS[i])),
 };
 
+// Result per channel (12): locked actual Jan–Jul, forecast Aug–Dec.
+const RES_NET = {}, RES_GROSS = {};
+for (const ch of CHS) {
+  RES_NET[ch] = Array.from({ length: 12 }, (_, i) => (i < FC_FROM ? ACT_NET[ch][i] : FCAST_NET[ch][i]));
+  RES_GROSS[ch] = Array.from({ length: 12 }, (_, i) => (i < FC_FROM ? ACT_GROSS[ch][i] : (FACTOR[ch] ? FCAST_NET[ch][i] / FACTOR[ch] : FCAST_NET[ch][i])));
+}
+
 const VIEWS = [
   { k: "month", l: "Monthly", buckets: M.map((m, i) => ({ label: m, months: [i] })) },
   { k: "qtr", l: "Quarterly", buckets: [
@@ -76,12 +81,11 @@ const k000 = (n) => (Math.round(n) === 0 ? "—" : `$${Math.round(n / 1000).toLo
 const phaseWord = (fc) => (fc === "full" ? "Forecast" : fc === "none" ? "Actual" : "Actual + forecast");
 const pctStr = (res, bud) => (bud ? `${res - bud >= 0 ? "+" : ""}${(((res - bud) / bud) * 100).toFixed(0)}%` : "—");
 
-// Grouped-bar shape: the result rect + a dashed budget tick across the bar, so the
-// gap between the bar top and the tick = how much we beat (or missed) plan.
+// Grouped-bar shape: result rect + a dashed budget tick across the bar, so the gap
+// between the bar top and the tick = how much we beat (or missed) plan.
 function ResultBar(props) {
   const { x, y, width, height, payload, ch } = props;
-  const res = payload[ch] || 0;
-  const bud = payload[`${ch}__bud`] || 0;
+  const res = payload[ch] || 0, bud = payload[`${ch}__bud`] || 0;
   const isFc = payload.__fc !== "none";
   let markY = null;
   if (res > 0 && bud > 0 && height > 0) markY = y + (height * (res - bud)) / res;
@@ -128,77 +132,30 @@ export default function ForecastVsBudget() {
   const [basis, setBasis] = useState("net");
   const [layout, setLayout] = useState("channel"); // 'channel' (grouped) | 'combined' (stacked)
   const [showAdcs, setShowAdcs] = useState(false);
-  const [fcFrom, setFcFrom] = useState(7); // Aug; corrected client-side on mount
-  const [live, setLive] = useState(null);  // {net:{ch:[..]}, gross:{ch:[..]}} from /api/dashboard
-
-  // Resolve the current month (shop TZ) so closed months auto-advance, and pull
-  // real monthly-by-channel actuals. Seed values render until this lands.
-  useEffect(() => {
-    try {
-      const p = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit" })
-        .format(new Date()).split("-");
-      const y = +p[0], m = +p[1];
-      setFcFrom(y > 2026 ? 12 : y < 2026 ? 0 : m - 1);
-    } catch { /* keep default */ }
-    let cancelled = false;
-    fetch("/api/dashboard?preset=this_year&granularity=month", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled || !Array.isArray(j?.monthlySeries)) return;
-        const mk = () => ({ B2B: Array(12).fill(null), DTC: Array(12).fill(null), ADCS: Array(12).fill(null) });
-        const net = mk(), gross = mk();
-        for (const it of j.monthlySeries) {
-          if (typeof it.month !== "string" || !it.month.startsWith("2026-")) continue;
-          const i = +it.month.slice(5, 7) - 1;
-          if (i < 0 || i > 11) continue;
-          net.B2B[i] = it.B2B; net.DTC[i] = it.DTC; net.ADCS[i] = it.ADCS;
-          gross.B2B[i] = it.B2B_gross; gross.DTC[i] = it.DTC_gross; gross.ADCS[i] = it.ADCS_gross;
-        }
-        setLive({ net, gross });
-      })
-      .catch(() => { /* seed stays */ });
-    return () => { cancelled = true; };
-  }, []);
 
   const channels = showAdcs ? ["B2B", "DTC", "ADCS"] : ["B2B", "DTC"];
   const V = VIEWS.find((v) => v.k === view);
   const basisLabel = basis === "gross" ? "Gross" : "Net";
   const grouped = layout === "channel";
 
-  // Result per channel (12): actual for closed months (live→seed), forecast after.
-  const RES = useMemo(() => {
-    const seed = basis === "gross" ? ACT_GROSS : ACT_NET;
-    const out = {};
-    for (const ch of CHS) {
-      out[ch] = Array.from({ length: 12 }, (_, i) => {
-        if (i < fcFrom) {
-          const lv = live?.[basis]?.[ch];
-          return lv && lv[i] != null ? lv[i] : seed[ch][i];
-        }
-        const fnet = FCAST_NET[ch][i];
-        return basis === "gross" ? (FACTOR[ch] ? fnet / FACTOR[ch] : fnet) : fnet;
-      });
-    }
-    return out;
-  }, [live, fcFrom, basis]);
-
   const rows = useMemo(() => {
+    const RS = basis === "gross" ? RES_GROSS : RES_NET;
     const BD = basis === "gross" ? BUD_GROSS : BUD_NET;
     return V.buckets.map((b) => {
-      const mAct = b.months.filter((i) => i < fcFrom), mFc = b.months.filter((i) => i >= fcFrom);
+      const mAct = b.months.filter((i) => i < FC_FROM), mFc = b.months.filter((i) => i >= FC_FROM);
       const row = { label: b.label };
       let res = 0, bud = 0, act = 0, fcst = 0;
       for (const ch of channels) {
-        const cres = sum(RES[ch], b.months), cbud = sum(BD[ch], b.months);
+        const cres = sum(RS[ch], b.months), cbud = sum(BD[ch], b.months);
         row[ch] = cres; row[`${ch}__bud`] = cbud;
         res += cres; bud += cbud;
-        act += sum(RES[ch], mAct); fcst += sum(RES[ch], mFc);
+        act += sum(RS[ch], mAct); fcst += sum(RS[ch], mFc);
       }
       row.__res = res; row.__bud = bud; row.__act = act; row.__fcst = fcst;
       row.__fc = mFc.length === b.months.length ? "full" : mFc.length > 0 ? "partial" : "none";
       return row;
     });
-  }, [RES, view, showAdcs, basis, fcFrom]);
+  }, [view, showAdcs, basis]);
 
   const fcFirst = rows.findIndex((r) => r.__fc !== "none");
   const lastAct = fcFirst < 0 ? rows.length - 1 : fcFirst - 1;
@@ -207,7 +164,6 @@ export default function ForecastVsBudget() {
   const dl = totRes - totBud;
   const anyFc = rows.some((r) => r.__fc !== "none"), anyAct = rows.some((r) => r.__fc !== "full");
   const overallWord = anyFc && anyAct ? "Actual + Forecast" : anyFc ? "Forecast" : "Actual";
-  const lastCh = channels[channels.length - 1];
 
   const btn = (active) =>
     `px-2.5 py-1 rounded-md text-xs font-semibold transition ${active ? "bg-brown text-ink border border-brown" : "text-inksoft border border-rule hover:text-ink"}`;
@@ -218,7 +174,7 @@ export default function ForecastVsBudget() {
         <div>
           <h3 className="font-serif text-lg md:text-xl font-semibold text-ink leading-tight">Actual + Forecast vs Budget — {basisLabel} Revenue</h3>
           <p className="text-[11.5px] text-muted mt-0.5">
-            Actuals Jan–{fcFrom >= 1 ? M[Math.min(11, fcFrom - 1)] : "Dec"}{fcFrom < 12 ? ` → Forecast ${M[fcFrom]}–Dec` : ""} (lighter + shaded), vs board plan.
+            Actuals Jan–Jul (locked) → Forecast Aug–Dec (lighter + shaded), vs board plan.
             {" "}{showAdcs ? "B2B + DTC + ADCS" : "B2B + DTC · ex-ADCS"} · {grouped ? "dashed tick = budget, % = beat vs budget" : "line = budget"}.
           </p>
         </div>
@@ -253,7 +209,7 @@ export default function ForecastVsBudget() {
             <YAxis tickFormatter={usdShort} tick={{ fontSize: 10.5, fill: "var(--muted)" }} axisLine={false} tickLine={false} width={46} />
             {view !== "year" && fcFirst > 0 && (
               <ReferenceArea x1={rows[0].label} x2={rows[lastAct].label} fill="transparent"
-                label={{ value: "Actuals", position: "insideTopLeft", fontSize: 10, fill: "var(--muted)", offset: 6 }} />
+                label={{ value: "Actuals (locked)", position: "insideTopLeft", fontSize: 10, fill: "var(--muted)", offset: 6 }} />
             )}
             {view !== "year" && fcFirst >= 0 && (
               <ReferenceArea x1={rows[fcFirst].label} x2={rows[rows.length - 1].label} ifOverflow="visible"
@@ -352,7 +308,7 @@ function PeriodTable({ rows }) {
           })}</tr>
         </tbody>
       </table>
-      <p className="text-[10px] text-tan mt-1">ƒ = forecast period</p>
+      <p className="text-[10px] text-tan mt-1">ƒ = forecast period · Jan–Jul locked (actualized)</p>
     </div>
   );
 }
