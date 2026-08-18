@@ -1,16 +1,21 @@
 "use client";
 
 // =============================================================================
-// FORECAST vs BUDGET — revenue by channel, Result (Actuals Jan–Jul → Forecast
-// Aug–Dec) against Budget. Budget is a reference LINE, not a second bar.
-//   • Net ⇄ Gross flip. Stored numbers are NET; Gross = Net ÷ channel factor
-//     (B2B 0.92, DTC 0.98, ADCS 0.55) — the same factors used to load the
-//     Base-Gross forecast into Projections.
-//   • Period toggle: Monthly / Quarterly / Half / Annual.
-//   • ADCS on/off (default OFF — the exec view Mike asked for is ex-ADCS).
-//   • % beat-vs-budget printed on top of each column.
-//   • Forecast months (Aug–Dec) render lighter + inside a shaded band, so it's
-//     obvious at a glance where we're forecasting vs where it's actuals.
+// RESULT vs BUDGET — revenue by channel. Result (Actuals Jan–Jul → Forecast
+// Aug–Dec) vs the BOARD PLAN. Budget is a reference LINE, not a second bar.
+//
+//   • BUDGET = the board financial model's "Budget — Master P&L" (Monthly Pro
+//     Forma), gross-to-net exactly as the model computes it (blended ~9%/yr via
+//     Discounts + Returns). Ties to the FY2026 blue box: Gross $18,679,442 →
+//     Net $16,959,470. Split into B2B / DTC / ADCS so the ADCS toggle works on
+//     the budget line too (ADCS = model's "B2B incl ADCS" − "B2B excl ADCS").
+//   • RESULT = real actuals (Jan–Jul) + the Base-Gross forecast (Aug–Dec) loaded
+//     into Projections. Result gross-up uses the channel factors (B2B .92 / DTC
+//     .98 / ADCS .55); budget gross comes straight from the model.
+//   • Net ⇄ Gross flip · Monthly / Quarterly / Half / Annual · ADCS on/off
+//     (default OFF — the exec view Mike asked for is ex-ADCS = B2B + DTC).
+//   • % beat-vs-budget printed on top of each column; forecast months (Aug–Dec)
+//     render lighter + inside a shaded band.
 // =============================================================================
 
 import { useMemo, useState } from "react";
@@ -21,22 +26,33 @@ import { CHANNEL_COLORS } from "@/lib/constants";
 
 const M = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const FC_FROM = 7; // Aug (0-based) → forecast
-const FACTOR = { B2B: 0.92, DTC: 0.98, ADCS: 0.55 }; // net = gross × factor
+const FACTOR = { B2B: 0.92, DTC: 0.98, ADCS: 0.55 }; // result net = gross × factor
 
-// FY2026 NET, by channel. Result = actual (Jan–Jul) then forecast (Aug–Dec).
+// ---- RESULT (net), by channel. Actual Jan–Jul, then Base-Gross forecast Aug–Dec.
 const RES = {
   B2B:  [548578, 1055638, 820000, 983761, 1033130, 1211000, 1110182, 1300000, 1500000, 1600000, 1700000, 2000000],
   DTC:  [0, 0, 0, 0, 98000, 196000, 294000, 392000, 441000, 490000, 539000, 588000],
   ADCS: [66825, 66825, 80190, 80190, 80190, 80190, 80190, 125000, 125000, 125000, 125000, 125000],
 };
-const BUD = {
-  B2B:  [494861, 543060, 716445, 828474, 915072, 1006331, 1106205, 1200775, 1362558, 1477490, 1558682, 1661734],
-  DTC:  [0, 0, 0, 0, 78400, 127792, 127792, 200704, 237748, 269804, 327327, 442176],
-  ADCS: [66825, 66825, 80190, 80190, 80190, 80190, 80190, 80190, 80190, 80190, 80190, 80190],
-};
-// Net → Gross: divide each channel's net by its factor.
 const grossify = (obj) =>
   Object.fromEntries(Object.entries(obj).map(([ch, arr]) => [ch, arr.map((n) => (FACTOR[ch] ? n / FACTOR[ch] : n))]));
+
+// ---- BUDGET (board model plan). NET by channel — from the Monthly Pro Forma.
+// FY: B2B 13,798,229 · DTC 1,848,718 · ADCS 1,312,524 → total 16,959,471 (blue box).
+const BUD_NET = {
+  B2B:  [530194, 581887, 767379, 887731, 980429, 1078942, 1185924, 1287675, 1460588, 1584112, 1671456, 1781912],
+  DTC:  [0, 0, 0, 0, 80000, 130400, 130400, 204800, 242600, 275310, 334008, 451200],
+  ADCS: [90720, 90720, 111942, 118292, 118292, 118293, 110711, 110711, 110711, 110711, 110710, 110711],
+};
+// GROSS by channel. Model gives "B2B incl ADCS" gross (below) + DTC gross (= net).
+// Split that gross into B2B vs ADCS in proportion to their net so the per-channel
+// gross ties to the model total ($18,679,442).
+const S2_GROSS = [704131, 760936, 982181, 1122176, 1223242, 1330648, 1447288, 1558225, 1746747, 1881422, 1976651, 2097079];
+const BUD_GROSS = {
+  B2B:  BUD_NET.B2B.map((n, i) => (S2_GROSS[i] * n) / (BUD_NET.B2B[i] + BUD_NET.ADCS[i])),
+  DTC:  BUD_NET.DTC.slice(), // DTC gross = net in the model
+  ADCS: BUD_NET.ADCS.map((n, i) => (S2_GROSS[i] * n) / (BUD_NET.B2B[i] + BUD_NET.ADCS[i])),
+};
 
 const VIEWS = [
   { k: "month", l: "Monthly", buckets: M.map((m, i) => ({ label: m, months: [i] })) },
@@ -52,8 +68,7 @@ const sum = (arr, idxs) => idxs.reduce((a, i) => a + (arr[i] || 0), 0);
 const usdShort = (n) => (Math.abs(n) >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n ? `$${Math.round(n / 1e3)}K` : "$0");
 const usdFull = (n) => `$${Math.round(n).toLocaleString("en-US")}`;
 
-// % beat-vs-budget, printed above each column. Closes over the current rows so it
-// can read the bucket totals by index. Green when ahead of budget, red when behind.
+// % beat-vs-budget, printed above each column (green ahead / red behind).
 const pctLabel = (rows) => (props) => {
   const { x, y, width, index } = props;
   const row = rows[index];
@@ -81,8 +96,8 @@ export default function ForecastVsBudget() {
   const basisLabel = basis === "gross" ? "Gross" : "Net";
 
   const rows = useMemo(() => {
-    const RS = basis === "gross" ? grossify(RES) : RES;
-    const BD = basis === "gross" ? grossify(BUD) : BUD;
+    const RS = basis === "gross" ? grossify(RES) : RES;      // result: factor gross-up
+    const BD = basis === "gross" ? BUD_GROSS : BUD_NET;      // budget: straight from model
     return V.buckets.map((b) => {
       const row = { label: b.label };
       let res = 0, bud = 0;
@@ -97,12 +112,10 @@ export default function ForecastVsBudget() {
     });
   }, [view, showAdcs, basis]);
 
-  // First bucket that contains ANY forecast month → where the shaded band starts.
-  const fcFirst = rows.findIndex((r) => r.__fc !== "none");
+  const fcFirst = rows.findIndex((r) => r.__fc !== "none"); // first bucket with any forecast
   const totRes = rows.reduce((a, r) => a + r.__res, 0);
   const totBud = rows.reduce((a, r) => a + r.__bud, 0);
   const dl = totRes - totBud;
-  const lastCh = channels[channels.length - 1];
 
   const btn = (active) =>
     `px-2.5 py-1 rounded-md text-xs font-semibold transition ${active ? "bg-brown text-ink border border-brown" : "text-inksoft border border-rule hover:text-ink"}`;
@@ -113,7 +126,7 @@ export default function ForecastVsBudget() {
         <div>
           <h3 className="font-serif text-lg md:text-xl font-semibold text-ink leading-tight">Result vs Budget — {basisLabel} Revenue</h3>
           <p className="text-[11.5px] text-muted mt-0.5">
-            Actuals Jan–Jul → Forecast Aug–Dec (lighter + shaded), vs Budget (line). {showAdcs ? "B2B + DTC + ADCS" : "B2B + DTC · ex-ADCS"} · % = beat vs budget.
+            Actuals Jan–Jul → Forecast Aug–Dec (lighter + shaded), vs board plan (line). {showAdcs ? "B2B + DTC + ADCS" : "B2B + DTC · ex-ADCS"} · % = beat vs budget.
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -139,14 +152,15 @@ export default function ForecastVsBudget() {
         <ResponsiveContainer>
           <ComposedChart data={rows} margin={{ top: 20, right: 8, bottom: 4, left: 4 }}>
             <CartesianGrid vertical={false} stroke="var(--rule)" strokeOpacity={0.6} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--inksoft)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
+            <YAxis tickFormatter={usdShort} tick={{ fontSize: 10.5, fill: "var(--muted)" }} axisLine={false} tickLine={false} width={46} />
             {view !== "year" && fcFirst >= 0 && (
               <ReferenceArea
-                x1={rows[fcFirst].label} x2={rows[rows.length - 1].label} fill="var(--brown)" fillOpacity={0.06}
+                x1={rows[fcFirst].label} x2={rows[rows.length - 1].label} ifOverflow="visible"
+                fill="var(--brown)" fillOpacity={0.06}
                 label={{ value: "Forecast", position: "insideTopLeft", fontSize: 10, fill: "var(--tan)", offset: 6 }}
               />
             )}
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--inksoft)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
-            <YAxis tickFormatter={usdShort} tick={{ fontSize: 10.5, fill: "var(--muted)" }} axisLine={false} tickLine={false} width={46} />
             <Tooltip cursor={{ fill: "var(--brown)", fillOpacity: 0.06 }} content={<TipBox channels={channels} basisLabel={basisLabel} />} />
             {channels.map((ch, ci) => (
               <Bar key={ch} dataKey={ch} stackId="res" maxBarSize={54}
@@ -170,7 +184,7 @@ export default function ForecastVsBudget() {
           </span>
         ))}
         <span className="inline-flex items-center gap-1.5">
-          <span style={{ width: 16, height: 0, borderTop: "2px dashed var(--ink)", display: "inline-block" }} /> Budget
+          <span style={{ width: 16, height: 0, borderTop: "2px dashed var(--ink)", display: "inline-block" }} /> Budget (board plan)
         </span>
         <span className="text-tan">▨ Lighter bars = forecast (Aug–Dec)</span>
       </div>
