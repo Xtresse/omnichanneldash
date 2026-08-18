@@ -81,24 +81,6 @@ const k000 = (n) => (Math.round(n) === 0 ? "—" : `$${Math.round(n / 1000).toLo
 const phaseWord = (fc) => (fc === "full" ? "Forecast" : fc === "none" ? "Actual" : "Actual + forecast");
 const pctStr = (res, bud) => (bud ? `${res - bud >= 0 ? "+" : ""}${(((res - bud) / bud) * 100).toFixed(0)}%` : "—");
 
-// Grouped-bar shape: result rect + a dashed budget tick across the bar, so the gap
-// between the bar top and the tick = how much we beat (or missed) plan.
-function ResultBar(props) {
-  const { x, y, width, height, payload, ch } = props;
-  const res = payload[ch] || 0, bud = payload[`${ch}__bud`] || 0;
-  const isFc = payload.__fc !== "none";
-  let markY = null;
-  if (res > 0 && bud > 0 && height > 0) markY = y + (height * (res - bud)) / res;
-  return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} rx={2} fill={CHANNEL_COLORS[ch]} fillOpacity={isFc ? 0.5 : 1} />
-      {markY != null && markY >= y - 40 && (
-        <line x1={x - 1.5} x2={x + width + 1.5} y1={markY} y2={markY} stroke="#fff" strokeOpacity={0.9} strokeWidth={2} strokeDasharray="3 2" />
-      )}
-    </g>
-  );
-}
-
 const pctLabelCh = (rows, ch) => (props) => {
   const { x, y, width, index } = props;
   const row = rows[index];
@@ -175,7 +157,7 @@ export default function ForecastVsBudget() {
           <h3 className="font-serif text-lg md:text-xl font-semibold text-ink leading-tight">Actual + Forecast vs Budget — {basisLabel} Revenue</h3>
           <p className="text-[11.5px] text-muted mt-0.5">
             Actuals Jan–Jul (locked) → Forecast Aug–Dec (lighter + shaded), vs board plan.
-            {" "}{showAdcs ? "B2B + DTC + ADCS" : "B2B + DTC · ex-ADCS"} · {grouped ? "dashed tick = budget, % = beat vs budget" : "line = budget"}.
+            {" "}{showAdcs ? "B2B + DTC + ADCS" : "B2B + DTC · ex-ADCS"} · {grouped ? "colored = result, grey = budget, % = beat" : "line = budget"}.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -203,7 +185,7 @@ export default function ForecastVsBudget() {
 
       <div style={{ width: "100%", height: 340 }}>
         <ResponsiveContainer>
-          <ComposedChart data={rows} margin={{ top: 22, right: 8, bottom: 4, left: 4 }} barCategoryGap={grouped ? "16%" : "22%"} barGap={2}>
+          <ComposedChart data={rows} margin={{ top: 22, right: 8, bottom: 4, left: 4 }} barCategoryGap={grouped ? "10%" : "22%"} barGap={grouped ? 1 : 2}>
             <CartesianGrid vertical={false} stroke="var(--rule)" strokeOpacity={0.6} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--inksoft)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
             <YAxis tickFormatter={usdShort} tick={{ fontSize: 10.5, fill: "var(--muted)" }} axisLine={false} tickLine={false} width={46} />
@@ -219,11 +201,13 @@ export default function ForecastVsBudget() {
             <Tooltip cursor={{ fill: "var(--brown)", fillOpacity: 0.06 }} content={<TipBox channels={channels} basisLabel={basisLabel} grouped={grouped} />} />
 
             {grouped
-              ? channels.map((ch) => (
-                  <Bar key={ch} dataKey={ch} maxBarSize={30} shape={(p) => <ResultBar {...p} ch={ch} />}>
+              ? channels.flatMap((ch) => [
+                  <Bar key={`${ch}-r`} dataKey={ch} maxBarSize={18} radius={[2, 2, 0, 0]} isAnimationActive={false}>
+                    {rows.map((r, i) => <Cell key={i} fill={CHANNEL_COLORS[ch]} fillOpacity={r.__fc !== "none" ? 0.55 : 1} />)}
                     <LabelList content={pctLabelCh(rows, ch)} />
-                  </Bar>
-                ))
+                  </Bar>,
+                  <Bar key={`${ch}-b`} dataKey={`${ch}__bud`} maxBarSize={18} radius={[2, 2, 0, 0]} fill="var(--ink)" fillOpacity={0.2} isAnimationActive={false} />,
+                ])
               : channels.map((ch, ci) => (
                   <Bar key={ch} dataKey={ch} stackId="res" maxBarSize={54}
                     radius={ci === channels.length - 1 ? [3, 3, 0, 0] : 0} isAnimationActive={false}>
@@ -247,7 +231,10 @@ export default function ForecastVsBudget() {
           </span>
         ))}
         <span className="inline-flex items-center gap-1.5">
-          <span style={{ width: 16, height: 0, borderTop: `2px dashed ${grouped ? "#999" : "var(--ink)"}`, display: "inline-block" }} /> Budget (board plan)
+          {grouped
+            ? <span style={{ width: 11, height: 11, borderRadius: 3, background: "var(--ink)", opacity: 0.2, display: "inline-block" }} />
+            : <span style={{ width: 16, height: 0, borderTop: "2px dashed var(--ink)", display: "inline-block" }} />}
+          Budget (board plan)
         </span>
         <span className="text-tan">▨ Lighter = forecast</span>
       </div>
