@@ -167,7 +167,7 @@ export default function ForecastVsBudget() {
         <div>
           <h3 className="font-serif text-lg md:text-xl font-semibold text-ink leading-tight">Actual + Forecast vs Budget — {basisLabel} Revenue</h3>
           <p className="text-[11.5px] text-muted mt-0.5">
-            Actuals Jan–Jul (locked) → Forecast Aug–Dec (lighter + shaded), vs board plan.
+            Actuals Jan–Jul (locked) → Forecast Aug–Dec ({grouped ? "hatched" : "lighter"} + shaded), vs board plan.
             {" "}{showAdcs ? "B2B + DTC + ADCS" : "B2B + DTC · ex-ADCS"} · {grouped ? "colored = result, grey = budget, % = beat" : "line = budget"}.
           </p>
         </div>
