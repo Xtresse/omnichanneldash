@@ -1,21 +1,22 @@
 "use client";
 
 // =============================================================================
-// RESULT vs BUDGET — revenue by channel. Result (Actuals Jan–Jul → Forecast
-// Aug–Dec) vs the BOARD PLAN. Budget is a reference LINE, not a second bar.
+// ACTUAL + FORECAST vs BUDGET — revenue by channel. Closed months are Actuals,
+// go-forward months are Forecast; a future month is NEVER labelled a "result".
+// Compared against the BOARD PLAN (budget line).
 //
 //   • BUDGET = the board financial model's "Budget — Master P&L" (Monthly Pro
 //     Forma), gross-to-net exactly as the model computes it (blended ~9%/yr via
 //     Discounts + Returns). Ties to the FY2026 blue box: Gross $18,679,442 →
-//     Net $16,959,470. Split into B2B / DTC / ADCS so the ADCS toggle works on
-//     the budget line too (ADCS = model's "B2B incl ADCS" − "B2B excl ADCS").
+//     Net $16,959,470. Split B2B / DTC / ADCS so the ADCS toggle works on the
+//     budget line too (ADCS = model's "B2B incl ADCS" − "B2B excl ADCS").
 //   • RESULT = real actuals (Jan–Jul) + the Base-Gross forecast (Aug–Dec) loaded
 //     into Projections. Result gross-up uses the channel factors (B2B .92 / DTC
 //     .98 / ADCS .55); budget gross comes straight from the model.
-//   • Net ⇄ Gross flip · Monthly / Quarterly / Half / Annual · ADCS on/off
+//   • Net ⇄ Gross flip · Monthly / Quarterly / Half / Full Year · ADCS on/off
 //     (default OFF — the exec view Mike asked for is ex-ADCS = B2B + DTC).
-//   • % beat-vs-budget printed on top of each column; forecast months (Aug–Dec)
-//     render lighter + inside a shaded band.
+//   • % beat-vs-budget on top of each column; forecast months render lighter +
+//     shaded. A compact data table underneath lists $ per selected period.
 // =============================================================================
 
 import { useMemo, useState } from "react";
@@ -61,12 +62,16 @@ const VIEWS = [
     { label: "Q3", months: [6, 7, 8] }, { label: "Q4", months: [9, 10, 11] }] },
   { k: "half", l: "Half", buckets: [
     { label: "H1", months: [0, 1, 2, 3, 4, 5] }, { label: "H2", months: [6, 7, 8, 9, 10, 11] }] },
-  { k: "year", l: "Annual", buckets: [{ label: "FY2026", months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }] },
+  { k: "year", l: "Full Year", buckets: [{ label: "FY2026", months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }] },
 ];
 
 const sum = (arr, idxs) => idxs.reduce((a, i) => a + (arr[i] || 0), 0);
 const usdShort = (n) => (Math.abs(n) >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n ? `$${Math.round(n / 1e3)}K` : "$0");
 const usdFull = (n) => `$${Math.round(n).toLocaleString("en-US")}`;
+const k000 = (n) => (Math.round(n) === 0 ? "—" : `$${Math.round(n / 1000).toLocaleString("en-US")}`); // $ in thousands
+// A bucket total is an Actual (closed months), a Forecast (future), or a blend.
+// Never call a future month a "result."
+const phaseWord = (fc) => (fc === "full" ? "Forecast" : fc === "none" ? "Actual" : "Actual + forecast");
 
 // % beat-vs-budget, printed above each column (green ahead / red behind).
 const pctLabel = (rows) => (props) => {
@@ -100,14 +105,16 @@ export default function ForecastVsBudget() {
     const BD = basis === "gross" ? BUD_GROSS : BUD_NET;      // budget: straight from model
     return V.buckets.map((b) => {
       const row = { label: b.label };
-      let res = 0, bud = 0;
+      const mAct = b.months.filter((i) => i < FC_FROM);       // closed months
+      const mFc = b.months.filter((i) => i >= FC_FROM);       // forecast months
+      let res = 0, bud = 0, act = 0, fcst = 0;
       for (const ch of channels) {
-        const r = sum(RS[ch], b.months); row[ch] = r; res += r;
+        const rAct = sum(RS[ch], mAct), rFc = sum(RS[ch], mFc);
+        row[ch] = rAct + rFc; res += rAct + rFc; act += rAct; fcst += rFc;
         bud += sum(BD[ch], b.months);
       }
-      row.__res = res; row.__bud = bud;
-      const fc = b.months.filter((i) => i >= FC_FROM).length;
-      row.__fc = fc === b.months.length ? "full" : fc > 0 ? "partial" : "none";
+      row.__res = res; row.__bud = bud; row.__act = act; row.__fcst = fcst;
+      row.__fc = mFc.length === b.months.length ? "full" : mFc.length > 0 ? "partial" : "none";
       return row;
     });
   }, [view, showAdcs, basis]);
@@ -116,6 +123,9 @@ export default function ForecastVsBudget() {
   const totRes = rows.reduce((a, r) => a + r.__res, 0);
   const totBud = rows.reduce((a, r) => a + r.__bud, 0);
   const dl = totRes - totBud;
+  const anyFc = rows.some((r) => r.__fc !== "none");
+  const anyAct = rows.some((r) => r.__fc !== "full");
+  const overallWord = anyFc && anyAct ? "Actual + Forecast" : anyFc ? "Forecast" : "Actual";
 
   const btn = (active) =>
     `px-2.5 py-1 rounded-md text-xs font-semibold transition ${active ? "bg-brown text-ink border border-brown" : "text-inksoft border border-rule hover:text-ink"}`;
@@ -124,7 +134,7 @@ export default function ForecastVsBudget() {
     <div className="rounded-xl border border-rule bg-card p-4 md:p-5 mb-5">
       <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
         <div>
-          <h3 className="font-serif text-lg md:text-xl font-semibold text-ink leading-tight">Result vs Budget — {basisLabel} Revenue</h3>
+          <h3 className="font-serif text-lg md:text-xl font-semibold text-ink leading-tight">Actual + Forecast vs Budget — {basisLabel} Revenue</h3>
           <p className="text-[11.5px] text-muted mt-0.5">
             Actuals Jan–Jul → Forecast Aug–Dec (lighter + shaded), vs board plan (line). {showAdcs ? "B2B + DTC + ADCS" : "B2B + DTC · ex-ADCS"} · % = beat vs budget.
           </p>
@@ -144,7 +154,7 @@ export default function ForecastVsBudget() {
       </div>
 
       <div className="text-xs text-muted mb-2">
-        {V.l} · {basisLabel} · Result <b className="text-ink">{usdFull(totRes)}</b> vs Budget <b className="text-ink">{usdFull(totBud)}</b>
+        {V.l} · {basisLabel} · {overallWord} <b className="text-ink">{usdFull(totRes)}</b> vs Budget <b className="text-ink">{usdFull(totBud)}</b>
         <span style={{ color: dl >= 0 ? "var(--favorable)" : "var(--unfavorable)" }}> · {dl >= 0 ? "+" : ""}{usdFull(dl)} ({((dl / totBud) * 100).toFixed(1)}%)</span>
       </div>
 
@@ -180,7 +190,7 @@ export default function ForecastVsBudget() {
       <div className="flex items-center gap-4 flex-wrap mt-2 text-[11px] text-muted">
         {channels.map((ch) => (
           <span key={ch} className="inline-flex items-center gap-1.5">
-            <span style={{ width: 11, height: 11, borderRadius: 3, background: CHANNEL_COLORS[ch], display: "inline-block" }} /> {ch} result
+            <span style={{ width: 11, height: 11, borderRadius: 3, background: CHANNEL_COLORS[ch], display: "inline-block" }} /> {ch}
           </span>
         ))}
         <span className="inline-flex items-center gap-1.5">
@@ -188,6 +198,8 @@ export default function ForecastVsBudget() {
         </span>
         <span className="text-tan">▨ Lighter bars = forecast (Aug–Dec)</span>
       </div>
+
+      <PeriodTable rows={rows} />
     </div>
   );
 }
@@ -199,17 +211,72 @@ function TipBox({ active, payload, label, channels, basisLabel }) {
   const pct = bud ? (dl / bud) * 100 : 0;
   return (
     <div className="rounded-lg border border-rule bg-card px-3 py-2 text-xs shadow-lg" style={{ minWidth: 178 }}>
-      <div className="font-serif font-semibold text-ink mb-1">
-        {label} · {basisLabel}{row.__fc === "full" ? " · Forecast" : row.__fc === "partial" ? " · incl. forecast" : ""}
-      </div>
+      <div className="font-serif font-semibold text-ink mb-1">{label} · {basisLabel}</div>
       {channels.map((ch) => (
         <div key={ch} className="flex justify-between gap-4 text-muted"><span>{ch}</span><span className="text-ink font-semibold">{usdFull(row[ch] || 0)}</span></div>
       ))}
-      <div className="flex justify-between gap-4 border-t border-rule mt-1.5 pt-1"><span className="text-muted">Result</span><span className="text-ink font-semibold">{usdFull(res)}</span></div>
+      <div className="flex justify-between gap-4 border-t border-rule mt-1.5 pt-1"><span className="text-muted">{phaseWord(row.__fc)}</span><span className="text-ink font-semibold">{usdFull(res)}</span></div>
       <div className="flex justify-between gap-4 text-muted"><span>Budget</span><span className="text-ink font-semibold">{usdFull(bud)}</span></div>
       <div className="flex justify-between gap-4"><span className="text-muted">Δ vs budget</span>
         <span style={{ color: dl >= 0 ? "var(--favorable)" : "var(--unfavorable)", fontWeight: 600 }}>{dl >= 0 ? "+" : ""}{usdFull(dl)} ({pct >= 0 ? "+" : ""}{pct.toFixed(0)}%)</span>
       </div>
+    </div>
+  );
+}
+
+// Compact $ table under the chart — columns follow the selected period, values in
+// thousands. Forecast periods flagged (ƒ). Actual and Forecast split out so a future
+// period's dollars never sit in the "Actual" row.
+function PeriodTable({ rows }) {
+  const cell = "px-2 py-1 text-right whitespace-nowrap tabular-nums";
+  const lbl = "px-2 py-1 text-left sticky left-0 bg-card";
+  const isFc = (r) => r.__fc !== "none";
+  const pctOf = (r) => (r.__bud ? ((r.__res - r.__bud) / r.__bud) * 100 : null);
+  return (
+    <div className="mt-3 overflow-x-auto">
+      <table className="text-[11px]" style={{ borderCollapse: "collapse", width: "100%", minWidth: (rows.length + 1) * 66 }}>
+        <thead>
+          <tr className="text-muted">
+            <th className={`${lbl} font-semibold`}>$ in thousands</th>
+            {rows.map((r) => (
+              <th key={r.label} className={`${cell} font-semibold`} style={isFc(r) ? { color: "var(--tan)" } : undefined}>
+                {r.label}{isFc(r) ? " ƒ" : ""}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="text-ink">
+          <tr className="border-t border-rule/60">
+            <td className={`${lbl} text-muted`}>Actual</td>
+            {rows.map((r) => <td key={r.label} className={cell}>{k000(r.__act)}</td>)}
+          </tr>
+          <tr>
+            <td className={`${lbl} text-muted`}>Forecast</td>
+            {rows.map((r) => <td key={r.label} className={cell} style={{ color: "var(--inksoft)" }}>{k000(r.__fcst)}</td>)}
+          </tr>
+          <tr className="border-t border-rule/60 font-semibold">
+            <td className={lbl}>Total</td>
+            {rows.map((r) => <td key={r.label} className={cell}>{k000(r.__res)}</td>)}
+          </tr>
+          <tr>
+            <td className={`${lbl} text-muted`}>Budget</td>
+            {rows.map((r) => <td key={r.label} className={cell}>{k000(r.__bud)}</td>)}
+          </tr>
+          <tr className="border-t border-rule/60">
+            <td className={`${lbl} text-muted`}>Δ vs budget</td>
+            {rows.map((r) => {
+              const p = pctOf(r);
+              return (
+                <td key={r.label} className={cell}
+                  style={{ color: p == null ? "var(--muted)" : p >= 0 ? "var(--favorable)" : "var(--unfavorable)", fontWeight: 600 }}>
+                  {p == null ? "—" : `${p >= 0 ? "+" : ""}${p.toFixed(0)}%`}
+                </td>
+              );
+            })}
+          </tr>
+        </tbody>
+      </table>
+      <p className="text-[10px] text-tan mt-1">ƒ = forecast period</p>
     </div>
   );
 }
