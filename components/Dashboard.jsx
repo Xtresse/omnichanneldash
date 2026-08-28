@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import FilterBar, { PRESET_LABELS, GRANULARITY_OPTIONS } from "./FilterBar.jsx";
 import ChannelNetSalesBar from "./ChannelNetSalesBar.jsx";
+import ChannelMetrics from "./ChannelMetrics.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
 import RepLeaderboard from "./RepLeaderboard.jsx";
@@ -615,6 +616,21 @@ export default function Dashboard({ initial }) {
             windowIsMtd={windowIsMtd}
           />
         </div>
+
+        {/* Channel Metrics — AOV per channel (this period) + lifetime reorder
+            rate per channel. Surfaces B2B AOV with the same prominence as DTC
+            (Mike's investor-meeting ask, 2026-08). Reorder rate is lifetime /
+            window-independent (payload.reorderRates). */}
+        {data && (
+          <div className="mb-4 md:mb-6">
+            <ChannelMetrics
+              kpis={data.kpis}
+              reorderRates={data.reorderRates}
+              metric={revMetric}
+              periodLabel={periodLabel}
+            />
+          </div>
+        )}
 
         {data && (
           <>
