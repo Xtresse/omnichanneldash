@@ -11,6 +11,10 @@
     {
       "path": "/api/tag-tick",
       "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/territory-tick",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
