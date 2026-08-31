@@ -25,6 +25,11 @@ import {
   TAG_DIRTY_TTL_MS,
   TAG_RELEVANT_TOPICS,
 } from "@/lib/liveTagState.js";
+import {
+  BOX_DIRTY_ORDERS_KEY,
+  BOX_DIRTY_TTL_MS,
+  BOX_RELEVANT_TOPICS,
+} from "@/lib/liveBoxState.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -129,6 +134,32 @@ export async function POST(request) {
       } catch {
         // Same tolerance as above — a missed enqueue here is caught by the
         // periodic backfill script, never worth failing the webhook over.
+      }
+    }
+  }
+
+  // Box-inclusion packing-rule gap-filler (lib/boxPackingRules.js) — queue
+  // the new order for the separate box-tick cron (/api/box-tick) to check.
+  // Same "queue here, compute there" split as the tag path above, and for
+  // the same reason: this endpoint is budgeted for milliseconds, and
+  // deciding + applying an Order Edit is real work that doesn't belong in
+  // it. Order-scoped (not customer-scoped) — a box decision only needs this
+  // one order's own line items, so the payload carries everything box-tick
+  // needs already; no follow-up fetch-by-customer step like tag-tick has.
+  if (BOX_RELEVANT_TOPICS.has(topic)) {
+    const orderId = payload.id ? String(payload.id) : null;
+    if (orderId) {
+      try {
+        const prev = (await getCachedData(BOX_DIRTY_ORDERS_KEY, BOX_DIRTY_TTL_MS))?.data || null;
+        const ids = new Set(prev?.ids || []);
+        ids.add(orderId);
+        await setCachedData(BOX_DIRTY_ORDERS_KEY, {
+          ids: [...ids],
+          lastAt: new Date().toISOString(),
+        });
+      } catch {
+        // Same tolerance as the tag-queue write above — never fail the
+        // webhook over a missed enqueue.
       }
     }
   }
