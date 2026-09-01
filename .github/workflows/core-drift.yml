@@ -8,8 +8,12 @@
 # (not yet migrated). Without it the job SKIPS (never a false failure).
 name: core-drift
 on:
-  push: { paths: ['lib/xtresseCore.js', 'scripts/check-core-drift.mjs'] }
-  schedule: [{ cron: '0 13 * * *' }]   # 13:00 UTC daily
+  push:
+    paths:
+      - 'lib/xtresseCore.js'
+      - 'scripts/check-core-drift.mjs'
+  schedule:
+    - cron: '0 13 * * *'   # 13:00 UTC daily
   workflow_dispatch:
 jobs:
   check:
@@ -17,13 +21,17 @@ jobs:
     steps:
       - name: Canonical (this repo)
         uses: actions/checkout@v4
-        with: { path: omnichanneldash }
+        with:
+          path: omnichanneldash
       - name: Guard requires FLEET_PAT
         id: gate
         run: |
           if [ -z "${{ secrets.FLEET_PAT }}" ]; then
-            echo "FLEET_PAT not set — skipping cross-repo drift check."; echo "ok=false" >> $GITHUB_OUTPUT
-          else echo "ok=true" >> $GITHUB_OUTPUT; fi
+            echo "FLEET_PAT not set — skipping cross-repo drift check."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Clone target dashboards
         if: steps.gate.outputs.ok == 'true'
         run: |
@@ -37,5 +45,6 @@ jobs:
           done
       - name: Check core drift
         if: steps.gate.outputs.ok == 'true'
-        env: { CORE_ROOT: ${{ github.workspace }} }
+        env:
+          CORE_ROOT: ${{ github.workspace }}
         run: node omnichanneldash/scripts/check-core-drift.mjs
