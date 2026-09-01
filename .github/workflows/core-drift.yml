@@ -3,8 +3,9 @@
 # runs daily) if any repo's REVENUE/CHANNEL invariants diverge from omni's master,
 # so a silent drift (like the 2026-08 influencer one) can't happen unnoticed.
 #
-# NEEDS a repo secret FLEET_PAT = a GitHub PAT with read access to the sibling
-# repos (all under samxtresse). Without it the job SKIPS (never a false failure).
+# NEEDS a repo secret FLEET_PAT = a GitHub PAT with read (contents) access to the
+# sibling repos — under the Xtresse org, plus samxtresse for xtresse-finance-tracker
+# (not yet migrated). Without it the job SKIPS (never a false failure).
 name: core-drift
 on:
   push: { paths: ['lib/xtresseCore.js', 'scripts/check-core-drift.mjs'] }
@@ -26,8 +27,13 @@ jobs:
       - name: Clone target dashboards
         if: steps.gate.outputs.ok == 'true'
         run: |
+          # Fleet moved to the Xtresse org (2026-08); xtresse-finance-tracker is
+          # still on samxtresse. Try Xtresse first, fall back to samxtresse, so
+          # this self-heals as the last repo migrates. FLEET_PAT needs read on both.
           for r in xtresse-leadershipdash Sales-Rep-Dashboards CRO_Tracker xtresse-orders-tracker xtresse-ops-tracker xtresse-finance-tracker DTC_Dashboard xtresse-influencer-dash; do
-            git clone --depth 1 "https://x-access-token:${{ secrets.FLEET_PAT }}@github.com/samxtresse/$r.git" "$r" 2>/dev/null || echo "::warning::could not clone $r"
+            git clone --depth 1 "https://x-access-token:${{ secrets.FLEET_PAT }}@github.com/Xtresse/$r.git" "$r" 2>/dev/null \
+              || git clone --depth 1 "https://x-access-token:${{ secrets.FLEET_PAT }}@github.com/samxtresse/$r.git" "$r" 2>/dev/null \
+              || echo "::warning::could not clone $r from Xtresse or samxtresse"
           done
       - name: Check core drift
         if: steps.gate.outputs.ok == 'true'
