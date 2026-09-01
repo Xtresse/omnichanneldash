@@ -234,32 +234,33 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
     };
     const actFold = (ch, p) => actGross(ch, p) + (p === "Gummies" ? (residualCh[ch] || 0) : 0);
 
-    // §1 — channel × product, ACTUAL vs BASE (gross), per Sam. DTC only sells
-    // Gummies + Serum. ADCS base is a lump in the sheet → allocate it across
-    // products by the channel's ACTUAL gross mix. Rows with no actual+base drop.
+    // §1 — channel × product, ACTUAL vs BUDGET (gross). Per Mike (2026-09-01):
+    // compare against the Budget tier, not Base. DTC only sells Gummies + Serum.
+    // ADCS budget is a lump in the sheet → allocate it across products by the
+    // channel's ACTUAL gross mix. Rows with no actual+budget drop.
     const prodsFor = (ch) => (ch === "DTC" ? ["Gummies", "Serum"] : DISPLAY_PRODUCTS);
     const matrix = CHANNELS.map((ch) => {
       const prods = prodsFor(ch);
-      let baseFor;
+      let budgetFor;
       if (ch === "ADCS") {
-        const adcsBaseTotal = prods.reduce((a, p) => a + tget("ADCS", p, "base"), 0);
+        const adcsBudgetTotal = prods.reduce((a, p) => a + tget("ADCS", p, "budget"), 0);
         const actTotal = prods.reduce((a, p) => a + actFold("ADCS", p), 0);
-        baseFor = (p) => (actTotal > 0 ? adcsBaseTotal * (actFold("ADCS", p) / actTotal) : tget("ADCS", p, "base"));
+        budgetFor = (p) => (actTotal > 0 ? adcsBudgetTotal * (actFold("ADCS", p) / actTotal) : tget("ADCS", p, "budget"));
       } else {
-        baseFor = (p) => tget(ch, p, "base");
+        budgetFor = (p) => tget(ch, p, "budget");
       }
       const rows = prods
         .map((p) => {
           const actual = actFold(ch, p);
-          const base = baseFor(p);
-          return { product: p, actual, base, attain: base > 0 ? (actual / base) * 100 : null };
+          const budget = budgetFor(p);
+          return { product: p, actual, budget, attain: budget > 0 ? (actual / budget) * 100 : null };
         })
-        .filter((r) => r.actual > 0 || r.base > 0);
-      const tot = rows.reduce((a, r) => ({ actual: a.actual + r.actual, base: a.base + r.base }), { actual: 0, base: 0 });
-      return { channel: ch, rows, tot: { ...tot, attain: tot.base > 0 ? (tot.actual / tot.base) * 100 : null } };
+        .filter((r) => r.actual > 0 || r.budget > 0);
+      const tot = rows.reduce((a, r) => ({ actual: a.actual + r.actual, budget: a.budget + r.budget }), { actual: 0, budget: 0 });
+      return { channel: ch, rows, tot: { ...tot, attain: tot.budget > 0 ? (tot.actual / tot.budget) * 100 : null } };
     });
-    const grand = matrix.reduce((a, mm2) => ({ actual: a.actual + mm2.tot.actual, base: a.base + mm2.tot.base }), { actual: 0, base: 0 });
-    grand.attain = grand.base > 0 ? (grand.actual / grand.base) * 100 : null;
+    const grand = matrix.reduce((a, mm2) => ({ actual: a.actual + mm2.tot.actual, budget: a.budget + mm2.tot.budget }), { actual: 0, budget: 0 });
+    grand.attain = grand.budget > 0 ? (grand.actual / grand.budget) * 100 : null;
 
     // §2 — growth MoM / QoQ / YoY (gross). SOFT: needs the trend series; renders
     // "n/a" if the trend pull failed, "…" while still loading.
@@ -289,11 +290,13 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
       curGross: gOf(cur), mom: growth(gOf(cur), gOf(prev)), qoq: growth(curQ, priorQ),
       yoy: growth(gOf(cur), gOf(yoy)), curQ, priorQ,
     };
-    // Per-channel gross MoM (from the same monthly series) — for the DTC and
-    // B2B/rep sections. cur/prev buckets carry B2B_gross/DTC_gross/ADCS_gross.
+    // Per-channel gross MoM (from the same monthly series). cur/prev buckets
+    // carry B2B_gross/DTC_gross/ADCS_gross. Broken out per channel (Mike,
+    // 2026-09-01) so lumpy ADCS ($0 months) doesn't drag the company MoM.
     const chGrossMoM = (ch) => growth(Number(cur?.[`${ch}_gross`] || 0), Number(prev?.[`${ch}_gross`] || 0));
     const dtcMoM = chGrossMoM("DTC");
     const b2bMoM = chGrossMoM("B2B");
+    const adcsMoM = chGrossMoM("ADCS");
 
     // §3 — new + cumulative accounts (B2B, rep-attributed), from accountAging
     // (all-time in every payload, so prior-month is a calendar lookup — no trend).
@@ -333,7 +336,7 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
     return {
       kpis, matrix, grand, growthRow, newInMonth, cumulative, newPrev, nvr, dtc,
       topNet, topNew, xvieAll, serumAll, newXvie, newSerum,
-      dtcMoM, b2bMoM,
+      dtcMoM, b2bMoM, adcsMoM,
       growthReady: trendOk, growthFailed: !!(trend && trend.__error),
       isMtd: ym === currentYm,
     };
@@ -462,17 +465,17 @@ function ReportBody({ m, ym, hasTargets }) {
         <Stat label="B2B Gross" value={usdK(k.b2bGrossSales)} sub={`${pct0((k.b2bNetSales / (k.totalNetSales || 1)) * 100)} of net`} color="var(--xt-b2b)" />
         <Stat label="DTC Gross" value={usdK(k.dtcGrossSales)} sub={`${pct0((k.dtcNetSales / (k.totalNetSales || 1)) * 100)} of net`} color="var(--xt-dtc)" />
         <Stat label="ADCS Gross" value={usdK(k.adcsGrossSales)} sub={`${pct0((k.adcsNetSales / (k.totalNetSales || 1)) * 100)} of net`} color="var(--xt-adcs)" />
-        <Stat label="MoM" value={gv(m.growthRow.mom)} color={gc(m.growthRow.mom)} sub="gross" />
+        <Stat label="B2B MoM" value={gv(m.b2bMoM)} color={gc(m.b2bMoM)} sub="gross" />
         <Stat label="YoY" value={gv(m.growthRow.yoy)} color={gc(m.growthRow.yoy)} sub="gross" />
       </div>
 
       {/* §1 Budget vs actual by channel × product */}
-      <Section n={1} title="Performance vs Base — Channel × Product" note={hasTargets ? "Gross · Actual vs Base" : "No targets loaded"}>
+      <Section n={1} title="Performance vs Budget — Channel × Product" note={hasTargets ? "Gross · Actual vs Budget" : "No targets loaded"}>
         <table className="omni-tbl">
           <thead>
             <tr>
               <th className="text-left">Channel / Product</th>
-              <th>Actual</th><th>Base</th><th>% Base</th>
+              <th>Actual</th><th>Budget</th><th>% Budget</th>
             </tr>
           </thead>
           <tbody>
@@ -481,19 +484,27 @@ function ReportBody({ m, ym, hasTargets }) {
             ))}
             <tr className="omni-tbl-grand">
               <td className="text-left">Company Total</td>
-              <td>{usdK(m.grand.actual)}</td><td>{usdK(m.grand.base)}</td>
+              <td>{usdK(m.grand.actual)}</td><td>{usdK(m.grand.budget)}</td>
               <td><AttainPill v={m.grand.attain} /></td>
             </tr>
           </tbody>
         </table>
       </Section>
 
-      {/* §2 Growth (gross) — MoM / QoQ / YoY */}
-      <Section n={2} title="Growth" note="Gross · vs prior periods">
-        <div className="grid grid-cols-3 gap-3">
-          <Stat label="MoM" value={gv(m.growthRow.mom)} color={gc(m.growthRow.mom)} sub="month over month" />
-          <Stat label="QoQ" value={gv(m.growthRow.qoq)} color={gc(m.growthRow.qoq)} sub={m.growthReady ? "quarter-to-date" : null} />
-          <Stat label="YoY" value={gv(m.growthRow.yoy)} color={gc(m.growthRow.yoy)} sub="year over year" />
+      {/* §2 Growth (gross) — MoM split by channel (Mike, 2026-09-01) so lumpy
+          ADCS doesn't drag the company MoM · then company MoM / QoQ / YoY. */}
+      <Section n={2} title="Growth" note="Gross · MoM by channel · vs prior periods">
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <Stat label="B2B MoM" value={gv(m.b2bMoM)} color={gc(m.b2bMoM)} sub="month over month" />
+            <Stat label="ADCS MoM" value={gv(m.adcsMoM)} color={gc(m.adcsMoM)} sub="month over month" />
+            <Stat label="DTC MoM" value={gv(m.dtcMoM)} color={gc(m.dtcMoM)} sub="month over month" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Stat label="Company MoM" value={gv(m.growthRow.mom)} color={gc(m.growthRow.mom)} sub="all channels" />
+            <Stat label="QoQ" value={gv(m.growthRow.qoq)} color={gc(m.growthRow.qoq)} sub={m.growthReady ? "quarter-to-date" : null} />
+            <Stat label="YoY" value={gv(m.growthRow.yoy)} color={gc(m.growthRow.yoy)} sub="year over year" />
+          </div>
         </div>
       </Section>
     </div>
@@ -511,14 +522,14 @@ function FragmentChannel({ mx }) {
         <tr key={r.product}>
           <td className="text-left pl-4">{r.product}</td>
           <td>{usdK(r.actual)}</td>
-          <td>{r.base ? usdK(r.base) : "—"}</td>
+          <td>{r.budget ? usdK(r.budget) : "—"}</td>
           <td><AttainPill v={r.attain} /></td>
         </tr>
       ))}
       <tr className="omni-tbl-subtot">
         <td className="text-left pl-4">{mx.channel} total</td>
         <td>{usdK(mx.tot.actual)}</td>
-        <td>{mx.tot.base ? usdK(mx.tot.base) : "—"}</td>
+        <td>{mx.tot.budget ? usdK(mx.tot.budget) : "—"}</td>
         <td><AttainPill v={mx.tot.attain} /></td>
       </tr>
     </>
