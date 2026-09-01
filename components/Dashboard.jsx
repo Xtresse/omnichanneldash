@@ -500,7 +500,7 @@ export default function Dashboard({ initial }) {
 
         {/* View tabs: the dashboard, or the editable Projections (targets) editor */}
         <div className="mb-4 md:mb-6 flex gap-1 border-b border-rule">
-          {[["dashboard", "Dashboard"], ["projections", "Projections"], ["shows", "Shows"]].map(([v, l]) => (
+          {[["dashboard", "Dashboard"], ["projections", "Projections"]].map(([v, l]) => (
             <button key={v} type="button" onClick={() => setView(v)}
               className={`min-h-touch px-4 py-2 font-sans text-sm font-semibold tracking-[0.02em] -mb-px border-b-2 transition ${view === v ? "border-brown text-ink" : "border-transparent text-muted hover:text-ink"}`}>
               {l}
@@ -510,8 +510,6 @@ export default function Dashboard({ initial }) {
 
         {view === "projections" ? (
           <ProjectionsPanel />
-        ) : view === "shows" ? (
-          <TradeShowRoi />
         ) : (
         <>
         <div className="mb-4 md:mb-6">
@@ -700,6 +698,10 @@ export default function Dashboard({ initial }) {
                   <SubVsOneTime data={data.subVsOneTime} />
                 </ChartCell>
               </ChartGrid>
+            </Section>
+
+            <Section title="Trade Show ROI" detail="Booth spend vs B2B revenue by show · booth-code + badge-lead attribution" collapsible defaultCollapsed>
+              <TradeShowRoi embedded />
             </Section>
             </SectionGroup>
 

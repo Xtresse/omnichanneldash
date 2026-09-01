@@ -114,7 +114,7 @@ function useTokens() {
   return t;
 }
 
-export default function TradeShowRoi() {
+export default function TradeShowRoi({ embedded = false }) {
   const tok = useTokens();
   const [openKey, setOpenKey] = useState(null);
 
@@ -152,7 +152,8 @@ export default function TradeShowRoi() {
 
   return (
     <div className="font-sans">
-      {/* ---- header ---- */}
+      {/* ---- header (standalone only; the collapsible Section supplies the title when embedded) ---- */}
+      {!embedded && (
       <div className="mb-4">
         <h2 className="font-serif text-2xl md:text-3xl font-semibold text-ink leading-none">Trade Show ROI</h2>
         <p className="text-xs md:text-sm text-muted mt-1">
@@ -160,6 +161,7 @@ export default function TradeShowRoi() {
           booth code or a scanned lead became a new B2B customer after the show.
         </p>
       </div>
+      )}
 
       {/* ---- headline tiles ---- */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
