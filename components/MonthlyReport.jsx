@@ -235,24 +235,20 @@ export default function MonthlyReport({ data, targets, monthPayload, periodLabel
     const actFold = (ch, p) => actGross(ch, p) + (p === "Gummies" ? (residualCh[ch] || 0) : 0);
 
     // §1 — channel × product, ACTUAL vs BUDGET (gross). Per Mike (2026-09-01):
-    // compare against the Budget tier, not Base. DTC only sells Gummies + Serum.
-    // ADCS budget is a lump in the sheet → allocate it across products by the
-    // channel's ACTUAL gross mix. Rows with no actual+budget drop.
+    // Budget tier, not Base. Each product's actual is compared to that SAME
+    // product's own budget — NO cross-product re-allocation (removed 2026-09-01,
+    // Sam). ADCS's budget lump sits on Gummies in the sheet and ADCS only sold
+    // XVIE, so XVIE now shows actual vs its own ($0) budget = "—" (N/A), not
+    // XVIE-actual-vs-Gummies-budget. Rows with no actual+budget drop; a product
+    // with actual but no budget keeps the row and shows "—" for % (can't divide
+    // by a $0 budget). Channel total still ties (ADCS = actual vs channel plan).
     const prodsFor = (ch) => (ch === "DTC" ? ["Gummies", "Serum"] : DISPLAY_PRODUCTS);
     const matrix = CHANNELS.map((ch) => {
       const prods = prodsFor(ch);
-      let budgetFor;
-      if (ch === "ADCS") {
-        const adcsBudgetTotal = prods.reduce((a, p) => a + tget("ADCS", p, "budget"), 0);
-        const actTotal = prods.reduce((a, p) => a + actFold("ADCS", p), 0);
-        budgetFor = (p) => (actTotal > 0 ? adcsBudgetTotal * (actFold("ADCS", p) / actTotal) : tget("ADCS", p, "budget"));
-      } else {
-        budgetFor = (p) => tget(ch, p, "budget");
-      }
       const rows = prods
         .map((p) => {
           const actual = actFold(ch, p);
-          const budget = budgetFor(p);
+          const budget = tget(ch, p, "budget");
           return { product: p, actual, budget, attain: budget > 0 ? (actual / budget) * 100 : null };
         })
         .filter((r) => r.actual > 0 || r.budget > 0);
