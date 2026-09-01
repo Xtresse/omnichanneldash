@@ -1,0 +1,617 @@
+{
+ "generatedAt": "2026-09-01",
+ "shows": [
+  {
+   "key": "SKINSUMMIT",
+   "name": "The Skin Summit",
+   "dates": "Apr 19",
+   "start": "2026-04-19",
+   "cost": 850,
+   "leads": null,
+   "converts": 4,
+   "revenue": 13172.25,
+   "roi": 15.5,
+   "convPct": null,
+   "status": "strong",
+   "clinics": [
+    {
+     "email": "blufftonbeautique@gmail.com",
+     "company": "gmail.com",
+     "rev": 4139.25,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "lillianaspa@yahoo.com",
+     "company": "yahoo.com",
+     "rev": 4101.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "alicia@experiencenovella.com",
+     "company": "experiencenovella.com",
+     "rev": 3412.5,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "jlundybrook@gmail.com",
+     "company": "gmail.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    }
+   ]
+  },
+  {
+   "key": "DMA",
+   "name": "DMA",
+   "dates": "Apr 25",
+   "start": "2026-04-25",
+   "cost": 1500,
+   "leads": null,
+   "converts": 3,
+   "revenue": 9420.0,
+   "roi": 6.28,
+   "convPct": null,
+   "status": "strong",
+   "clinics": [
+    {
+     "email": "info@beautycampaesthetics.com",
+     "company": "beautycampaesthetics.com",
+     "rev": 6232.5,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "ellie@windwardhealthcare.com",
+     "company": "windwardhealthcare.com",
+     "rev": 1668.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "npalitucker@unfilteredbeautymedspa.com",
+     "company": "unfilteredbeautymedspa.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    }
+   ]
+  },
+  {
+   "key": "MODERN",
+   "name": "Modern Beauty",
+   "dates": "May 1-3",
+   "start": "2026-05-01",
+   "cost": 3400,
+   "leads": null,
+   "converts": 8,
+   "revenue": 16335.0,
+   "roi": 4.8,
+   "convPct": null,
+   "status": "strong",
+   "clinics": [
+    {
+     "email": "mirroraestheticswellness@gmail.com",
+     "company": "gmail.com",
+     "rev": 3206.25,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "wilsonaestheticco@gmail.com",
+     "company": "gmail.com",
+     "rev": 3206.25,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "greaterglowmedspa@gmail.com",
+     "company": "gmail.com",
+     "rev": 2043.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "info@stephendelia.com",
+     "company": "stephendelia.com",
+     "rev": 1668.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "theaestheticstudioeg@gmail.com",
+     "company": "gmail.com",
+     "rev": 1653.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "susan@hennessenceaestheticswellness.com",
+     "company": "hennessenceaestheticswellness.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "numi_aesthetics@yahoo.com",
+     "company": "yahoo.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "dosedrx@gmail.com",
+     "company": "gmail.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    }
+   ]
+  },
+  {
+   "key": "SCALE",
+   "name": "SCALE (Music City SCALE)",
+   "dates": "May 13-17",
+   "start": "2026-05-13",
+   "cost": 9500,
+   "leads": 132,
+   "converts": 7,
+   "revenue": 24250.5,
+   "roi": 2.55,
+   "convPct": 5.3,
+   "status": "strong",
+   "clinics": [
+    {
+     "email": "derm@magnifyrx.com",
+     "company": "magnifyrx.com",
+     "rev": 5901.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "tracey@skinbodymemphis.com",
+     "company": "SkinBody Memphis",
+     "rev": 5392.5,
+     "rep": "",
+     "viaCode": false
+    },
+    {
+     "email": "drmalhotra@sknin.com",
+     "company": "sknin.com",
+     "rev": 4893.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "ruthienp@yahoo.com",
+     "company": "yahoo.com",
+     "rev": 3356.25,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "jlee@drcoberly.com",
+     "company": "drcoberly.com",
+     "rev": 1668.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "poojamalik.md@gmail.com",
+     "company": "Malik Medical Aesthetics",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "contact@sonoranaesthetics.com",
+     "company": "sonoranaesthetics.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    }
+   ]
+  },
+  {
+   "key": "AMSPA",
+   "name": "AmSpa",
+   "dates": "Apr 9-12",
+   "start": "2026-04-09",
+   "cost": 18080,
+   "leads": 118,
+   "converts": 12,
+   "revenue": 40950.75,
+   "roi": 2.26,
+   "convPct": 10.2,
+   "status": "strong",
+   "clinics": [
+    {
+     "email": "djpiotter87@gmail.com",
+     "company": "Bee Well Clinic PLLC",
+     "rev": 10229.25,
+     "rep": "Kate Xtresse",
+     "viaCode": true
+    },
+    {
+     "email": "angie@baremedicalaesthetics.com",
+     "company": "bare. medical aesthetics",
+     "rev": 5540.25,
+     "rep": "Xtresse Hair Health",
+     "viaCode": true
+    },
+    {
+     "email": "pmalone@athensveins.com",
+     "company": "Athens Vien and Aesthetics",
+     "rev": 4902.75,
+     "rep": "Laura Xtresse",
+     "viaCode": true
+    },
+    {
+     "email": "candace@thelafacialist.com",
+     "company": "Prollenium Medical Technologies",
+     "rev": 3375,
+     "rep": "Kate Xtresse",
+     "viaCode": false
+    },
+    {
+     "email": "elissa@enlighten-aesthetics.com",
+     "company": "enlighten-aesthetics.com",
+     "rev": 3318.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "healthymedical@live.com",
+     "company": "Healthy Medical Inc",
+     "rev": 3051.75,
+     "rep": "Laura Xtresse",
+     "viaCode": true
+    },
+    {
+     "email": "decklanpearson@gmail.com",
+     "company": "gmail.com",
+     "rev": 2301.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "c.aguilar@gentlebeautysolutions.com",
+     "company": "Gentle Beauty Solutions",
+     "rev": 1837.5,
+     "rep": "Laura Xtresse",
+     "viaCode": false
+    },
+    {
+     "email": "info@faceiqmedspa.com",
+     "company": "faceIQ medspa",
+     "rev": 1687.5,
+     "rep": "Laura Xtresse",
+     "viaCode": false
+    },
+    {
+     "email": "facesbyamie@yahoo.com",
+     "company": "Faces by Amie, LLC",
+     "rev": 1668.75,
+     "rep": "Xtresse Hair Health",
+     "viaCode": true
+    },
+    {
+     "email": "stacy@emergemedspa.net",
+     "company": "emergemedspa.net",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "nicole@beautycultureaz.com",
+     "company": "Beauty Culture",
+     "rev": 1518.75,
+     "rep": "Xtresse Hair Health",
+     "viaCode": true
+    }
+   ]
+  },
+  {
+   "key": "ASAPS",
+   "name": "ASAPS (The Aesthetic Society)",
+   "dates": "May 15-17",
+   "start": "2026-05-15",
+   "cost": 4200,
+   "leads": 97,
+   "converts": 3,
+   "revenue": 5508.0,
+   "roi": 1.31,
+   "convPct": 3.1,
+   "status": "ok",
+   "clinics": [
+    {
+     "email": "mcohen@nybra.com",
+     "company": "Practice, Randall S. Feingold MD",
+     "rev": 2301.75,
+     "rep": "License 02",
+     "viaCode": true
+    },
+    {
+     "email": "admin@tannanmd.com",
+     "company": "Tannan Plastic Surgery",
+     "rev": 1687.5,
+     "rep": "License 01",
+     "viaCode": false
+    },
+    {
+     "email": "allison@daviscps.com",
+     "company": "Davis Cosmetic Plastic Surgery",
+     "rev": 1518.75,
+     "rep": "License 02",
+     "viaCode": false
+    }
+   ]
+  },
+  {
+   "key": "AAD",
+   "name": "AAD (American Academy of Dermatology)",
+   "dates": "Mar 27-31",
+   "start": "2026-03-27",
+   "cost": 32329,
+   "leads": null,
+   "converts": 6,
+   "revenue": 33578.4,
+   "roi": 1.04,
+   "convPct": null,
+   "status": "ok",
+   "clinics": [
+    {
+     "email": "natetrook@msn.com",
+     "company": "msn.com",
+     "rev": 17714.4,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "adstewmd@gmail.com",
+     "company": "gmail.com",
+     "rev": 8101.5,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "renulaser@hotmail.com",
+     "company": "hotmail.com",
+     "rev": 3206.25,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "panteahashemi@gmail.com",
+     "company": "gmail.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "administrator@amazingskindoc.com",
+     "company": "amazingskindoc.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    },
+    {
+     "email": "info@soradermatology.com",
+     "company": "soradermatology.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    }
+   ]
+  },
+  {
+   "key": "DOCS4HAIR",
+   "name": "Docs4Hair",
+   "dates": "Apr 17-19",
+   "start": "2026-04-17",
+   "cost": 1500,
+   "leads": null,
+   "converts": 1,
+   "revenue": 1518.75,
+   "roi": 1.01,
+   "convPct": null,
+   "status": "ok",
+   "clinics": [
+    {
+     "email": "admin@ag-dermatology.com",
+     "company": "ag-dermatology.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    }
+   ]
+  },
+  {
+   "key": "TAS",
+   "name": "TAS (The Aesthetic Show)",
+   "dates": "Jun 25-28",
+   "start": "2026-06-25",
+   "cost": 15000,
+   "leads": 87,
+   "converts": 4,
+   "revenue": 12564.0,
+   "roi": 0.84,
+   "convPct": 4.6,
+   "status": "weak",
+   "clinics": [
+    {
+     "email": "shelbi@shelbiaestheticswellness.com",
+     "company": "shelbi Aesthetics and Wellness",
+     "rev": 4297.5,
+     "rep": "Laura Mann",
+     "viaCode": false
+    },
+    {
+     "email": "novaburnes@gmail.com",
+     "company": "Vita Nova Aesthetics",
+     "rev": 4021.5,
+     "rep": "Laura Mann",
+     "viaCode": false
+    },
+    {
+     "email": "eringordonmd@gmail.com",
+     "company": "Erin F Gordon MD",
+     "rev": 2557.5,
+     "rep": "Michelle Boehle",
+     "viaCode": false
+    },
+    {
+     "email": "nikki@skinfusionfx.com",
+     "company": "SkinFusion FX",
+     "rev": 1687.5,
+     "rep": "Laura Mann",
+     "viaCode": false
+    }
+   ]
+  },
+  {
+   "key": "AES",
+   "name": "AES (Aesthetic Extender Symposium)",
+   "dates": "Aug 5-8",
+   "start": "2026-08-05",
+   "cost": 6500,
+   "leads": 80,
+   "converts": 2,
+   "revenue": 3037.5,
+   "roi": 0.47,
+   "convPct": 2.5,
+   "status": "maturing",
+   "clinics": [
+    {
+     "email": "sandovalyuliya@gmail.com",
+     "company": "Lazy girl",
+     "rev": 1518.75,
+     "rep": "Michelle Spencer",
+     "viaCode": true
+    },
+    {
+     "email": "sthareja@indigodermatology.com",
+     "company": "indigodermatology.com",
+     "rev": 1518.75,
+     "rep": "",
+     "viaCode": true
+    }
+   ]
+  },
+  {
+   "key": "NEWWAVE",
+   "name": "New Wave Dermatology",
+   "dates": "Apr 9-11",
+   "start": "2026-04-09",
+   "cost": 5000,
+   "leads": null,
+   "converts": 0,
+   "revenue": 0.0,
+   "roi": 0.0,
+   "convPct": null,
+   "status": "none",
+   "clinics": []
+  },
+  {
+   "key": "MOA_WEST",
+   "name": "Masters of Aesthetics West",
+   "dates": "Aug 27-30",
+   "start": "2026-08-27",
+   "cost": 10000,
+   "leads": null,
+   "converts": 0,
+   "revenue": 0.0,
+   "roi": 0.0,
+   "convPct": null,
+   "status": "none",
+   "clinics": []
+  },
+  {
+   "key": "AESTHETIC_NEXT",
+   "name": "Aesthetic Next",
+   "dates": "Sep 10-13",
+   "start": "2026-09-10",
+   "cost": 5000,
+   "leads": null,
+   "converts": 0,
+   "revenue": 0.0,
+   "roi": 0.0,
+   "convPct": null,
+   "status": "upcoming",
+   "clinics": []
+  },
+  {
+   "key": "AAFPRS",
+   "name": "AAFPRS Annual Meeting",
+   "dates": "Sep 24-26",
+   "start": "2026-09-24",
+   "cost": 4900,
+   "leads": null,
+   "converts": 0,
+   "revenue": 0.0,
+   "roi": 0.0,
+   "convPct": null,
+   "status": "upcoming",
+   "clinics": []
+  },
+  {
+   "key": "FALL_CLINICAL",
+   "name": "Fall Clinical Derm",
+   "dates": "Oct 8-11",
+   "start": "2026-10-08",
+   "cost": 10000,
+   "leads": null,
+   "converts": 0,
+   "revenue": 0.0,
+   "roi": 0.0,
+   "convPct": null,
+   "status": "upcoming",
+   "clinics": []
+  },
+  {
+   "key": "ASDS",
+   "name": "ASDS",
+   "dates": "Nov 5-7",
+   "start": "2026-11-05",
+   "cost": 26500,
+   "leads": null,
+   "converts": 0,
+   "revenue": 0.0,
+   "roi": 0.0,
+   "convPct": null,
+   "status": "upcoming",
+   "clinics": []
+  },
+  {
+   "key": "A4M",
+   "name": "A4M",
+   "dates": "Dec 10-13",
+   "start": "2026-12-10",
+   "cost": 5995,
+   "leads": null,
+   "converts": 0,
+   "revenue": 0.0,
+   "roi": 0.0,
+   "convPct": null,
+   "status": "upcoming",
+   "clinics": []
+  },
+  {
+   "key": "EXPORT_ALL",
+   "name": "Export-All (unidentified show)",
+   "dates": "?",
+   "start": null,
+   "cost": null,
+   "leads": 54,
+   "converts": 0,
+   "revenue": 0.0,
+   "roi": null,
+   "convPct": 0.0,
+   "status": "unmapped",
+   "clinics": []
+  }
+ ]
+}

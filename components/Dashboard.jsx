@@ -28,6 +28,7 @@ import RepTrendChart from "./charts/RepTrendChart.jsx";
 import ExportButton from "./ExportButton.jsx";
 import MonthlyReport from "./MonthlyReport.jsx";
 import ProjectionsPanel from "./ProjectionsPanel.jsx";
+import TradeShowRoi from "./TradeShowRoi.jsx";
 import ReconciliationCheck from "./ReconciliationCheck.jsx";
 import BudgetVsActual from "./BudgetVsActual.jsx";
 import AccountAging from "./AccountAging.jsx";
@@ -499,7 +500,7 @@ export default function Dashboard({ initial }) {
 
         {/* View tabs: the dashboard, or the editable Projections (targets) editor */}
         <div className="mb-4 md:mb-6 flex gap-1 border-b border-rule">
-          {[["dashboard", "Dashboard"], ["projections", "Projections"]].map(([v, l]) => (
+          {[["dashboard", "Dashboard"], ["projections", "Projections"], ["shows", "Shows"]].map(([v, l]) => (
             <button key={v} type="button" onClick={() => setView(v)}
               className={`min-h-touch px-4 py-2 font-sans text-sm font-semibold tracking-[0.02em] -mb-px border-b-2 transition ${view === v ? "border-brown text-ink" : "border-transparent text-muted hover:text-ink"}`}>
               {l}
@@ -509,6 +510,8 @@ export default function Dashboard({ initial }) {
 
         {view === "projections" ? (
           <ProjectionsPanel />
+        ) : view === "shows" ? (
+          <TradeShowRoi />
         ) : (
         <>
         <div className="mb-4 md:mb-6">
