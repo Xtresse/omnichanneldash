@@ -598,20 +598,6 @@
    "convPct": null,
    "status": "upcoming",
    "clinics": []
-  },
-  {
-   "key": "EXPORT_ALL",
-   "name": "Export-All (unidentified show)",
-   "dates": "?",
-   "start": null,
-   "cost": null,
-   "leads": 54,
-   "converts": 0,
-   "revenue": 0.0,
-   "roi": null,
-   "convPct": 0.0,
-   "status": "unmapped",
-   "clinics": []
   }
  ]
 }

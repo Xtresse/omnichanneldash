@@ -156,15 +156,5 @@
   "start": "2026-12-10",
   "leadShow": null,
   "upcoming": true
- },
- {
-  "key": "EXPORT_ALL",
-  "name": "Export-All (unidentified show)",
-  "code": null,
-  "cost": null,
-  "dates": "?",
-  "start": null,
-  "leadShow": "Export-All",
-  "unmapped": true
  }
 ]
