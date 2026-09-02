@@ -5,3 +5,5 @@
 [2026-06-25 18:24 UTC] non-shipbob=46  NEW_in_file=0 (B2B 0/DTC 0)  rows=0  already_loaded=46  marked_sent=no  tests=['#9204', '#9206']  flags=[]
 [2026-06-25 20:11 UTC] non-shipbob=46  NEW_in_file=2 (B2B 0/DTC 2)  rows=2  already_loaded=44  marked_sent=no  tests=['#9204', '#9206']  flags=[]
 [2026-06-25 22:32 UTC] non-shipbob=51  NEW_in_file=7 (B2B 1/DTC 6)  rows=7  already_loaded=44  marked_sent=no  tests=['#9204', '#9206']  flags=[]
+[2026-09-02 00:27 UTC] non-shipbob=140  NEW_in_file=140 (B2B 15/DTC 125)  rows=237  already_loaded=0  marked_sent=no  tests=['#9204', '#9206', '#9662', '#11080', '#11081', '#11082', '#11645', '#12193', '#12458', '#12694', '#13468', '#15507', '#15560', '#16153', '#16849', '#16981']  flags=[]
+[2026-09-02 00:28 UTC] non-shipbob=140  NEW_in_file=140 (B2B 15/DTC 125)  rows=237  already_loaded=0  marked_sent=YES  tests=['#9204', '#9206', '#9662', '#11080', '#11081', '#11082', '#11645', '#12193', '#12458', '#12694', '#13468', '#15507', '#15560', '#16153', '#16849', '#16981']  flags=[]
