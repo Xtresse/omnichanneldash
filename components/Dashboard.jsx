@@ -641,7 +641,13 @@ export default function Dashboard({ initial }) {
                 productFamily={data.productFamily}
                 grossMargin={data.grossMargin}
                 metric={revMetric}
-                sharedCurrentMonthActuals={execGoalMtdFull}
+                // When the FilterBar IS on MTD, feed BudgetVsActual the SAME
+                // fresh `data` payload the channel cards use — otherwise its
+                // headline reads a second, independently-fetched MTD window and
+                // drifts a few $k from "Total Sales by Channel" (Mike, 2026-07-16;
+                // the channel bars + Exec tile were already reconciled via
+                // `mtdKpis`, this extends it to the Actual-vs-Goal headline).
+                sharedCurrentMonthActuals={windowIsMtd && data ? data : execGoalMtdFull}
               />
             </Section>
 
