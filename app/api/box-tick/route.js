@@ -114,7 +114,7 @@ async function fetchOrderForPlan(orderId) {
         cancelledAt
         displayFulfillmentStatus
         lineItems(first: 100) {
-          edges { node { sku quantity } }
+          edges { node { id sku quantity } }
         }
       }
     }`;
@@ -129,7 +129,7 @@ async function applyBoxPlan(order, plan) {
   const begin = await adminGraphQL(
     `mutation BoxEditBegin($id: ID!) {
       orderEditBegin(id: $id) {
-        calculatedOrder { id }
+        calculatedOrder { id lineItems(first: 100) { edges { node { id sku } } } }
         userErrors { field message }
       }
     }`,
@@ -137,8 +137,31 @@ async function applyBoxPlan(order, plan) {
   );
   const beginErrs = begin.orderEditBegin?.userErrors || [];
   if (beginErrs.length) throw new Error(`orderEditBegin userErrors on ${order.name}: ${JSON.stringify(beginErrs)}`);
-  const calculatedOrderId = begin.orderEditBegin?.calculatedOrder?.id;
+  const calc = begin.orderEditBegin?.calculatedOrder;
+  const calculatedOrderId = calc?.id;
   if (!calculatedOrderId) throw new Error(`orderEditBegin returned no calculatedOrder for ${order.name}`);
+
+  // "correct" plans first zero out the wrong-SKU box line — matched by SKU
+  // against the CALCULATED order's line items, not the raw order-level line
+  // item id, since the two ids aren't guaranteed to match (see box-SKU
+  // correction session notes).
+  if (plan.action === "correct") {
+    const calcLineItems = (calc.lineItems?.edges || []).map((e) => e.node);
+    const wrongLine = calcLineItems.find((li) => li.sku === plan.removeSku);
+    if (!wrongLine) throw new Error(`orderEditBegin calculatedOrder has no line item for SKU ${plan.removeSku} on ${order.name}`);
+
+    const setQty = await adminGraphQL(
+      `mutation BoxEditSetQty($id: ID!, $lineItemId: ID!, $quantity: Int!) {
+        orderEditSetQuantity(id: $id, lineItemId: $lineItemId, quantity: $quantity) {
+          calculatedOrder { id }
+          userErrors { field message }
+        }
+      }`,
+      { id: calculatedOrderId, lineItemId: wrongLine.id, quantity: 0 }
+    );
+    const setQtyErrs = setQty.orderEditSetQuantity?.userErrors || [];
+    if (setQtyErrs.length) throw new Error(`orderEditSetQuantity userErrors on ${order.name}: ${JSON.stringify(setQtyErrs)}`);
+  }
 
   const add = await adminGraphQL(
     `mutation BoxEditAddVariant($id: ID!, $variantId: ID!, $quantity: Int!) {
@@ -152,6 +175,10 @@ async function applyBoxPlan(order, plan) {
   const addErrs = add.orderEditAddVariant?.userErrors || [];
   if (addErrs.length) throw new Error(`orderEditAddVariant userErrors on ${order.name}: ${JSON.stringify(addErrs)}`);
 
+  const staffNote =
+    plan.action === "correct"
+      ? `box-tick: corrected ${plan.removeSku} -> ${plan.addSku} (${plan.reason})`
+      : `box-tick: added ${plan.addSku} (${plan.reason})`;
   const commit = await adminGraphQL(
     `mutation BoxEditCommit($id: ID!, $staffNote: String) {
       orderEditCommit(id: $id, notifyCustomer: false, staffNote: $staffNote) {
@@ -159,7 +186,7 @@ async function applyBoxPlan(order, plan) {
         userErrors { field message }
       }
     }`,
-    { id: calculatedOrderId, staffNote: `box-tick: added ${plan.addSku} (${plan.reason})` }
+    { id: calculatedOrderId, staffNote }
   );
   const commitErrs = commit.orderEditCommit?.userErrors || [];
   if (commitErrs.length) throw new Error(`orderEditCommit userErrors on ${order.name}: ${JSON.stringify(commitErrs)}`);
