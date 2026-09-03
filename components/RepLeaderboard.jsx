@@ -142,10 +142,14 @@ function loadWindow(from, to) {
  * by `metric`. Ties break alphabetically so the order is deterministic across
  * renders (a rep must never swap places with a tied peer on a re-render).
  */
-function flattenAndRank(repPerformance, scope, metric, rowFilter) {
+function flattenAndRank(repPerformance, scope, metric, rowFilter, excludeTerritories = []) {
   if (!Array.isArray(repPerformance) || !metric) return [];
   const rows = [];
   for (const sec of repPerformance) {
+    // Some boards drop whole sections outright — e.g. Sales By Rep excludes
+    // "1099" so contractors never appear in a rep ranking (Sam: 1099s are never
+    // President's-Club-eligible and must not read as leaderboard standings).
+    if (excludeTerritories.includes(sec.territory)) continue;
     if (scope !== "all" && sec.territory !== scope) continue;
     for (const r of sec.rows || []) {
       const row = { ...r, territory: sec.territory };
@@ -166,6 +170,7 @@ export default function RepLeaderboard({
   metrics: metricKeys,
   defaultMetric,
   rowFilter,          // (row, territory) => bool — pins eligibility (P-Club)
+  excludeTerritories = [], // sections that never appear on this board, e.g. ["1099"]
   showScope = true,
   scopeNote,          // replaces the scope chips when eligibility is pinned
   ytdRange,           // optional (today) => [from, to] override for the YTD
@@ -262,9 +267,10 @@ export default function RepLeaderboard({
     ? repPerformance
     : (cacheKey && fetched[cacheKey]) || null;
 
+  const excludeKey = excludeTerritories.join(",");
   const rows = useMemo(
-    () => flattenAndRank(source, scope, metric, rowFilter),
-    [source, scope, metric, rowFilter]
+    () => flattenAndRank(source, scope, metric, rowFilter, excludeTerritories),
+    [source, scope, metric, rowFilter, excludeKey] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const isMoney = metric?.unit === "currency";
@@ -370,7 +376,7 @@ export default function RepLeaderboard({
         <div className="flex items-center justify-between gap-3 flex-wrap">
           {showScope ? (
             <div className="inline-flex rounded-lg overflow-hidden border border-paper/20 shrink-0">
-              {SCOPES.map((s) => (
+              {SCOPES.filter((s) => !excludeTerritories.includes(s.key)).map((s) => (
                 <button
                   key={s.key}
                   type="button"

@@ -729,6 +729,7 @@ export default function Dashboard({ initial }) {
                 repPerformance={data.repPerformance || []}
                 rangeFrom={customFrom}
                 rangeTo={customTo}
+                excludeTerritories={["1099"]}
               />
 
               <SubBlock
