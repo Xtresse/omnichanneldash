@@ -714,13 +714,6 @@ export default function Dashboard({ initial }) {
 
             <SectionGroup title="Rep Performance" detail="Leaderboards, Daily Activity & Programs">
             <Section
-              title="Cadence & Watch"
-              detail="Order cadence & who's underproducing · last 5 complete months"
-              collapsible
-            >
-              <RepNotes />
-            </Section>
-            <Section
               title="Sales By Rep"
               detail="Stack-Ranked Leaderboard · MTD / QTD / YTD · Trend Lines Below"
               collapsible
@@ -827,6 +820,7 @@ export default function Dashboard({ initial }) {
               defaultCollapsed
             >
               <RepHeatMap rangeFrom={customFrom} rangeTo={customTo} />
+              <RepNotes />
             </Section>
 
             <Section

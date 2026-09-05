@@ -8,52 +8,67 @@
     "2026-07",
     "2026-08"
   ],
-  "method": "B2B net sales by rep, first 7 days vs full month, last 5 complete months.",
+  "method": "B2B net sales by rep: first-7-days, final-7-days and quiet-weekday cadence over the last 5 complete months.",
   "backLoaded": [
+    {
+      "rep": "Taylor Bates",
+      "terr": "Existing",
+      "avgFull": 35323,
+      "w1pct": 2,
+      "lastWkPct": 67
+    },
     {
       "rep": "Tyler De Masi",
       "terr": "Existing",
       "avgFull": 52890,
-      "w1pct": 2
+      "w1pct": 2,
+      "lastWkPct": 53
+    },
+    {
+      "rep": "Morgan Hood",
+      "terr": "New",
+      "avgFull": 22462,
+      "w1pct": 17,
+      "lastWkPct": 51
     },
     {
       "rep": "Michelle Boehle",
       "terr": "Existing",
       "avgFull": 45788,
-      "w1pct": 10
-    },
-    {
-      "rep": "Taylor Bates",
-      "terr": "Existing",
-      "avgFull": 35323,
-      "w1pct": 2
+      "w1pct": 10,
+      "lastWkPct": 46
     }
   ],
   "lowOutput": [
     {
       "rep": "Maggie Seifert",
       "terr": "1099",
-      "avgFull": 338
+      "avgFull": 338,
+      "quietWeekdays": 20
     },
     {
       "rep": "Tom Scurti",
       "terr": "1099",
-      "avgFull": 1410
+      "avgFull": 1410,
+      "quietWeekdays": 21
     },
     {
       "rep": "Laura Mulcahy",
       "terr": "1099",
-      "avgFull": 1682
+      "avgFull": 1682,
+      "quietWeekdays": 17
     },
     {
       "rep": "Sasha Parlin",
       "terr": "1099",
-      "avgFull": 1728
+      "avgFull": 1728,
+      "quietWeekdays": 18
     },
     {
       "rep": "Paul Onofrio",
       "terr": "1099",
-      "avgFull": 1989
+      "avgFull": 1989,
+      "quietWeekdays": 18
     }
   ],
   "strongStart": [

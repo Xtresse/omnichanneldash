@@ -1,62 +1,81 @@
 "use client";
 
-// Rep "Cadence & Watch" notes — plain-English read on order cadence (who's
-// back-loaded vs. strong at month-start) and a low-output watch list, for the
-// Rep Performance group. Reads the pre-computed data/rep-cadence.json
-// (regenerated from live Shopify by scripts/rep-cadence.mjs, monthly). The
-// lead framing is deliberate: "quiet week 1" is usually cadence (deals close
-// later), not absence — so no full-time rep gets mislabeled as not working.
+// Watch Outs — a compact, ranked companion under the Rep Daily Heat Map, for
+// the offender pattern Mike asked about: W-2 reps who wait until the last week
+// to place orders. Reads the pre-computed data/rep-cadence.json (regenerated
+// from live Shopify by scripts/rep-cadence.mjs, monthly).
+//
+// W-2 ONLY (Sam, 2026-09-05) — 1099 contractors are commission-only, set their
+// own hours, and are excluded from every rep ranking/leaderboard (see the
+// President's Club rule), so they don't belong on this watch list either.
+// Looks across the last 5 COMPLETE months, never one week, so a single slow
+// start never flags anyone.
 
 import React from "react";
 import notes from "@/data/rep-cadence.json";
 
-const names = (arr, flag1099 = false) =>
-  (arr || []).map((r) => (flag1099 && r.terr === "1099" ? `${r.rep} (1099)` : r.rep)).join(" · ");
+const fmtK = (n) => {
+  const v = Math.abs(n || 0);
+  return v >= 1000 ? `$${Math.round(v / 1000)}k` : `$${Math.round(v)}`;
+};
+const w2Only = (arr) => (arr || []).filter((r) => r.terr !== "1099");
 
-function Note({ dot, label, body, people }) {
+function Tier({ dot, badge, badgeCls, label, rows, stat }) {
+  if (!rows?.length) return null;
   return (
-    <div className="flex gap-2.5">
-      <span className={`mt-[5px] h-2 w-2 shrink-0 rounded-full ${dot}`} />
-      <div className="min-w-0">
-        <span className="font-semibold text-ink">{label}</span>{" "}
-        <span className="text-muted">{body}</span>
-        {people ? <div className="text-ink mt-0.5 font-medium">{people}</div> : null}
+    <div>
+      <div className="flex items-center gap-2 mb-1">
+        <span className={`inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${badgeCls}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+          {badge}
+        </span>
+        <span className="text-[11px] text-muted">{label}</span>
       </div>
+      <ol className="flex flex-wrap gap-x-4 gap-y-0.5">
+        {rows.map((r, i) => (
+          <li key={r.rep} className="flex items-baseline gap-1.5 text-[12px]">
+            <span className="text-[10px] tabular-nums text-tan">{i + 1}</span>
+            <span className="font-semibold text-ink">{r.rep}</span>
+            <span className="text-[11px] text-muted tabular-nums">{stat(r)}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
 
 export default function RepNotes() {
-  const { window: win, backLoaded = [], lowOutput = [], strongStart = [] } = notes || {};
+  const { window: win, backLoaded = [], lowOutput = [] } = notes || {};
+  const backW2 = w2Only(backLoaded);
+  const lowW2 = w2Only(lowOutput);
   return (
-    <div className="rounded-xl border border-rule bg-card p-4 md:p-5 font-sans">
-      <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
-        <h3 className="font-serif text-lg md:text-xl font-semibold text-ink leading-tight">Cadence &amp; Watch</h3>
-        <span className="text-[11px] text-muted">{win} · first-week vs full-month · B2B net</span>
+    <div className="mt-3 rounded-xl border border-rule bg-card p-3.5 md:p-4 font-sans">
+      <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2.5">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-inksoft">Watch Outs</span>
+        <span className="text-[10px] text-tan">W-2 only · B2B net · {win}</span>
       </div>
 
-      <div className="space-y-3 text-[13px] leading-snug">
-        {backLoaded.length > 0 && (
-          <Note dot="bg-partial" label="Back-loaded closers."
-            body="Quiet week 1 but strong months — working; deals just land mid/late month. A nudge for earlier pipeline, not a flag."
-            people={names(backLoaded)} />
-        )}
-        {lowOutput.length > 0 && (
-          <Note dot="bg-unfavorable" label="Low output — watch."
-            body="Consistently light all month, not just week 1 — worth a production check."
-            people={names(lowOutput, true)} />
-        )}
-        {strongStart.length > 0 && (
-          <Note dot="bg-favorable" label="Strong month-start."
-            body="Show up big in week 1, every month."
-            people={names(strongStart)} />
+      <div className="space-y-3">
+        <Tier
+          dot="bg-partial"
+          badge="Back-loaded"
+          badgeCls="bg-partial/15 text-ink"
+          label="waits until the final week"
+          rows={backW2}
+          stat={(r) => `${r.lastWkPct}% final wk · ${fmtK(r.avgFull)}/mo`}
+        />
+        <Tier
+          dot="bg-unfavorable"
+          badge="Running quiet"
+          badgeCls="bg-unfavorable/12 text-ink"
+          label="light all month"
+          rows={lowW2}
+          stat={(r) => `${fmtK(r.avgFull)}/mo · ~${r.quietWeekdays} quiet days`}
+        />
+        {lowW2.length === 0 && (
+          <p className="text-[11px] text-muted">No W-2 rep is running quiet all month — the only watch-out is timing.</p>
         )}
       </div>
-
-      <p className="text-[11px] text-tan mt-3 leading-snug">
-        Last 5 complete months. A quiet first week is usually cadence (deals close later), not absence — no full-time rep is
-        consistently missing week 1; the watch list above is 1099 contractors low <em>all</em> month.
-      </p>
     </div>
   );
 }

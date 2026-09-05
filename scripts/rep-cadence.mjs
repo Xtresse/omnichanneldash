@@ -33,7 +33,8 @@ const MANAGERS = new Set(["Becky Curry", "Julie Fetter"]);
 
 // Tunables (dollars).
 const BACKLOADED_W1_PCT = 12;   // week-1 share below this = back-loaded
-const BACKLOADED_MIN_FULL = 20000; // ...but only if the month is otherwise healthy
+const BACKLOADED_LASTWK_PCT = 45; // ...or this much of the month lands in the final week
+const BACKLOADED_MIN_FULL = 20000; // ...but only flag a rep whose month is otherwise healthy
 const LOW_OUTPUT_FULL = 3000;   // avg full-month below this = low output
 const STRONG_W1 = 10000;        // avg week-1 at/above this = strong start
 
@@ -49,6 +50,19 @@ function lastCompleteMonths(todayIso, n) {
   return out;
 }
 
+// Days in a month, and how many of them are weekdays (Mon–Fri) — for the
+// "goes quiet" count. UTC throughout, matching the shop-local day keys.
+function monthShape(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  let weekdays = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    if (dow !== 0 && dow !== 6) weekdays += 1;
+  }
+  return { daysInMonth, weekdays };
+}
+
 async function main() {
   const today = shopLocalDate(new Date().toISOString());
   const months = lastCompleteMonths(today, 5);
@@ -58,34 +72,60 @@ async function main() {
   const byOrder = {};
   for (const li of rows) { const id = li.order_id; if (id && !byOrder[id]) byOrder[id] = li; }
 
-  const D = {}; // rep -> ym -> { week1, full }
+  const shape = Object.fromEntries(months.map((m) => [m, monthShape(m)]));
+
+  // rep -> ym -> { week1, lastWeek, full, sellWeekdays:Set<day> }
+  const D = {};
   for (const o of Object.values(byOrder)) {
     if (classifyChannel({ tagsRaw: o.order_tags, discountCodesRaw: o.order_discount_codes }) !== "B2B") continue;
     const rep = findRep(o.order_tags);
     if (!rep) continue;
     const dl = shopLocalDate(o.order_created_at);
-    const ym = dl.slice(0, 7), day = Number(dl.slice(8, 10));
+    const ym = dl.slice(0, 7);
+    if (!shape[ym]) continue; // outside the 5-month window
+    const day = Number(dl.slice(8, 10));
     const net = Math.max(0, Number(o.order_subtotal_price || 0) - Number(o.order_refunds_subtotal || 0));
     D[rep] ??= {};
-    D[rep][ym] ??= { week1: 0, full: 0 };
-    D[rep][ym].full += net;
-    if (day <= 7) D[rep][ym].week1 += net;
+    D[rep][ym] ??= { week1: 0, lastWeek: 0, full: 0, sellWeekdays: new Set() };
+    const rec = D[rep][ym];
+    rec.full += net;
+    if (day <= 7) rec.week1 += net;
+    if (day > shape[ym].daysInMonth - 7) rec.lastWeek += net; // final 7 calendar days
+    if (net > 0) {
+      const dow = new Date(dl + "T00:00:00Z").getUTCDay();
+      if (dow !== 0 && dow !== 6) rec.sellWeekdays.add(day);
+    }
   }
 
   const reps = Object.keys(D).map((rep) => {
-    const w1 = months.map((m) => D[rep][m]?.week1 || 0);
-    const full = months.map((m) => D[rep][m]?.full || 0);
-    const active = months.filter((m) => (D[rep][m]?.full || 0) > 0).length;
+    const rec = (m) => D[rep][m];
+    const w1 = months.map((m) => rec(m)?.week1 || 0);
+    const lw = months.map((m) => rec(m)?.lastWeek || 0);
+    const full = months.map((m) => rec(m)?.full || 0);
+    const active = months.filter((m) => (rec(m)?.full || 0) > 0).length;
     const avgW1 = w1.reduce((a, b) => a + b, 0) / months.length;
+    const avgLastWk = lw.reduce((a, b) => a + b, 0) / months.length;
     const avgFull = full.reduce((a, b) => a + b, 0) / months.length;
     const w1pct = avgFull > 0 ? (avgW1 / avgFull) * 100 : 0;
-    return { rep, terr: territoryFor(rep) || "?", avgW1: Math.round(avgW1), avgFull: Math.round(avgFull), w1pct: Math.round(w1pct), active, manager: MANAGERS.has(rep) };
+    const lastWkPct = avgFull > 0 ? (avgLastWk / avgFull) * 100 : 0;
+    // Quiet weekdays: over the months the rep was active, the average number of
+    // weekdays with no order. (Averaged over active months only, so a rep who
+    // started mid-window isn't penalised for months before they existed.)
+    const activeMonths = months.filter((m) => (rec(m)?.full || 0) > 0);
+    const quietWeekdays = activeMonths.length
+      ? activeMonths.reduce((a, m) => a + (shape[m].weekdays - rec(m).sellWeekdays.size), 0) / activeMonths.length
+      : 0;
+    return {
+      rep, terr: territoryFor(rep) || "?",
+      avgW1: Math.round(avgW1), avgFull: Math.round(avgFull),
+      w1pct: Math.round(w1pct), lastWkPct: Math.round(lastWkPct),
+      quietWeekdays: Math.round(quietWeekdays), active, manager: MANAGERS.has(rep),
+    };
   }).filter((r) => r.active > 0 && !r.manager);
 
-  const byName = (a, b) => a.rep.localeCompare(b.rep);
   const backLoaded = reps
-    .filter((r) => r.avgFull >= BACKLOADED_MIN_FULL && r.w1pct < BACKLOADED_W1_PCT)
-    .sort((a, b) => b.avgFull - a.avgFull);
+    .filter((r) => r.avgFull >= BACKLOADED_MIN_FULL && (r.w1pct < BACKLOADED_W1_PCT || r.lastWkPct >= BACKLOADED_LASTWK_PCT))
+    .sort((a, b) => b.lastWkPct - a.lastWkPct || a.w1pct - b.w1pct);
   const lowOutput = reps
     .filter((r) => r.avgFull < LOW_OUTPUT_FULL)
     .sort((a, b) => a.avgFull - b.avgFull);
@@ -98,15 +138,15 @@ async function main() {
     generatedAt: today,
     window: `${label(months[0])}–${label(months[months.length - 1])} ${months[months.length - 1].slice(0, 4)}`,
     months,
-    method: "B2B net sales by rep, first 7 days vs full month, last 5 complete months.",
-    backLoaded: backLoaded.map(({ rep, terr, avgFull, w1pct }) => ({ rep, terr, avgFull, w1pct })),
-    lowOutput: lowOutput.map(({ rep, terr, avgFull }) => ({ rep, terr, avgFull })),
+    method: "B2B net sales by rep: first-7-days, final-7-days and quiet-weekday cadence over the last 5 complete months.",
+    backLoaded: backLoaded.map(({ rep, terr, avgFull, w1pct, lastWkPct }) => ({ rep, terr, avgFull, w1pct, lastWkPct })),
+    lowOutput: lowOutput.map(({ rep, terr, avgFull, quietWeekdays }) => ({ rep, terr, avgFull, quietWeekdays })),
     strongStart: strongStart.map(({ rep, terr, avgW1 }) => ({ rep, terr, avgW1 })),
   };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 2) + "\n");
   console.log(`Wrote ${path.relative(path.join(__dirname, ".."), OUT)} — window ${out.window}`);
-  console.log(`  back-loaded: ${out.backLoaded.map((r) => r.rep).join(", ") || "none"}`);
-  console.log(`  low output:  ${out.lowOutput.map((r) => `${r.rep} (${r.terr})`).join(", ") || "none"}`);
+  console.log(`  back-loaded: ${out.backLoaded.map((r) => `${r.rep} (${r.lastWkPct}% final wk)`).join(", ") || "none"}`);
+  console.log(`  low output:  ${out.lowOutput.map((r) => `${r.rep} (${r.terr}, ~${r.quietWeekdays} quiet wkdays)`).join(", ") || "none"}`);
   console.log(`  strong start:${out.strongStart.map((r) => r.rep).join(", ") || "none"}`);
 }
 

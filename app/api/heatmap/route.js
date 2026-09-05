@@ -126,29 +126,80 @@ async function loadSpend(from, to) {
 
 const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// The dashboard has no DTC/B2B Shopify history before this, so a prior window
+// that lands entirely before it isn't a real comparison — it's a wall of
+// "new vs …". YTD's prior year (2025) is the case this guards.
+const DATA_FLOOR = "2026-03-31";
+
 /**
- * The period to compare each rep against, for the "vs last month" trend in the
- * summary. A month-anchored window (MTD / a full month, from = the 1st) compares
- * to the SAME calendar days of the prior month (a fair pace read — "through day 5
- * of Sep vs day 5 of Aug"); any other window compares to the equal-length span
- * immediately before it.
+ * The period to compare each rep against, for the summary trend. The
+ * comparison must match the SHAPE of the window, not just "does it start on the
+ * 1st" — QTD and YTD both start on a 1st, and the old code compared a whole
+ * quarter to 5 days of the prior month (→ absurd 6669% swings). We infer the
+ * shape from from/to (no extra param, so the cache key and warm path are
+ * untouched) and compare like-for-like, to-date:
+ *
+ *   MTD  (1st → same month)          → same calendar days of the prior month  ("Aug")
+ *   QTD  (quarter-start 1st → later)  → same days-into-quarter, prior quarter  ("Q2")
+ *   YTD  (Jan 1 → later month)        → same days-into-year, prior year        ("'25")
+ *   else (a custom range)             → the equal-length span immediately before ("prior")
+ *
+ * `comparable` is false when the prior window predates DATA_FLOOR (YTD), so the
+ * client can omit the trend rather than show a meaningless one.
  */
 function priorWindow(from, to) {
-  const iso = (d) => d.toISOString().slice(0, 10);
+  const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
   const f = new Date(from + "T00:00:00Z");
   const t = new Date(to + "T00:00:00Z");
-  if (f.getUTCDate() === 1) {
-    const py = f.getUTCMonth() === 0 ? f.getUTCFullYear() - 1 : f.getUTCFullYear();
-    const pm = (f.getUTCMonth() + 11) % 12;
+  const fM = f.getUTCMonth();
+  const fD = f.getUTCDate();
+  const sameMonth = f.getUTCFullYear() === t.getUTCFullYear() && fM === t.getUTCMonth();
+  const span = Math.round((t - f) / 86400000) + 1;
+  const withFloor = (o) => ({ ...o, comparable: o.priorTo >= DATA_FLOOR });
+
+  // YTD — Jan 1 into a later month → prior year, same number of days in.
+  if (fD === 1 && fM === 0 && !sameMonth) {
+    const py = f.getUTCFullYear() - 1;
+    const pf = Date.UTC(py, 0, 1);
+    return withFloor({
+      priorFrom: iso(pf),
+      priorTo: iso(pf + (span - 1) * 86400000),
+      priorLabel: `'${String(py).slice(2)}`,
+    });
+  }
+  // QTD — a quarter-start month (Jan/Apr/Jul/Oct), 1st, into a later month →
+  // the same span measured from the PRIOR quarter's start.
+  if (fD === 1 && fM % 3 === 0 && !sameMonth) {
+    let py = f.getUTCFullYear();
+    let pm = fM - 3;
+    if (pm < 0) { pm += 12; py -= 1; }
+    const pf = Date.UTC(py, pm, 1);
+    return withFloor({
+      priorFrom: iso(pf),
+      priorTo: iso(pf + (span - 1) * 86400000),
+      priorLabel: `Q${Math.floor(pm / 3) + 1}`,
+    });
+  }
+  // MTD / a single month — same calendar days of the prior month.
+  if (fD === 1 && sameMonth) {
+    const py = fM === 0 ? f.getUTCFullYear() - 1 : f.getUTCFullYear();
+    const pm = (fM + 11) % 12;
     const lastOfPrior = new Date(Date.UTC(py, pm + 1, 0)).getUTCDate();
     const dom = Math.min(t.getUTCDate(), lastOfPrior);
     const mm = String(pm + 1).padStart(2, "0");
-    return { priorFrom: `${py}-${mm}-01`, priorTo: `${py}-${mm}-${String(dom).padStart(2, "0")}`, priorLabel: MONTH_ABBR[pm] };
+    return withFloor({
+      priorFrom: `${py}-${mm}-01`,
+      priorTo: `${py}-${mm}-${String(dom).padStart(2, "0")}`,
+      priorLabel: MONTH_ABBR[pm],
+    });
   }
-  const span = Math.round((t - f) / 86400000) + 1;
-  const pt = new Date(f.getTime() - 86400000);
-  const pf = new Date(pt.getTime() - (span - 1) * 86400000);
-  return { priorFrom: iso(pf), priorTo: iso(pt), priorLabel: "prior" };
+  // Custom range — the equal-length window immediately before it.
+  const pt = f.getTime() - 86400000;
+  return withFloor({
+    priorFrom: iso(pt - (span - 1) * 86400000),
+    priorTo: iso(pt),
+    priorLabel: "prior",
+  });
 }
 
 /**
@@ -174,7 +225,7 @@ export async function computeHeatMap(from, to, pre = {}) {
 
   // Per-rep prior-period net for the trend, from the already-fetched all-time
   // rows (no extra pull). Same buildDashboardData path, so the numbers tie.
-  const { priorFrom, priorTo, priorLabel } = priorWindow(from, to);
+  const { priorFrom, priorTo, priorLabel, comparable } = priorWindow(from, to);
   const priorByRep = {};
   try {
     // buildDashboardData does NOT filter rows by from/to — the caller passes
@@ -200,6 +251,7 @@ export async function computeHeatMap(from, to, pre = {}) {
     ok: true,
     ...grid,
     priorLabel,
+    priorComparable: comparable,
     priorWindow: { from: priorFrom, to: priorTo },
     spend: { available: spend.available, reason: spend.reason, detail: spend.detail },
   };

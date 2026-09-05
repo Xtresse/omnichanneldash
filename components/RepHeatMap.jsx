@@ -45,13 +45,21 @@ const isWeekend = (d) => dow(d) === 0 || dow(d) === 6;
 
 // ---- the two per-rep summary bullets (replaces the cryptic "1z / ⚠$64") -----
 // Trend: this window's net vs the prior period (server sends r.priorNet + the
-// label, e.g. "Aug").
-function trendBullet(cur, prior, label) {
-  if (!(prior > 0)) return { text: cur > 0 ? `first sales vs ${label}` : `nothing vs ${label}`, cls: "text-tan" };
-  const pct = Math.round(((cur - prior) / prior) * 100);
+// label — "Aug" for MTD, "Q2" for QTD, "'25" for YTD). Big jumps read as a
+// MULTIPLE (▲8.9× / ▲68×), not a four-digit percent — a rep whose territory
+// launched this quarter is up "6669%" over last quarter, which looks broken;
+// "▲68× vs Q2" says the same thing and reads clean. Returns null when the
+// prior window has no comparable data (YTD's prior year), so no trend shows.
+function trendBullet(cur, prior, label, comparable) {
+  if (comparable === false) return null;
+  if (!(prior > 0)) return cur > 0 ? { text: `new vs ${label}`, cls: "text-tan" } : null;
+  const ratio = cur / prior;
+  const pct = Math.round((ratio - 1) * 100);
   if (Math.abs(pct) < 3) return { text: `flat vs ${label}`, cls: "text-muted" };
   const up = pct > 0;
-  return { text: `${up ? "▲" : "▼"} ${Math.abs(pct)}% vs ${label}`, cls: up ? "text-favorable" : "text-unfavorable" };
+  const mag =
+    up && ratio >= 3 ? (ratio >= 10 ? `${Math.round(ratio)}×` : `${ratio.toFixed(1)}×`) : `${Math.abs(pct)}%`;
+  return { text: `${up ? "▲" : "▼"} ${mag} vs ${label}`, cls: up ? "text-favorable" : "text-unfavorable" };
 }
 
 // Cadence: plain English over the COMPLETED weekdays (weekends + today excluded,
@@ -154,6 +162,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
   // fallback so an older payload without `today` still counts every day.
   const today = showing?.today || "9999-12-31";
   const priorLabel = showing?.priorLabel || "prior";
+  const priorComparable = showing?.priorComparable !== false;
   const max = metric === "net" ? showing?.maxNet : showing?.maxSpend;
 
   // Month boundaries for the column header ruler.
@@ -431,7 +440,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                         className={`py-1 px-0 font-sans font-normal align-bottom ${
                           we ? "bg-paper2/60" : ""
                         }`}
-                        style={{ minWidth: cellW, ...(wide ? { width: cellW } : {}) }}
+                        style={{ minWidth: cellW }}
                       >
                         {mark && (
                           <span className="block text-[9px] text-inksoft font-semibold leading-tight">
@@ -527,7 +536,6 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                             style={{
                               backgroundColor: bg || (weekend ? "#F2EEE7" : "#FBFAF7"),
                               minWidth: cellW,
-                              ...(wide ? { width: cellW } : {}),
                               height: 15,
                               // Selection outline wins over the flag outlines so
                               // you can always see what you just clicked.
@@ -544,12 +552,12 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                       })}
                       <td className={`${wide ? "sticky right-0 z-10 " : ""}bg-card py-1 px-2 text-right border-l border-rule align-middle`}>
                         {metric === "net" ? (() => {
-                          const trend = trendBullet(r.totalNet, r.priorNet, priorLabel);
+                          const trend = trendBullet(r.totalNet, r.priorNet, priorLabel, priorComparable);
                           return (
                             <div className="leading-tight">
                               <div className="whitespace-nowrap">
                                 <span className="font-display text-[12px] font-semibold text-ink tabular-nums">{fmt$k(r.totalNet)}</span>
-                                <span className={`font-sans text-[10px] tabular-nums ml-1.5 ${trend.cls}`}>{trend.text}</span>
+                                {trend && <span className={`font-sans text-[10px] tabular-nums ml-1.5 ${trend.cls}`}>{trend.text}</span>}
                               </div>
                               <div className="font-sans text-[10px] text-muted whitespace-nowrap mt-0.5">{cadenceBullet(r.net, days, today)}</div>
                             </div>
