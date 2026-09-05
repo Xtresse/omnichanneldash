@@ -204,11 +204,11 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
   }, [rows]);
 
   return (
-    // Short windows (MTD/a few days) make a narrow grid; without this the card
-    // stretched full-width and left a big white void to the right. Shrink the
-    // whole card to its content on desktop (still full-width on mobile / when
-    // the grid is wide enough to scroll).
-    <div className={`bg-card border border-rule rounded-xl overflow-hidden ${wide ? "" : "lg:w-fit lg:max-w-full"}`}>
+    // Short windows (a handful of days) made a narrow grid that left a big white
+    // void to the right on wide screens. Cap the card on desktop so it doesn't
+    // sprawl, and let the grid FILL that width (day cells grow — see the table),
+    // so there's no void. Wide windows keep full width + horizontal scroll.
+    <div className={`bg-card border border-rule rounded-xl overflow-hidden ${wide ? "" : "lg:max-w-4xl"}`}>
       <div className="bg-browndeep text-paper px-3 py-2.5 md:px-5 md:py-3 space-y-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h3 className="font-display text-base md:text-lg font-semibold leading-tight">
@@ -372,10 +372,11 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
           )}
 
           <div className="overflow-x-auto">
-            {/* max-content, not 100%: stretching the table pushed Summary to the
-                far right and left a dead gap mid-row. Only pin columns once the
-                grid genuinely overflows. */}
-            <table className="border-collapse" style={{ width: wide ? "100%" : "max-content" }}>
+            {/* Fill the card width. On short windows the day columns grow (they
+                have no fixed width below), so the extra space lands IN the grid
+                instead of as a dead gap before Summary — Summary is pinned. On
+                wide windows day cells are fixed and the table scrolls. */}
+            <table className="border-collapse" style={{ width: "100%" }}>
               <thead>
                 <tr>
                   <th
@@ -394,7 +395,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                         className={`py-1 px-0 font-sans font-normal align-bottom ${
                           we ? "bg-paper2/60" : ""
                         }`}
-                        style={{ minWidth: cellW, width: cellW }}
+                        style={{ minWidth: cellW, ...(wide ? { width: cellW } : {}) }}
                       >
                         {mark && (
                           <span className="block text-[9px] text-inksoft font-semibold leading-tight">
@@ -426,7 +427,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                   })}
                   <th
                     className={`${wide ? "sticky right-0 z-10 " : ""}bg-paper2 text-right py-1 px-2 font-sans text-[10px] uppercase tracking-[0.14em] text-muted border-l border-rule align-bottom`}
-                    style={{ minWidth: 170 }}
+                    style={{ width: 170, minWidth: 170 }}
                   >
                     Summary
                   </th>
@@ -489,8 +490,8 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                             className="cursor-pointer"
                             style={{
                               backgroundColor: bg || (weekend ? "#F2EEE7" : "#FBFAF7"),
-                              width: cellW,
                               minWidth: cellW,
+                              ...(wide ? { width: cellW } : {}),
                               height: 15,
                               // Selection outline wins over the flag outlines so
                               // you can always see what you just clicked.
