@@ -43,38 +43,7 @@
       "lastWkPct": 46
     }
   ],
-  "lowOutput": [
-    {
-      "rep": "Maggie Seifert",
-      "terr": "1099",
-      "avgFull": 338,
-      "quietWeekdays": 20
-    },
-    {
-      "rep": "Tom Scurti",
-      "terr": "1099",
-      "avgFull": 1410,
-      "quietWeekdays": 21
-    },
-    {
-      "rep": "Laura Mulcahy",
-      "terr": "1099",
-      "avgFull": 1682,
-      "quietWeekdays": 17
-    },
-    {
-      "rep": "Sasha Parlin",
-      "terr": "1099",
-      "avgFull": 1728,
-      "quietWeekdays": 18
-    },
-    {
-      "rep": "Paul Onofrio",
-      "terr": "1099",
-      "avgFull": 1989,
-      "quietWeekdays": 18
-    }
-  ],
+  "lowOutput": [],
   "strongStart": [
     {
       "rep": "Jamie Bergeron",
@@ -84,46 +53,11 @@
       "avgFull": 123975
     },
     {
-      "rep": "Jim & Anne Weeks",
-      "terr": "1099",
-      "avgW1": 15205,
-      "w1pct": 22,
-      "avgFull": 70378
-    },
-    {
       "rep": "Dia Lamport",
       "terr": "Existing",
       "avgW1": 15012,
       "w1pct": 24,
       "avgFull": 62306
-    },
-    {
-      "rep": "Michelle Spencer",
-      "terr": "Existing",
-      "avgW1": 12285,
-      "w1pct": 19,
-      "avgFull": 66407
-    },
-    {
-      "rep": "Laura Mann",
-      "terr": "Existing",
-      "avgW1": 11904,
-      "w1pct": 19,
-      "avgFull": 61929
-    },
-    {
-      "rep": "Cheryl Greiber",
-      "terr": "Existing",
-      "avgW1": 10864,
-      "w1pct": 17,
-      "avgFull": 64853
-    },
-    {
-      "rep": "Lexi Cavaliere",
-      "terr": "1099",
-      "avgW1": 10039,
-      "w1pct": 15,
-      "avgFull": 69172
     }
   ]
 }

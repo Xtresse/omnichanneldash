@@ -36,7 +36,8 @@ const BACKLOADED_W1_PCT = 12;   // week-1 share below this = back-loaded
 const BACKLOADED_LASTWK_PCT = 45; // ...or this much of the month lands in the final week
 const BACKLOADED_MIN_FULL = 20000; // ...but only flag a rep whose month is otherwise healthy
 const LOW_OUTPUT_FULL = 3000;   // avg full-month below this = low output
-const STRONG_W1 = 10000;        // avg week-1 at/above this = strong start
+const STRONG_W1 = 10000;        // week-1 run-rate at/above this (dollar floor for strong start)
+const STRONG_W1PCT = 23;        // ...AND week-1 share at/above even pace (7 of ~30 days) = genuinely front-loaded
 
 function lastCompleteMonths(todayIso, n) {
   const [y, m] = todayIso.slice(0, 7).split("-").map(Number);
@@ -80,7 +81,12 @@ async function main() {
     if (classifyChannel({ tagsRaw: o.order_tags, discountCodesRaw: o.order_discount_codes }) !== "B2B") continue;
     const rep = findRep(o.order_tags);
     if (!rep) continue;
-    const dl = shopLocalDate(o.order_created_at);
+    // order_created_at is ALREADY shop-local (xtresseCore sets it via
+    // toShopLocalISO). Just take the date — running shopLocalDate() on it again
+    // re-parses a naive-local string in the HOST tz and shifts early-morning-PT
+    // orders back a day on any non-Pacific host (incl. Vercel/UTC).
+    const dl = (o.order_created_at || "").slice(0, 10);
+    if (!dl) continue;
     const ym = dl.slice(0, 7);
     if (!shape[ym]) continue; // outside the 5-month window
     const day = Number(dl.slice(8, 10));
@@ -99,29 +105,35 @@ async function main() {
 
   const reps = Object.keys(D).map((rep) => {
     const rec = (m) => D[rep][m];
-    const w1 = months.map((m) => rec(m)?.week1 || 0);
-    const lw = months.map((m) => rec(m)?.lastWeek || 0);
-    const full = months.map((m) => rec(m)?.full || 0);
-    const active = months.filter((m) => (rec(m)?.full || 0) > 0).length;
-    const avgW1 = w1.reduce((a, b) => a + b, 0) / months.length;
-    const avgLastWk = lw.reduce((a, b) => a + b, 0) / months.length;
-    const avgFull = full.reduce((a, b) => a + b, 0) / months.length;
-    const w1pct = avgFull > 0 ? (avgW1 / avgFull) * 100 : 0;
-    const lastWkPct = avgFull > 0 ? (avgLastWk / avgFull) * 100 : 0;
-    // Quiet weekdays: over the months the rep was active, the average number of
-    // weekdays with no order. (Averaged over active months only, so a rep who
-    // started mid-window isn't penalised for months before they existed.)
     const activeMonths = months.filter((m) => (rec(m)?.full || 0) > 0);
-    const quietWeekdays = activeMonths.length
-      ? activeMonths.reduce((a, m) => a + (shape[m].weekdays - rec(m).sellWeekdays.size), 0) / activeMonths.length
+    const active = activeMonths.length;
+    // Shares are ratios of the RAW window sums, so the averaging denominator
+    // cancels out and can't distort them. Dollar run-rates divide by ACTIVE
+    // months (same denominator as quietWeekdays below), so a rep who started
+    // mid-window is measured on the months they actually worked, not penalised
+    // by empty months before they existed.
+    const sumW1 = months.reduce((a, m) => a + (rec(m)?.week1 || 0), 0);
+    const sumLastWk = months.reduce((a, m) => a + (rec(m)?.lastWeek || 0), 0);
+    const sumFull = months.reduce((a, m) => a + (rec(m)?.full || 0), 0);
+    const div = Math.max(1, active);
+    const avgW1 = sumW1 / div;
+    const avgFull = sumFull / div;
+    const w1pct = sumFull > 0 ? (sumW1 / sumFull) * 100 : 0;
+    const lastWkPct = sumFull > 0 ? (sumLastWk / sumFull) * 100 : 0;
+    const quietWeekdays = active
+      ? activeMonths.reduce((a, m) => a + (shape[m].weekdays - rec(m).sellWeekdays.size), 0) / active
       : 0;
     return {
       rep, terr: territoryFor(rep) || "?",
       avgW1: Math.round(avgW1), avgFull: Math.round(avgFull),
       w1pct: Math.round(w1pct), lastWkPct: Math.round(lastWkPct),
       quietWeekdays: Math.round(quietWeekdays), active, manager: MANAGERS.has(rep),
+      sumW1, sumFull, // raw window sums (for the dollar-weighted team benchmark; not emitted)
     };
-  }).filter((r) => r.active > 0 && !r.manager);
+    // Exclude managers (no quota) AND 1099 contractors at the SOURCE — the watch
+    // list is a ranking, and 1099s are never ranked (President's Club rule), so
+    // the persisted JSON must not carry them (defense in depth vs. the UI filter).
+  }).filter((r) => r.active > 0 && !r.manager && r.terr !== "1099");
 
   const backLoaded = reps
     .filter((r) => r.avgFull >= BACKLOADED_MIN_FULL && (r.w1pct < BACKLOADED_W1_PCT || r.lastWkPct >= BACKLOADED_LASTWK_PCT))
@@ -129,20 +141,25 @@ async function main() {
   const lowOutput = reps
     .filter((r) => r.avgFull < LOW_OUTPUT_FULL)
     .sort((a, b) => a.avgFull - b.avgFull);
+  // "Strong start" must mean genuinely FRONT-LOADED, not just high-volume. Rank
+  // by week-1 SHARE and require it above even pace (STRONG_W1PCT), with a dollar
+  // floor and a min-active-months guard so "reliably" is earned, not a one-month
+  // spike. (Ranking by absolute week-1 dollars mislabeled big-but-back-loaded
+  // reps like a $65k/mo rep who books only 17% in week 1.)
   const strongStart = reps
-    .filter((r) => r.avgW1 >= STRONG_W1)
-    .sort((a, b) => b.avgW1 - a.avgW1);
+    .filter((r) => r.avgW1 >= STRONG_W1 && r.w1pct >= STRONG_W1PCT && r.active >= 4)
+    .sort((a, b) => b.w1pct - a.w1pct || b.avgW1 - a.avgW1);
 
-  // Team week-1 benchmark (W-2 only) — what share of the month the W-2 team
-  // books in the first 7 days, so a rep's week-1 % reads against a yardstick.
-  // Even pacing would be ~23% (7 of ~30 days). Dollar-weighted, not a mean of
-  // percentages, so a tiny rep can't swing it.
-  const w2 = reps.filter((r) => r.terr !== "1099" && r.avgFull > 0);
-  const w2FullSum = w2.reduce((a, r) => a + r.avgFull, 0);
-  const w2W1Sum = w2.reduce((a, r) => a + r.avgW1, 0);
+  // Team week-1 benchmark — what share of the month the (W-2, 1099 already
+  // excluded above) team books in the first 7 days, so a rep's week-1 % reads
+  // against a yardstick. Even pacing would be ~23% (7 of ~30 days). Computed
+  // from the RAW window sums (true dollar-weighted share) — NOT a sum of the
+  // per-active-month run-rates, which would over-weight a partial-window rep.
+  const teamFull = reps.reduce((a, r) => a + r.sumFull, 0);
+  const teamW1 = reps.reduce((a, r) => a + r.sumW1, 0);
   const week1 = {
-    teamW1Pct: w2FullSum > 0 ? Math.round((w2W1Sum / w2FullSum) * 100) : 0,
-    evenPacePct: 23,
+    teamW1Pct: teamFull > 0 ? Math.round((teamW1 / teamFull) * 100) : 0,
+    evenPacePct: STRONG_W1PCT,
   };
 
   const label = (m) => new Date(m + "-01T00:00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });

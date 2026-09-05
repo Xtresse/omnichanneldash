@@ -57,8 +57,12 @@ function trendBullet(cur, prior, label, comparable) {
   const pct = Math.round((ratio - 1) * 100);
   if (Math.abs(pct) < 3) return { text: `flat vs ${label}`, cls: "text-muted" };
   const up = pct > 0;
+  // Big up-moves read as a multiple. Gate on the ONE-DECIMAL-ROUNDED value so a
+  // ratio like 9.96 (which toFixed(1) rounds to "10.0") shows as "10×", never
+  // the disallowed "10.0×".
+  const oneDp = ratio.toFixed(1);
   const mag =
-    up && ratio >= 3 ? (ratio >= 10 ? `${Math.round(ratio)}×` : `${ratio.toFixed(1)}×`) : `${Math.abs(pct)}%`;
+    up && ratio >= 3 ? (ratio >= 10 || oneDp === "10.0" ? `${Math.round(ratio)}×` : `${oneDp}×`) : `${Math.abs(pct)}%`;
   return { text: `${up ? "▲" : "▼"} ${mag} vs ${label}`, cls: up ? "text-favorable" : "text-unfavorable" };
 }
 
@@ -77,8 +81,10 @@ function cadenceBullet(net, days, today) {
   const day = (z) => (z > 1 ? `${z} no-sale days` : "1 no-sale day");
   const allEarly = wk.slice(0, zeros).every((x) => x.v <= 0);
   const allLate = wk.slice(n - zeros).every((x) => x.v <= 0);
-  if (allEarly) return `slow start · ${day(zeros)}`;
-  if (allLate) return `cooled off · ${day(zeros)}`;
+  // "slow start"/"cooled off" is trend language — needs at least TWO edge zeros
+  // to be a pattern. A single leading/trailing quiet day is just a count.
+  if (zeros >= 2 && allEarly) return `slow start · ${day(zeros)}`;
+  if (zeros >= 2 && allLate) return `cooled off · ${day(zeros)}`;
   return day(zeros);
 }
 const dayNum = (d) => String(Number(d.slice(8, 10)));
@@ -121,14 +127,19 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
   const range =
     period === "range" ? [rangeFrom, rangeTo] : mounted ? periodRange(period) : null;
   const [from, to] = range || [];
-  const key = from && to ? `${from}|${to}` : null;
+  // Key by period too: in the first month of a quarter/year MTD and QTD resolve
+  // to the SAME from/to but want different prior-trend comparisons, so they must
+  // not share a cache entry (client or server).
+  const key = from && to ? `${period}|${from}|${to}` : null;
 
   useEffect(() => {
     if (!key || cache[key]) return undefined;
     let cancelled = false;
     setLoading(true);
     setErr(null);
-    const qs = new URLSearchParams({ from, to });
+    // Send the period so the server picks the right prior-trend SHAPE — during
+    // the first month of a quarter/year, from/to alone can't tell MTD from QTD.
+    const qs = new URLSearchParams({ from, to, period });
     fetch(`/api/heatmap?${qs}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {

@@ -167,8 +167,8 @@ export async function GET(request) {
       if (doSlow && LIVE_HEATMAP_PERIODS.includes(period)) {
         try {
           hm = await setCachedData(
-            heatmapCacheKey(from, to),
-            await computeHeatMap(from, to, { rows, allTimeRows })
+            heatmapCacheKey(from, to, period),
+            await computeHeatMap(from, to, { rows, allTimeRows }, period)
           );
         } catch {
           /* the heat map must never take the tick down */

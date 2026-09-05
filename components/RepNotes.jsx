@@ -78,7 +78,11 @@ export default function RepNotes() {
           stat={(r) => `${fmtK(r.avgFull)}/mo · ~${r.quietWeekdays} quiet days`}
         />
         {lowW2.length === 0 && (
-          <p className="text-[11px] text-muted">No W-2 rep is running quiet all month — the only watch-out is timing.</p>
+          <p className="text-[11px] text-muted">
+            {backW2.length === 0
+              ? "No W-2 cadence watch-outs this window — none back-loaded, none running quiet."
+              : "No W-2 rep is running quiet all month — the only watch-out is timing."}
+          </p>
         )}
       </div>
 
@@ -98,9 +102,9 @@ export default function RepNotes() {
           dot="bg-favorable"
           badge="Strong start"
           badgeCls="bg-favorable/15 text-ink"
-          label="reliably book big in week 1"
+          label="front-load the month, every month"
           rows={strongW2}
-          stat={(r) => `${fmtK(r.avgW1)} wk 1 · ${r.w1pct}% of month`}
+          stat={(r) => `${r.w1pct}% wk 1 · ${fmtK(r.avgW1)} of ${fmtK(r.avgFull)}`}
         />
       </div>
     </div>
