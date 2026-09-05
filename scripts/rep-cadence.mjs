@@ -133,21 +133,35 @@ async function main() {
     .filter((r) => r.avgW1 >= STRONG_W1)
     .sort((a, b) => b.avgW1 - a.avgW1);
 
+  // Team week-1 benchmark (W-2 only) — what share of the month the W-2 team
+  // books in the first 7 days, so a rep's week-1 % reads against a yardstick.
+  // Even pacing would be ~23% (7 of ~30 days). Dollar-weighted, not a mean of
+  // percentages, so a tiny rep can't swing it.
+  const w2 = reps.filter((r) => r.terr !== "1099" && r.avgFull > 0);
+  const w2FullSum = w2.reduce((a, r) => a + r.avgFull, 0);
+  const w2W1Sum = w2.reduce((a, r) => a + r.avgW1, 0);
+  const week1 = {
+    teamW1Pct: w2FullSum > 0 ? Math.round((w2W1Sum / w2FullSum) * 100) : 0,
+    evenPacePct: 23,
+  };
+
   const label = (m) => new Date(m + "-01T00:00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
   const out = {
     generatedAt: today,
     window: `${label(months[0])}–${label(months[months.length - 1])} ${months[months.length - 1].slice(0, 4)}`,
     months,
     method: "B2B net sales by rep: first-7-days, final-7-days and quiet-weekday cadence over the last 5 complete months.",
+    week1,
     backLoaded: backLoaded.map(({ rep, terr, avgFull, w1pct, lastWkPct }) => ({ rep, terr, avgFull, w1pct, lastWkPct })),
     lowOutput: lowOutput.map(({ rep, terr, avgFull, quietWeekdays }) => ({ rep, terr, avgFull, quietWeekdays })),
-    strongStart: strongStart.map(({ rep, terr, avgW1 }) => ({ rep, terr, avgW1 })),
+    strongStart: strongStart.map(({ rep, terr, avgW1, w1pct, avgFull }) => ({ rep, terr, avgW1, w1pct, avgFull })),
   };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 2) + "\n");
   console.log(`Wrote ${path.relative(path.join(__dirname, ".."), OUT)} — window ${out.window}`);
   console.log(`  back-loaded: ${out.backLoaded.map((r) => `${r.rep} (${r.lastWkPct}% final wk)`).join(", ") || "none"}`);
   console.log(`  low output:  ${out.lowOutput.map((r) => `${r.rep} (${r.terr}, ~${r.quietWeekdays} quiet wkdays)`).join(", ") || "none"}`);
-  console.log(`  strong start:${out.strongStart.map((r) => r.rep).join(", ") || "none"}`);
+  console.log(`  strong start:${out.strongStart.map((r) => `${r.rep} ($${Math.round(r.avgW1/1000)}k wk1, ${r.w1pct}%)`).join(", ") || "none"}`);
+  console.log(`  team wk1:     ${out.week1.teamW1Pct}% of the month books in week 1 (even pace ~${out.week1.evenPacePct}%)`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

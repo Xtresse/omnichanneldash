@@ -9,6 +9,10 @@
     "2026-08"
   ],
   "method": "B2B net sales by rep: first-7-days, final-7-days and quiet-weekday cadence over the last 5 complete months.",
+  "week1": {
+    "teamW1Pct": 18,
+    "evenPacePct": 23
+  },
   "backLoaded": [
     {
       "rep": "Taylor Bates",
@@ -75,37 +79,51 @@
     {
       "rep": "Jamie Bergeron",
       "terr": "Existing",
-      "avgW1": 35605
+      "avgW1": 35605,
+      "w1pct": 29,
+      "avgFull": 123975
     },
     {
       "rep": "Jim & Anne Weeks",
       "terr": "1099",
-      "avgW1": 15205
+      "avgW1": 15205,
+      "w1pct": 22,
+      "avgFull": 70378
     },
     {
       "rep": "Dia Lamport",
       "terr": "Existing",
-      "avgW1": 15012
+      "avgW1": 15012,
+      "w1pct": 24,
+      "avgFull": 62306
     },
     {
       "rep": "Michelle Spencer",
       "terr": "Existing",
-      "avgW1": 12285
+      "avgW1": 12285,
+      "w1pct": 19,
+      "avgFull": 66407
     },
     {
       "rep": "Laura Mann",
       "terr": "Existing",
-      "avgW1": 11904
+      "avgW1": 11904,
+      "w1pct": 19,
+      "avgFull": 61929
     },
     {
       "rep": "Cheryl Greiber",
       "terr": "Existing",
-      "avgW1": 10864
+      "avgW1": 10864,
+      "w1pct": 17,
+      "avgFull": 64853
     },
     {
       "rep": "Lexi Cavaliere",
       "terr": "1099",
-      "avgW1": 10039
+      "avgW1": 10039,
+      "w1pct": 15,
+      "avgFull": 69172
     }
   ]
 }

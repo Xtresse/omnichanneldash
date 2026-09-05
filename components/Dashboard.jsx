@@ -819,8 +819,8 @@ export default function Dashboard({ initial }) {
               collapsible
               defaultCollapsed
             >
-              <RepHeatMap rangeFrom={customFrom} rangeTo={customTo} />
               <RepNotes />
+              <RepHeatMap rangeFrom={customFrom} rangeTo={customTo} />
             </Section>
 
             <Section
