@@ -176,7 +176,12 @@ export async function computeHeatMap(from, to, pre = {}) {
   const { priorFrom, priorTo, priorLabel } = priorWindow(from, to);
   const priorByRep = {};
   try {
-    const priorData = buildDashboardData(allTimeRows, { from: priorFrom, to: priorTo, granularity: "day" }, allTimeRows);
+    // buildDashboardData does NOT filter rows by from/to — the caller passes
+    // pre-windowed rows (the main grid above passes the window's rows). So fetch
+    // the prior window's rows the same way, or every rep's prior = their whole
+    // all-time net.
+    const priorRows = (await fetchWindowRowsLive(priorFrom, priorTo, {})).rows;
+    const priorData = buildDashboardData(priorRows, { from: priorFrom, to: priorTo, granularity: "day" }, allTimeRows);
     for (const row of priorData.repSalesMonthly || []) {
       for (const [k, v] of Object.entries(row)) {
         if (k === "month" || k === "label") continue;
