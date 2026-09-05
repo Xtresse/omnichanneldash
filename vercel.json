@@ -15,10 +15,6 @@
     {
       "path": "/api/territory-tick",
       "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/box-tick",
-      "schedule": "*/2 * * * *"
     }
   ]
 }

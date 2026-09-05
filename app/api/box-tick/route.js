@@ -39,7 +39,7 @@
 // tick, not because the race is expected under normal operation.
 
 import { NextResponse } from "next/server";
-import { planBoxForOrder } from "@/lib/boxPackingRules.js";
+import { planBoxForOrder, BOX_SKUS } from "@/lib/boxPackingRules.js";
 import { getCachedData, setCachedData } from "@/lib/dataCache.js";
 import {
   BOX_DIRTY_ORDERS_KEY,
@@ -129,7 +129,7 @@ async function applyBoxPlan(order, plan) {
   const begin = await adminGraphQL(
     `mutation BoxEditBegin($id: ID!) {
       orderEditBegin(id: $id) {
-        calculatedOrder { id lineItems(first: 100) { edges { node { id sku } } } }
+        calculatedOrder { id lineItems(first: 100) { edges { node { id sku quantity } } } }
         userErrors { field message }
       }
     }`,
@@ -141,15 +141,31 @@ async function applyBoxPlan(order, plan) {
   const calculatedOrderId = calc?.id;
   if (!calculatedOrderId) throw new Error(`orderEditBegin returned no calculatedOrder for ${order.name}`);
 
-  // "correct" plans first zero out the wrong-SKU box line — matched by SKU
-  // against the CALCULATED order's line items, not the raw order-level line
-  // item id, since the two ids aren't guaranteed to match (see box-SKU
-  // correction session notes).
-  if (plan.action === "correct") {
-    const calcLineItems = (calc.lineItems?.edges || []).map((e) => e.node);
-    const wrongLine = calcLineItems.find((li) => li.sku === plan.removeSku);
-    if (!wrongLine) throw new Error(`orderEditBegin calculatedOrder has no line item for SKU ${plan.removeSku} on ${order.name}`);
+  // Re-derive the box state from the CALCULATED order rather than trusting
+  // the plan's snapshot. fetchOrderForPlan ran earlier in the tick, and on a
+  // burst two runs can both reach this point holding a stale "no box yet"
+  // read — that is exactly how #17425 ended up with two XTR-SHPR-DBL lines
+  // three seconds apart. Checking here, inside the edit we are about to
+  // commit, is the last point where the answer is still current.
+  const calcLineItems = (calc.lineItems?.edges || []).map((e) => e.node);
+  const calcBoxLines = calcLineItems.filter(
+    (li) => BOX_SKUS.has(li.sku) && Number(li.quantity) > 0
+  );
+  const calcBoxQty = calcBoxLines.reduce((sum, li) => sum + (Number(li.quantity) || 0), 0);
+  if (
+    calcBoxLines.length === 1 &&
+    calcBoxLines[0].sku === plan.addSku &&
+    calcBoxQty === plan.quantity
+  ) {
+    // Another run already reconciled this order. Abandon without committing.
+    return { skipped: true, reason: "already-reconciled" };
+  }
 
+  // Zero EVERY existing box line before adding the correct one. Matching a
+  // single line by SKU wasn't enough: an order can carry two separate lines
+  // of the same box SKU (#17425) or one line each of single- and double-wall
+  // (~60 orders since 8/22), and both shapes have to collapse to one line.
+  for (const boxLine of calcBoxLines) {
     const setQty = await adminGraphQL(
       `mutation BoxEditSetQty($id: ID!, $lineItemId: ID!, $quantity: Int!) {
         orderEditSetQuantity(id: $id, lineItemId: $lineItemId, quantity: $quantity) {
@@ -157,10 +173,14 @@ async function applyBoxPlan(order, plan) {
           userErrors { field message }
         }
       }`,
-      { id: calculatedOrderId, lineItemId: wrongLine.id, quantity: 0 }
+      { id: calculatedOrderId, lineItemId: boxLine.id, quantity: 0 }
     );
     const setQtyErrs = setQty.orderEditSetQuantity?.userErrors || [];
-    if (setQtyErrs.length) throw new Error(`orderEditSetQuantity userErrors on ${order.name}: ${JSON.stringify(setQtyErrs)}`);
+    if (setQtyErrs.length) {
+      throw new Error(
+        `orderEditSetQuantity userErrors on ${order.name} (${boxLine.sku}): ${JSON.stringify(setQtyErrs)}`
+      );
+    }
   }
 
   const add = await adminGraphQL(
@@ -175,10 +195,9 @@ async function applyBoxPlan(order, plan) {
   const addErrs = add.orderEditAddVariant?.userErrors || [];
   if (addErrs.length) throw new Error(`orderEditAddVariant userErrors on ${order.name}: ${JSON.stringify(addErrs)}`);
 
-  const staffNote =
-    plan.action === "correct"
-      ? `box-tick: corrected ${plan.removeSku} -> ${plan.addSku} (${plan.reason})`
-      : `box-tick: added ${plan.addSku} (${plan.reason})`;
+  const staffNote = plan.removeSkus?.length
+    ? `box-tick: reconciled ${plan.removeSkus.join("+")} x${plan.currentQty} -> ${plan.addSku} x${plan.quantity} (${plan.reason})`
+    : `box-tick: added ${plan.addSku} x${plan.quantity} (${plan.reason})`;
   const commit = await adminGraphQL(
     `mutation BoxEditCommit($id: ID!, $staffNote: String) {
       orderEditCommit(id: $id, notifyCustomer: false, staffNote: $staffNote) {
@@ -228,6 +247,28 @@ export async function GET(request) {
   await setCachedData(BOX_DIRTY_ORDERS_KEY, { ids: [], lastAt: new Date().toISOString() });
   await setCachedData(BOX_TICK_KEY, { at: new Date().toISOString() });
 
+  // ==========================================================================
+  // DISABLED 2026-09-05 (Sam, urgent). Do not re-enable without reading this.
+  //
+  // Adding a box SKU to an order made the box a separately-routable line, and
+  // Order Fulfillment Guru routes lines to whichever warehouse shows stock.
+  // Gummies sit at Scale3PL, the branded box sits at ShipBob, so OFG split the
+  // orders and ShipBob shipped the box on its own — 29 customers received a
+  // parcel containing nothing but an empty box (27 of them on 2026-09-03).
+  //
+  // Until OFG is configured to send a whole order to ONE warehouse, this tick
+  // must not put a box on anything. The cron entry is also removed from
+  // vercel.json. Re-enable ONLY after the routing fix is confirmed live.
+  // ==========================================================================
+  return NextResponse.json({
+    ok: true,
+    ran: false,
+    reason: "disabled-box-splits-orders",
+    pending: ids.length,
+    ms: Date.now() - started,
+  });
+
+  /* eslint-disable no-unreachable */
   const applied = [];
   const skipped = [];
   const errors = [];
@@ -266,8 +307,12 @@ export async function GET(request) {
         continue;
       }
 
-      await applyBoxPlan(order, plan);
-      applied.push({ orderId, order: order.name, dryRun: false, plan });
+      const result = await applyBoxPlan(order, plan);
+      if (result?.skipped) {
+        skipped.push({ orderId, order: order.name, reason: result.reason });
+      } else {
+        applied.push({ orderId, order: order.name, dryRun: false, plan });
+      }
     } catch (e) {
       errors.push({ orderId, error: String(e?.message || e) });
     }
