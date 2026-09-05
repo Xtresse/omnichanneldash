@@ -19,6 +19,7 @@ import { periodRange, heatmapCacheKey } from "@/lib/periodWindows.js";
 import { buildHeatMap, spendByRepDay } from "@/lib/heatmap.js";
 import { RAMP_CONFIGURED, fetchRampUsers, fetchRampTransactions } from "@/lib/ramp.js";
 import { REPS } from "@/lib/reps.js";
+import { shopLocalDate } from "@/lib/xtresseCore.js";
 
 export const maxDuration = 300;
 export const revalidate = 300;
@@ -177,10 +178,14 @@ export async function computeHeatMap(from, to, pre = {}) {
   const priorByRep = {};
   try {
     // buildDashboardData does NOT filter rows by from/to — the caller passes
-    // pre-windowed rows (the main grid above passes the window's rows). So fetch
-    // the prior window's rows the same way, or every rep's prior = their whole
-    // all-time net.
-    const priorRows = (await fetchWindowRowsLive(priorFrom, priorTo, {})).rows;
+    // pre-windowed rows. Rather than a second Shopify pull (this route is
+    // CPU-sensitive — see the 2026-08-08 incident), slice the all-time rows we
+    // ALREADY have down to the prior window, shop-local (same day key the grid
+    // buckets on), then aggregate that.
+    const priorRows = allTimeRows.filter((r) => {
+      const d = shopLocalDate(r.order_created_at || "");
+      return d && d >= priorFrom && d <= priorTo;
+    });
     const priorData = buildDashboardData(priorRows, { from: priorFrom, to: priorTo, granularity: "day" }, allTimeRows);
     for (const row of priorData.repSalesMonthly || []) {
       for (const [k, v] of Object.entries(row)) {
