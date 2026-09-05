@@ -42,6 +42,37 @@ const fmt$k = (n) => {
 };
 const dow = (d) => new Date(d + "T00:00:00Z").getUTCDay();
 const isWeekend = (d) => dow(d) === 0 || dow(d) === 6;
+
+// ---- the two per-rep summary bullets (replaces the cryptic "1z / ⚠$64") -----
+// Trend: this window's net vs the prior period (server sends r.priorNet + the
+// label, e.g. "Aug").
+function trendBullet(cur, prior, label) {
+  if (!(prior > 0)) return { text: cur > 0 ? `first sales vs ${label}` : `nothing vs ${label}`, cls: "text-tan" };
+  const pct = Math.round(((cur - prior) / prior) * 100);
+  if (Math.abs(pct) < 3) return { text: `flat vs ${label}`, cls: "text-muted" };
+  const up = pct > 0;
+  return { text: `${up ? "▲" : "▼"} ${Math.abs(pct)}% vs ${label}`, cls: up ? "text-favorable" : "text-unfavorable" };
+}
+
+// Cadence: plain English over the COMPLETED weekdays (weekends + today excluded,
+// matching the zero-dollar count). Says whether they sold every day, where the
+// quiet days fell (slow start / cooled off), or just how many.
+function cadenceBullet(net, days, today) {
+  const wk = days
+    .map((d, i) => ({ v: net[i] || 0, we: isWeekend(d), done: d < today }))
+    .filter((x) => !x.we && x.done);
+  const n = wk.length;
+  if (n === 0) return "no completed weekday yet";
+  const zeros = wk.filter((x) => x.v <= 0).length;
+  if (zeros === 0) return n === 1 ? "sold — 1 day so far" : `sold every day (${n})`;
+  if (zeros === n) return `no sales — ${n} quiet weekday${n > 1 ? "s" : ""}`;
+  const day = (z) => (z > 1 ? `${z} no-sale days` : "1 no-sale day");
+  const allEarly = wk.slice(0, zeros).every((x) => x.v <= 0);
+  const allLate = wk.slice(n - zeros).every((x) => x.v <= 0);
+  if (allEarly) return `slow start · ${day(zeros)}`;
+  if (allLate) return `cooled off · ${day(zeros)}`;
+  return day(zeros);
+}
 const dayNum = (d) => String(Number(d.slice(8, 10)));
 const monthLabel = (d) =>
   new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
@@ -122,6 +153,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
   // outline it as one (matches the server's zeroDollarDays count). Far-future
   // fallback so an older payload without `today` still counts every day.
   const today = showing?.today || "9999-12-31";
+  const priorLabel = showing?.priorLabel || "prior";
   const max = metric === "net" ? showing?.maxNet : showing?.maxSpend;
 
   // Month boundaries for the column header ruler.
@@ -431,7 +463,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                   })}
                   <th
                     className={`${wide ? "sticky right-0 z-10 " : ""}bg-paper2 text-right py-1 px-2 font-sans text-[10px] uppercase tracking-[0.14em] text-muted border-l border-rule align-bottom`}
-                    style={{ width: 170, minWidth: 170 }}
+                    style={{ width: 205, minWidth: 205 }}
                   >
                     Summary
                   </th>
@@ -510,21 +542,20 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                           />
                         );
                       })}
-                      <td className={`${wide ? "sticky right-0 z-10 " : ""}bg-card py-0.5 px-2 text-right whitespace-nowrap border-l border-rule`}>
-                        <span className="font-display text-[12px] font-semibold text-ink tabular-nums">
-                          {metric === "net" ? fmt$k(r.totalNet) : fmt$k(r.totalSpend)}
-                        </span>
-                        <span className="font-sans text-[10px] text-muted tabular-nums ml-2">
-                          {r.zeroDollarDays}z
-                        </span>
-                        {r.spendOnZeroDollarDays > 0 && (
-                          <span
-                            className="font-sans text-[10px] tabular-nums ml-2"
-                            style={{ color: "#5C2F2E" }}
-                            title={`${fmt$(r.spendOnZeroDollarDays)} of T&E on ${r.zeroDollarSpendDays} zero-dollar selling day(s)`}
-                          >
-                            ⚠ {fmt$k(r.spendOnZeroDollarDays)}
-                          </span>
+                      <td className={`${wide ? "sticky right-0 z-10 " : ""}bg-card py-1 px-2 text-right border-l border-rule align-middle`}>
+                        {metric === "net" ? (() => {
+                          const trend = trendBullet(r.totalNet, r.priorNet, priorLabel);
+                          return (
+                            <div className="leading-tight">
+                              <div className="whitespace-nowrap">
+                                <span className="font-display text-[12px] font-semibold text-ink tabular-nums">{fmt$k(r.totalNet)}</span>
+                                <span className={`font-sans text-[10px] tabular-nums ml-1.5 ${trend.cls}`}>{trend.text}</span>
+                              </div>
+                              <div className="font-sans text-[10px] text-muted whitespace-nowrap mt-0.5">{cadenceBullet(r.net, days, today)}</div>
+                            </div>
+                          );
+                        })() : (
+                          <span className="font-display text-[12px] font-semibold text-ink tabular-nums">{fmt$k(r.totalSpend)}</span>
                         )}
                       </td>
                     </tr>

@@ -123,6 +123,33 @@ async function loadSpend(from, to) {
   }
 }
 
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * The period to compare each rep against, for the "vs last month" trend in the
+ * summary. A month-anchored window (MTD / a full month, from = the 1st) compares
+ * to the SAME calendar days of the prior month (a fair pace read — "through day 5
+ * of Sep vs day 5 of Aug"); any other window compares to the equal-length span
+ * immediately before it.
+ */
+function priorWindow(from, to) {
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const f = new Date(from + "T00:00:00Z");
+  const t = new Date(to + "T00:00:00Z");
+  if (f.getUTCDate() === 1) {
+    const py = f.getUTCMonth() === 0 ? f.getUTCFullYear() - 1 : f.getUTCFullYear();
+    const pm = (f.getUTCMonth() + 11) % 12;
+    const lastOfPrior = new Date(Date.UTC(py, pm + 1, 0)).getUTCDate();
+    const dom = Math.min(t.getUTCDate(), lastOfPrior);
+    const mm = String(pm + 1).padStart(2, "0");
+    return { priorFrom: `${py}-${mm}-01`, priorTo: `${py}-${mm}-${String(dom).padStart(2, "0")}`, priorLabel: MONTH_ABBR[pm] };
+  }
+  const span = Math.round((t - f) / 86400000) + 1;
+  const pt = new Date(f.getTime() - 86400000);
+  const pf = new Date(pt.getTime() - (span - 1) * 86400000);
+  return { priorFrom: iso(pf), priorTo: iso(pt), priorLabel: "prior" };
+}
+
 /**
  * @param {object} [pre] rows/allTimeRows the caller ALREADY has. /api/tick has
  *   just fetched both for this window, and re-fetching + re-aggregating them
@@ -143,9 +170,27 @@ export async function computeHeatMap(from, to, pre = {}) {
     to,
     spendAvailable: spend.available,
   });
+
+  // Per-rep prior-period net for the trend, from the already-fetched all-time
+  // rows (no extra pull). Same buildDashboardData path, so the numbers tie.
+  const { priorFrom, priorTo, priorLabel } = priorWindow(from, to);
+  const priorByRep = {};
+  try {
+    const priorData = buildDashboardData(allTimeRows, { from: priorFrom, to: priorTo, granularity: "day" }, allTimeRows);
+    for (const row of priorData.repSalesMonthly || []) {
+      for (const [k, v] of Object.entries(row)) {
+        if (k === "month" || k === "label") continue;
+        priorByRep[k] = (priorByRep[k] || 0) + (Number(v) || 0);
+      }
+    }
+  } catch { /* trend is best-effort — a rep just shows no comparison */ }
+  grid.rows = grid.rows.map((r) => ({ ...r, priorNet: Math.round(priorByRep[r.rep] || 0) }));
+
   return {
     ok: true,
     ...grid,
+    priorLabel,
+    priorWindow: { from: priorFrom, to: priorTo },
     spend: { available: spend.available, reason: spend.reason, detail: spend.detail },
   };
 }
