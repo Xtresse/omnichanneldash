@@ -118,6 +118,10 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
 
   const rows = showing?.rows || [];
   const days = showing?.days || [];
+  // Today is in progress, so its cell isn't a "zero-dollar day" yet — don't
+  // outline it as one (matches the server's zeroDollarDays count). Far-future
+  // fallback so an older payload without `today` still counts every day.
+  const today = showing?.today || "9999-12-31";
   const max = metric === "net" ? showing?.maxNet : showing?.maxSpend;
 
   // Month boundaries for the column header ruler.
@@ -182,8 +186,8 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
       weekend: isWeekend(day),
       net,
       spend,
-      zeroDollar: !isWeekend(day) && !(net > 0),
-      spendNoSale: !isWeekend(day) && spend > 0 && !(net > 0),
+      zeroDollar: !isWeekend(day) && !(net > 0) && day < today,
+      spendNoSale: !isWeekend(day) && spend > 0 && !(net > 0) && day < today,
       periodNet: row.totalNet,
       periodSpend: row.totalSpend,
       shareOfPeriod: row.totalNet > 0 ? net / row.totalNet : 0,
@@ -464,9 +468,9 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
                         const bg = cellColor(v, max);
                         const weekend = isWeekend(d);
                         // A weekday with no net sales is THE signal — outline it.
-                        const zeroFlag = metric === "net" && !weekend && !(v > 0);
+                        const zeroFlag = metric === "net" && !weekend && !(v > 0) && d < today;
                         const spendNoSale =
-                          metric === "spend" && !weekend && v > 0 && !(r.net[i] > 0);
+                          metric === "spend" && !weekend && v > 0 && !(r.net[i] > 0) && d < today;
                         const isSel = sel && sel.rep === r.rep && sel.i === i;
                         return (
                           <td
