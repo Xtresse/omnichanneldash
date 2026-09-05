@@ -134,7 +134,7 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
   // Cell width scales with the window. Short periods get columns wide enough to
   // carry a readable date label; long ones shrink and scroll.
   const cellW =
-    days.length <= 14 ? 34 : days.length <= 31 ? 24 : days.length <= 45 ? 18 : days.length <= 120 ? 13 : 10;
+    days.length <= 7 ? 44 : days.length <= 14 ? 34 : days.length <= 31 ? 24 : days.length <= 45 ? 18 : days.length <= 120 ? 13 : 10;
   // Per-day numbers only fit above a certain width; below it fall back to
   // month markers so the ruler stays legible instead of turning to mush.
   const showEveryDay = cellW >= 18;
@@ -204,7 +204,11 @@ export default function RepHeatMap({ rangeFrom, rangeTo }) {
   }, [rows]);
 
   return (
-    <div className="bg-card border border-rule rounded-xl overflow-hidden">
+    // Short windows (MTD/a few days) make a narrow grid; without this the card
+    // stretched full-width and left a big white void to the right. Shrink the
+    // whole card to its content on desktop (still full-width on mobile / when
+    // the grid is wide enough to scroll).
+    <div className={`bg-card border border-rule rounded-xl overflow-hidden ${wide ? "" : "lg:w-fit lg:max-w-full"}`}>
       <div className="bg-browndeep text-paper px-3 py-2.5 md:px-5 md:py-3 space-y-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h3 className="font-display text-base md:text-lg font-semibold leading-tight">
