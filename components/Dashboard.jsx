@@ -8,6 +8,7 @@ import ChannelMetrics from "./ChannelMetrics.jsx";
 import RepPerformance from "./RepPerformance.jsx";
 import PresidentsClub from "./PresidentsClub.jsx";
 import RepLeaderboard from "./RepLeaderboard.jsx";
+import RepNotes from "./RepNotes.jsx";
 // Heavy-ish grid (reps × up to 400 day cells) and it lives in a collapsed
 // bottom section, so keep it out of the initial bundle.
 const RepHeatMap = dynamic(() => import("./RepHeatMap.jsx"), {
@@ -712,6 +713,13 @@ export default function Dashboard({ initial }) {
             </SectionGroup>
 
             <SectionGroup title="Rep Performance" detail="Leaderboards, Daily Activity & Programs">
+            <Section
+              title="Cadence & Watch"
+              detail="Order cadence & who's underproducing · last 5 complete months"
+              collapsible
+            >
+              <RepNotes />
+            </Section>
             <Section
               title="Sales By Rep"
               detail="Stack-Ranked Leaderboard · MTD / QTD / YTD · Trend Lines Below"

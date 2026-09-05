@@ -1,0 +1,96 @@
+{
+  "generatedAt": "2026-09-05",
+  "window": "Apr–Aug 2026",
+  "months": [
+    "2026-04",
+    "2026-05",
+    "2026-06",
+    "2026-07",
+    "2026-08"
+  ],
+  "method": "B2B net sales by rep, first 7 days vs full month, last 5 complete months.",
+  "backLoaded": [
+    {
+      "rep": "Tyler De Masi",
+      "terr": "Existing",
+      "avgFull": 52890,
+      "w1pct": 2
+    },
+    {
+      "rep": "Michelle Boehle",
+      "terr": "Existing",
+      "avgFull": 45788,
+      "w1pct": 10
+    },
+    {
+      "rep": "Taylor Bates",
+      "terr": "Existing",
+      "avgFull": 35323,
+      "w1pct": 2
+    }
+  ],
+  "lowOutput": [
+    {
+      "rep": "Maggie Seifert",
+      "terr": "1099",
+      "avgFull": 338
+    },
+    {
+      "rep": "Tom Scurti",
+      "terr": "1099",
+      "avgFull": 1410
+    },
+    {
+      "rep": "Laura Mulcahy",
+      "terr": "1099",
+      "avgFull": 1682
+    },
+    {
+      "rep": "Sasha Parlin",
+      "terr": "1099",
+      "avgFull": 1728
+    },
+    {
+      "rep": "Paul Onofrio",
+      "terr": "1099",
+      "avgFull": 1989
+    }
+  ],
+  "strongStart": [
+    {
+      "rep": "Jamie Bergeron",
+      "terr": "Existing",
+      "avgW1": 35605
+    },
+    {
+      "rep": "Jim & Anne Weeks",
+      "terr": "1099",
+      "avgW1": 15205
+    },
+    {
+      "rep": "Dia Lamport",
+      "terr": "Existing",
+      "avgW1": 15012
+    },
+    {
+      "rep": "Michelle Spencer",
+      "terr": "Existing",
+      "avgW1": 12285
+    },
+    {
+      "rep": "Laura Mann",
+      "terr": "Existing",
+      "avgW1": 11904
+    },
+    {
+      "rep": "Cheryl Greiber",
+      "terr": "Existing",
+      "avgW1": 10864
+    },
+    {
+      "rep": "Lexi Cavaliere",
+      "terr": "1099",
+      "avgW1": 10039
+    }
+  ]
+}
